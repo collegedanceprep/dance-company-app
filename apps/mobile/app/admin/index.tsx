@@ -2,7 +2,7 @@ import React from "react"
 import { ScrollView, View, Text, StyleSheet, TouchableOpacity, Modal, FlatList, RefreshControl, ActivityIndicator } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { useState, useCallback } from "react"
-import { CalendarDays, DollarSign, TrendingUp, Activity, Award, Users, X, ChevronDown, ChevronUp, CheckCircle, Clock, XCircle, AlertCircle } from "lucide-react-native"
+import { CalendarDays, DollarSign, TrendingUp, Activity, Award, Users, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, CheckCircle, Clock, XCircle, AlertCircle } from "lucide-react-native"
 import { SPACING, RADIUS } from "@/constants/theme"
 import { useColors } from "@/lib/theme-context"
 import { useAdmin } from "@/lib/admin-context"
@@ -19,8 +19,18 @@ const SESSION_DURATION_FRACTION: Record<string, number> = {
 function sessionRevenue(sessionType: string | null) {
   return SINGLE_HOUR_PRICE * (SESSION_REVENUE_FRACTION[sessionType ?? ""] ?? 1)
 }
-function currentMonthLabel() { return new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" }) }
-function currentMonthPrefix() { return new Date().toISOString().slice(0, 7) }
+function monthLabel(offset: number) {
+  const d = new Date()
+  d.setDate(1)
+  d.setMonth(d.getMonth() + offset)
+  return d.toLocaleDateString("en-US", { month: "long", year: "numeric" })
+}
+function monthPrefix(offset: number) {
+  const d = new Date()
+  d.setDate(1)
+  d.setMonth(d.getMonth() + offset)
+  return d.toISOString().slice(0, 7)
+}
 
 function BookingItem({ booking: b }: { booking: AdminBooking }) {
   const COLORS = useColors()
@@ -166,6 +176,7 @@ export default function AdminOverviewScreen() {
   const [bookingsModalOpen, setBookingsModalOpen] = useState(false)
   const [revenueModalOpen, setRevenueModalOpen] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
+  const [monthOffset, setMonthOffset] = useState(0)
 
   const onRefresh = useCallback(async () => { setRefreshing(true); await refresh(); setRefreshing(false) }, [refresh])
 
@@ -184,7 +195,7 @@ export default function AdminOverviewScreen() {
     const t = b.utcDatetime ? new Date(b.utcDatetime).getTime() : b.date ? new Date(b.date).getTime() : 0
     return t > 0 && t <= Date.now()
   }
-  const thisMonth = bookings.filter((b) => b.date?.startsWith(currentMonthPrefix()))
+  const thisMonth = bookings.filter((b) => b.date?.startsWith(monthPrefix(monthOffset)))
   const confirmed = thisMonth.filter((b) => b.status?.toLowerCase() === "confirmed" && !isSessionPast(b))
   const completed = thisMonth.filter((b) => b.status?.toLowerCase() !== "cancelled" && isSessionPast(b))
   const cancelled = thisMonth.filter((b) => b.status?.toLowerCase().startsWith("cancelled"))
@@ -207,8 +218,16 @@ export default function AdminOverviewScreen() {
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />}>
         <View style={styles.header}>
           <View>
-            <Text style={styles.month}>{currentMonthLabel()}</Text>
-            <Text style={styles.subtitle}>Company performance snapshot</Text>
+            <View style={styles.monthNav}>
+              <TouchableOpacity onPress={() => setMonthOffset((o) => o - 1)} hitSlop={8} style={styles.monthNavBtn}>
+                <ChevronLeft size={20} color={COLORS.primary} />
+              </TouchableOpacity>
+              <Text style={styles.month}>{monthLabel(monthOffset)}</Text>
+              <TouchableOpacity onPress={() => setMonthOffset((o) => o + 1)} hitSlop={8} style={styles.monthNavBtn}>
+                <ChevronRight size={20} color={COLORS.primary} />
+              </TouchableOpacity>
+            </View>
+            <Text style={[styles.subtitle, { marginLeft: 4 }]}>Company performance snapshot</Text>
           </View>
           <View style={styles.liveBadge}><Text style={styles.liveText}>Live</Text></View>
         </View>
@@ -259,7 +278,7 @@ export default function AdminOverviewScreen() {
       <Modal visible={revenueModalOpen} animationType="slide" presentationStyle="pageSheet">
         <SafeAreaView style={styles.safe} edges={["top"]}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Revenue — {currentMonthLabel()}</Text>
+            <Text style={styles.modalTitle}>Revenue — {monthLabel(monthOffset)}</Text>
             <TouchableOpacity onPress={() => setRevenueModalOpen(false)} hitSlop={8}><X size={22} color={COLORS.text} /></TouchableOpacity>
           </View>
           {completed.length === 0 ? (
@@ -295,7 +314,7 @@ export default function AdminOverviewScreen() {
       <Modal visible={bookingsModalOpen} animationType="slide" presentationStyle="pageSheet">
         <SafeAreaView style={styles.safe} edges={["top"]}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Bookings — {currentMonthLabel()}</Text>
+            <Text style={styles.modalTitle}>Bookings — {monthLabel(monthOffset)}</Text>
             <TouchableOpacity onPress={() => setBookingsModalOpen(false)} hitSlop={8}><X size={22} color={COLORS.text} /></TouchableOpacity>
           </View>
           {thisMonth.length === 0 ? (
@@ -315,6 +334,8 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     center: { flex: 1, justifyContent: "center", alignItems: "center" },
     scroll: { padding: SPACING.md, gap: SPACING.md, paddingBottom: SPACING.xl },
     header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
+    monthNav: { flexDirection: "row", alignItems: "center", gap: 4 },
+    monthNavBtn: { padding: 4 },
     month: { fontSize: 22, fontWeight: "700", color: COLORS.text, fontFamily: "Sora_700Bold" },
     subtitle: { fontSize: 13, color: COLORS.textMuted, marginTop: 2 },
     liveBadge: { backgroundColor: COLORS.greenLight, paddingHorizontal: 10, paddingVertical: 4, borderRadius: RADIUS.full },

@@ -51,7 +51,7 @@ export async function createCheckoutSession(itemId: string) {
       itemId,
       itemType: pkg ? "pack" : "single",
       sessions: pkg ? String(pkg.sessions) : "1",
-      sessionType: pkg ? "pack-hour" : perPrivate!.id,
+      sessionType: pkg ? "private-60" : perPrivate!.id,
     },
     allow_promotion_codes: true,
     customer_email: session.user.email,

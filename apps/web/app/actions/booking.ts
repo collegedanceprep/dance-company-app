@@ -467,7 +467,7 @@ export async function createBooking(input: {
         Time: input.time,
         Status: "Pending",
         Notes: input.notes ?? "",
-        "Session Type": input.sessionType ?? "pack-hour",
+        "Session Type": input.sessionType ?? "private-60",
         ...(utcForCreate ? { "UTC Datetime": utcForCreate } : {}),
         ...(useSingleCredit ? { "Single Credit Used": true } : {}),
       })

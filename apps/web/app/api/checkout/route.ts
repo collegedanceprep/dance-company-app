@@ -53,7 +53,7 @@ export async function POST(req: Request) {
       itemId,
       itemType: pkg ? "pack" : "per-private",
       sessions: pkg ? String(pkg.sessions) : "1",
-      sessionType: pkg ? "pack-hour" : perPrivate!.id,
+      sessionType: pkg ? "private-60" : perPrivate!.id,
     },
     allow_promotion_codes: true,
     customer_email: session.user.email,

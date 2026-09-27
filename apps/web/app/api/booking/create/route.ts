@@ -94,8 +94,12 @@ export async function POST(req: Request) {
   const effectiveEmail = profile.email || user.email
 
   // Check per-type single session credit first, then fall back to pack credits
+  const SINGLE_CREDIT_KEY: Record<string, "30" | "45" | "60" | "90"> = {
+    "private-30": "30", "private-45": "45", "private-60": "60", "private-90": "90",
+  }
   const singleField = SINGLE_CREDIT_FIELDS[sessionType ?? ""]
-  const singleCreditsForType = singleField ? (profile.singleCredits[singleField.replace("Single Credits ", "") as "30" | "45" | "60" | "90"] ?? 0) : 0
+  const singleCreditKey = SINGLE_CREDIT_KEY[sessionType ?? ""]
+  const singleCreditsForType = (singleField && singleCreditKey) ? (profile.singleCredits[singleCreditKey] ?? 0) : 0
   const useSingleCredit = singleCreditsForType >= 1
   const creditCost = useSingleCredit ? 1 : (CREDIT_COST[sessionType ?? "private-60"] ?? 1)
   const credits = useSingleCredit ? singleCreditsForType : profile.creditsRemaining

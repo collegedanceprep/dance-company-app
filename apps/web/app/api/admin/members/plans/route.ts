@@ -98,12 +98,12 @@ export async function DELETE(req: Request) {
   const planName: string = planFields["Plan Name"] ?? ""
   await appBase.destroy(TABLES.plans, planId)
 
-  // Detect single-session plans by their name pattern and deduct from the correct field
-  const singleMinMatch = planName.match(/^(\d+)-Min Single/i)
-  if (singleMinMatch) {
-    const minKey = singleMinMatch[1]
+  // Detect single-session plans by sessions count (primary) and name pattern (to pick the right field)
+  const isSingleSession = planSessionsFromRecord === 1
+  if (isSingleSession) {
+    const minMatch = planName.match(/\b(30|45|60|90)\b/)
     const fieldMap: Record<string, string> = { "30": "Single Credits 30", "45": "Single Credits 45", "60": "Single Credits 60", "90": "Single Credits 90" }
-    const field = fieldMap[minKey]
+    const field = minMatch ? fieldMap[minMatch[1]] : undefined
     if (field) {
       const current = (clientRecords[0].fields as any)[field] ?? 0
       const newVal = Math.max(0, current - 1)

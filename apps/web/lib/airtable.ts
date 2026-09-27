@@ -504,7 +504,7 @@ export async function getActivePlanForUser(userId: string): Promise<{ id: string
 export async function getMostRecentInactivePlanForUser(userId: string): Promise<{ id: string } | null> {
   const safeId = userId.replace(/'/g, "\\'")
   const records = await list<PlanFields>(TABLES.plans, {
-    filterByFormula: `AND({User ID} = '${safeId}', {Status} = 'Used')`,
+    filterByFormula: `AND({User ID} = '${safeId}', OR({Status} = 'Used', {Status} = 'Inactive'))`,
     sort: [{ field: "Purchased At", direction: "desc" }],
     maxRecords: 1,
     revalidate: 0,
@@ -783,25 +783,35 @@ export async function refundBookingCredit(
 ): Promise<void> {
   if (usedSingleCredit) {
     const field = SINGLE_CREDIT_FIELD[sessionType]
-    if (field) {
-      const current = (clientFields[field] as number | undefined) ?? 0
-      await update<ClientFields>(TABLES.clients, clientId, { [field]: current + 1 } as Partial<ClientFields>)
-      // Reactivate the matching Used single-session plan so the member can book again
-      if (userId) {
-        const minLabel = sessionType.replace("private-", "")
-        const plans = await getPlansForUser(userId)
-        const usedPlan = plans.find(
-          (p) => p.status === "Used" && p.sessions === 1 && p.planName.toLowerCase().includes(minLabel)
-        ) ?? plans.find((p) => p.status === "Used" && p.sessions === 1)
-        if (usedPlan) await setPlanStatus(usedPlan.id, "Active").catch(() => {})
-      }
+    if (!field) {
+      console.error(`[refundBookingCredit] ERROR: usedSingleCredit=true but sessionType="${sessionType}" has no single-credit field — no refund issued. clientId=${clientId}`)
       return
     }
+    const current = (clientFields[field] as number | undefined) ?? 0
+    console.log(`[refundBookingCredit] Single credit refund: clientId=${clientId} field="${field}" ${current} → ${current + 1}`)
+    await update<ClientFields>(TABLES.clients, clientId, { [field]: current + 1 } as Partial<ClientFields>)
+    if (userId) {
+      const minLabel = sessionType.replace("private-", "")
+      const plans = await getPlansForUser(userId)
+      const isSpentSingle = (p: { status: string; sessions: number }) =>
+        (p.status === "Used" || p.status === "Inactive") && p.sessions === 1
+      const usedPlan = plans.find((p) => isSpentSingle(p) && p.planName.toLowerCase().includes(minLabel))
+        ?? (minLabel ? undefined : plans.find(isSpentSingle))
+      if (usedPlan) {
+        console.log(`[refundBookingCredit] Reactivating single plan: planId=${usedPlan.id} "${usedPlan.planName}"`)
+        await setPlanStatus(usedPlan.id, "Active").catch((e) => console.error(`[refundBookingCredit] Failed to reactivate plan ${usedPlan.id}:`, e))
+      } else {
+        console.warn(`[refundBookingCredit] No Used/Inactive single-session plan found for userId=${userId} sessionType=${sessionType}`)
+      }
+    }
+    return
   }
   const creditRefund = SESSION_CREDIT_COST[sessionType] ?? 1
   const current = clientFields["Credits Remaining"] ?? 0
+  const newTotal = Math.round((current + creditRefund) * 100) / 100
+  console.log(`[refundBookingCredit] Pack credit refund: clientId=${clientId} sessionType=${sessionType} ${current} → ${newTotal} (+${creditRefund})`)
   await update<ClientFields>(TABLES.clients, clientId, {
-    "Credits Remaining": Math.round((current + creditRefund) * 100) / 100,
+    "Credits Remaining": newTotal,
   })
 }
 

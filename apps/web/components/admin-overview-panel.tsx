@@ -21,7 +21,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { BookingFilterBar, applyFilters, type SortDir } from "@/components/booking-filter-bar"
-import { TrendingUp, DollarSign, CalendarDays, Users, Award, Activity, ChevronDown, ChevronUp, Search, Clock, CheckCircle, XCircle, AlertCircle } from "lucide-react"
+import { TrendingUp, DollarSign, CalendarDays, Users, Award, Activity, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Search, Clock, CheckCircle, XCircle, AlertCircle } from "lucide-react"
 import { LocalTime } from "@/components/local-time"
 
 type Props = {
@@ -36,9 +36,11 @@ function isSessionPast(b: { utcDatetime?: string | null; date?: string | null })
   return t > 0 && t <= Date.now()
 }
 
-function currentMonthKey() {
-  const now = new Date()
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`
+function monthKeyFromOffset(offset: number) {
+  const d = new Date()
+  d.setDate(1)
+  d.setMonth(d.getMonth() + offset)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
 }
 
 function monthLabel(key: string) {
@@ -52,12 +54,13 @@ function monthLabel(key: string) {
 export function AdminOverviewPanel({ members, bookings, workers }: Props) {
   const [sheetOpen, setSheetOpen] = useState(false)
   const [revenueSheetOpen, setRevenueSheetOpen] = useState(false)
-  const [sheetMonth, setSheetMonth] = useState(currentMonthKey())
   const [sheetSort, setSheetSort] = useState<SortDir>("desc")
   const [sheetSearch, setSheetSearch] = useState("")
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [monthOffset, setMonthOffset] = useState(0)
 
-  const monthKey = currentMonthKey()
+  const monthKey = monthKeyFromOffset(monthOffset)
+  const [sheetMonth, setSheetMonth] = useState(monthKey)
   const thisMonth = bookings.filter((b) => b.date?.startsWith(monthKey))
   const confirmed = thisMonth.filter((b) => b.status.toLowerCase() === "confirmed" && !isSessionPast(b))
   const completed = thisMonth.filter((b) => b.status.toLowerCase() !== "cancelled" && isSessionPast(b))
@@ -104,7 +107,23 @@ export function AdminOverviewPanel({ members, bookings, workers }: Props) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="font-heading text-xl font-bold tracking-tight">{monthLabel(monthKey)}</h2>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => { setMonthOffset((o) => o - 1); setSheetMonth(monthKeyFromOffset(monthOffset - 1)) }}
+              className="rounded p-1 hover:bg-muted transition-colors"
+              aria-label="Previous month"
+            >
+              <ChevronLeft className="size-4 text-muted-foreground" />
+            </button>
+            <h2 className="font-heading text-xl font-bold tracking-tight">{monthLabel(monthKey)}</h2>
+            <button
+              onClick={() => { setMonthOffset((o) => o + 1); setSheetMonth(monthKeyFromOffset(monthOffset + 1)) }}
+              className="rounded p-1 hover:bg-muted transition-colors"
+              aria-label="Next month"
+            >
+              <ChevronRight className="size-4 text-muted-foreground" />
+            </button>
+          </div>
           <p className="text-sm text-muted-foreground">Company performance snapshot</p>
         </div>
         <Badge variant="outline" className="border-green-300 bg-green-100 text-green-700">Live</Badge>
