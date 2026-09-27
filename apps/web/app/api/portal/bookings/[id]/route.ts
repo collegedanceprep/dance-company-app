@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { headers } from "next/headers"
 import { revalidateTag } from "next/cache"
 import { auth } from "@/lib/auth"
-import { getPrepMasterByEmail, TABLES, appBase, getMostRecentInactivePlanForUser, setPlanStatus, type BookingFields, type ClientFields } from "@/lib/airtable"
+import { getPrepMasterByEmail, TABLES, appBase, getMostRecentInactivePlanForUser, setPlanStatus, refundBookingCredit, type BookingFields, type ClientFields } from "@/lib/airtable"
 import { createNotification } from "@/app/actions/notifications"
 import { sendEmail, bookingUpdatedEmail, bookingCancelledEmail, bookingConfirmedByPmEmail, bookingDeclinedByPmEmail } from "@/lib/email"
 import { isWithin24Hours, fmtDate, fmtTime, etToUtcIso, fmtTimeForNotif, fmtEmailTime, COMPANY_TZ } from "@/lib/utils"
@@ -228,14 +228,10 @@ export async function PATCH(
       })
       const client = clientRecords[0]
       if (client) {
-        const SESSION_CREDIT_COST: Record<string, number> = { "pack-hour": 1, "private-60": 1, "private-45": 0.75, "private-30": 0.5, "private-90": 1.5 }
         const sessionType = booking.fields["Session Type"] ?? "private-60"
-        const creditRefund = SESSION_CREDIT_COST[sessionType] ?? 1
-        const current = client.fields["Credits Remaining"] ?? 0
-        await appBase.update<ClientFields>(TABLES.clients, client.id, {
-          "Credits Remaining": Math.round((current + creditRefund) * 100) / 100,
-        })
-        if (current === 0) {
+        const usedSingleCredit = booking.fields["Single Credit Used"] === true
+        await refundBookingCredit(client.id, client.fields, sessionType, usedSingleCredit)
+        if (!usedSingleCredit && (client.fields["Credits Remaining"] ?? 0) === 0) {
           const inactivePlan = await getMostRecentInactivePlanForUser(dancerUserId)
           if (inactivePlan) await setPlanStatus(inactivePlan.id, "Active").catch(() => {})
         }
@@ -311,14 +307,10 @@ export async function PATCH(
       })
       const client = clientRecords[0]
       if (client) {
-        const SESSION_CREDIT_COST: Record<string, number> = { "pack-hour": 1, "private-60": 1, "private-45": 0.75, "private-30": 0.5, "private-90": 1.5 }
         const sessionType = booking.fields["Session Type"] ?? "private-60"
-        const creditRefund = SESSION_CREDIT_COST[sessionType] ?? 1
-        const current = client.fields["Credits Remaining"] ?? 0
-        await appBase.update<ClientFields>(TABLES.clients, client.id, {
-          "Credits Remaining": Math.round((current + creditRefund) * 100) / 100,
-        })
-        if (current === 0) {
+        const usedSingleCredit = booking.fields["Single Credit Used"] === true
+        await refundBookingCredit(client.id, client.fields, sessionType, usedSingleCredit)
+        if (!usedSingleCredit && (client.fields["Credits Remaining"] ?? 0) === 0) {
           const inactivePlan = await getMostRecentInactivePlanForUser(dancerUserId)
           if (inactivePlan) await setPlanStatus(inactivePlan.id, "Active")
         }

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { headers } from "next/headers"
 import { revalidateTag } from "next/cache"
 import { auth } from "@/lib/auth"
-import { TABLES, appBase, type BookingFields, type ClientFields, getBookedSlots, getMostRecentInactivePlanForUser, setPlanStatus } from "@/lib/airtable"
+import { TABLES, appBase, type BookingFields, type ClientFields, getBookedSlots, getMostRecentInactivePlanForUser, setPlanStatus, refundBookingCredit } from "@/lib/airtable"
 import { getAvailabilityForEmail } from "@/app/actions/availability"
 import { slotsForDate } from "@/lib/availability"
 import { createNotification } from "@/app/actions/notifications"
@@ -100,11 +100,9 @@ export async function DELETE(
       ? await findClientRecord(effectiveUserId)
       : await findClientByRecordId(profile.recordId)
     if (client) {
-      const current = client.fields["Credits Remaining"] ?? 0
-      await appBase.update<ClientFields>(TABLES.clients, client.id, {
-        "Credits Remaining": Math.round((current + creditCost) * 100) / 100,
-      })
-      if (current === 0 && effectiveUserId) {
+      const usedSingleCredit = booking.fields["Single Credit Used"] === true
+      await refundBookingCredit(client.id, client.fields, sessionType ?? "pack-hour", usedSingleCredit)
+      if (!usedSingleCredit && (client.fields["Credits Remaining"] ?? 0) === 0 && effectiveUserId) {
         const inactivePlan = await getMostRecentInactivePlanForUser(effectiveUserId)
         if (inactivePlan) await setPlanStatus(inactivePlan.id, "Active").catch(() => {})
       }

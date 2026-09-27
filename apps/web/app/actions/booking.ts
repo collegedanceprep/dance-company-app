@@ -14,6 +14,7 @@ import {
   getMostRecentInactivePlanForUser,
   getPlansForUser,
   setPlanStatus,
+  refundBookingCredit,
   type BookingFields,
   type ClientFields,
 } from "@/lib/airtable"
@@ -142,24 +143,9 @@ export async function cancelBooking(
         ? await findClientRecord(effectiveUserId)
         : await findClientByRecordId(profile.recordId)
       if (client) {
-        const SESSION_CREDIT_COST: Record<string, number> = { "pack-hour": 1, "private-60": 1, "private-45": 0.75, "private-30": 0.5, "private-90": 1.5 }
-        const REFUND_SINGLE_FIELD: Record<string, keyof ClientFields> = {
-          "private-30": "Single Credits 30", "private-45": "Single Credits 45",
-          "private-60": "Single Credits 60", "private-90": "Single Credits 90",
-        }
         const sessionType = booking.fields["Session Type"] ?? "private-60"
-        const refundSingleField = REFUND_SINGLE_FIELD[sessionType]
-        const packNow = client.fields["Credits Remaining"] ?? 0
-        // Refund to the type-matched single credit field; fall back to pack credits
-        if (refundSingleField) {
-          const singleNow = (client.fields[refundSingleField] as number | undefined) ?? 0
-          await appBase.update<ClientFields>(TABLES.clients, client.id, { [refundSingleField]: singleNow + 1 } as Partial<ClientFields>)
-        } else {
-          const creditRefund = SESSION_CREDIT_COST[sessionType] ?? 1
-          await appBase.update<ClientFields>(TABLES.clients, client.id, {
-            "Credits Remaining": Math.round((packNow + creditRefund) * 100) / 100,
-          })
-        }
+        const usedSingleCredit = booking.fields["Single Credit Used"] === true
+        await refundBookingCredit(client.id, client.fields, sessionType, usedSingleCredit)
 
         // If pack credits were at 0, reactivate the most recently expired plan
         if (packNow === 0) {
@@ -481,9 +467,13 @@ export async function createBooking(input: {
         Notes: input.notes ?? "",
         "Session Type": input.sessionType ?? "pack-hour",
         ...(utcForCreate ? { "UTC Datetime": utcForCreate } : {}),
+        ...(useSingleCredit ? { "Single Credit Used": true } : {}),
       })
     } catch (err) {
-      await appBase.update<ClientFields>(TABLES.clients, client.id, { "Credits Remaining": credits }).catch(() => {})
+      const rollback = useSingleCredit && singleField
+        ? { [singleField]: credits } as Partial<ClientFields>
+        : { "Credits Remaining": credits }
+      await appBase.update<ClientFields>(TABLES.clients, client.id, rollback).catch(() => {})
       await db.delete(bookingAttemptLock).where(eq(bookingAttemptLock.id, lockId)).catch(() => {})
       return { ok: false, error: "Failed to create booking. Your credit has been refunded." }
     }

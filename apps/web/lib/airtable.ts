@@ -84,6 +84,7 @@ export type BookingFields = {
   "Original Time"?: string
   "Original UTC Datetime"?: string
   "Payable to PrepMaster"?: boolean
+  "Single Credit Used"?: boolean
 }
 
 export type PlanFields = {
@@ -761,11 +762,37 @@ export async function adminAddCredits(
   })
 }
 
-const SINGLE_CREDIT_FIELD: Record<string, keyof ClientFields> = {
+export const SINGLE_CREDIT_FIELD: Record<string, keyof ClientFields> = {
   "private-30": "Single Credits 30",
   "private-45": "Single Credits 45",
   "private-60": "Single Credits 60",
   "private-90": "Single Credits 90",
+}
+
+export const SESSION_CREDIT_COST: Record<string, number> = {
+  "pack-hour": 1, "private-60": 1, "private-45": 0.75, "private-30": 0.5, "private-90": 1.5,
+}
+
+/** Refund a credit to whichever pool (single or pack) the booking originally charged. */
+export async function refundBookingCredit(
+  clientId: string,
+  clientFields: ClientFields,
+  sessionType: string,
+  usedSingleCredit: boolean,
+): Promise<void> {
+  if (usedSingleCredit) {
+    const field = SINGLE_CREDIT_FIELD[sessionType]
+    if (field) {
+      const current = (clientFields[field] as number | undefined) ?? 0
+      await update<ClientFields>(TABLES.clients, clientId, { [field]: current + 1 } as Partial<ClientFields>)
+      return
+    }
+  }
+  const creditRefund = SESSION_CREDIT_COST[sessionType] ?? 1
+  const current = clientFields["Credits Remaining"] ?? 0
+  await update<ClientFields>(TABLES.clients, clientId, {
+    "Credits Remaining": Math.round((current + creditRefund) * 100) / 100,
+  })
 }
 
 export async function adminAddSingleSessionCredits(
