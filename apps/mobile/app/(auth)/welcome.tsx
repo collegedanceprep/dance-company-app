@@ -17,7 +17,7 @@ export default function WelcomeScreen() {
   const styles = makeStyles(COLORS)
 
   const [recordId, setRecordId] = useState<string | null>(null)
-  const [firstName, setFirstName] = useState("")
+  const [fullName, setFullName] = useState("")
   const [phone, setPhone] = useState("")
   const [goals, setGoals] = useState("")
   const [parentEmail, setParentEmail] = useState("")
@@ -31,7 +31,7 @@ export default function WelcomeScreen() {
       if (error || !data) throw new Error()
       const profile = (data as any).profile
       setRecordId(profile.recordId)
-      setFirstName((profile.name ?? "").split(" ")[0] || "")
+      setFullName(profile.name ?? "")
     } catch {
       setLoadError(true)
     }
@@ -47,6 +47,7 @@ export default function WelcomeScreen() {
         method: "PATCH",
         body: JSON.stringify({
           recordId,
+          name: fullName.trim() || undefined,
           phone: phone.trim(),
           goals: goals.trim(),
           parentEmail: parentEmail.trim() || null,
@@ -74,7 +75,7 @@ export default function WelcomeScreen() {
             <Text style={styles.logo}>CDP</Text>
             <Text style={styles.logoSub}>College Dance Prep</Text>
             <Text style={styles.heading}>
-              {firstName ? `Welcome, ${firstName}!` : "Welcome!"}
+              {fullName ? `Welcome, ${fullName.split(" ")[0]}!` : "Welcome!"}
             </Text>
             <Text style={styles.sub}>
               Complete your profile to get started. Everything here is optional — you can always update it later.
@@ -86,6 +87,19 @@ export default function WelcomeScreen() {
               <Text style={styles.errorText}>Couldn't load your profile. You can still continue.</Text>
             </View>
           )}
+
+          <View style={styles.field}>
+            <Text style={styles.label}>Full name</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="First and last name"
+              placeholderTextColor={COLORS.textMuted}
+              autoCapitalize="words"
+              value={fullName}
+              onChangeText={setFullName}
+              editable={!saving}
+            />
+          </View>
 
           <View style={styles.field}>
             <Text style={styles.label}>Phone number</Text>
