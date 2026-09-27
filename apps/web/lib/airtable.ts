@@ -603,6 +603,7 @@ export type AdminBooking = {
   status: string
   notes: string
   sessionType: SessionType | null
+  singleCreditUsed?: boolean
 }
 
 export async function adminGetAllMembers(): Promise<AdminMember[]> {
@@ -656,12 +657,27 @@ export async function adminGetAllBookings(): Promise<AdminBooking[]> {
     new Set(records.map((r) => r.fields["User ID"]).filter(Boolean) as string[]),
   )
   const clientMap = await getClientsByUserIds(userIds)
+
+  // For bookings whose userId didn't resolve to a client record, look up by email
+  const unmatchedEmails = Array.from(
+    new Set(
+      records
+        .filter((r) => {
+          const uid = r.fields["User ID"] ?? ""
+          return !clientMap.has(uid) && !!r.fields["Client Email"]
+        })
+        .map((r) => r.fields["Client Email"] as string),
+    ),
+  )
+  const emailClientMap = await getClientsByEmails(unmatchedEmails)
+
   return records.map((r) => {
     const uid = r.fields["User ID"] ?? ""
-    const client = clientMap.get(uid)
+    const email = r.fields["Client Email"] ?? ""
+    const client = clientMap.get(uid) ?? emailClientMap.get(email.toLowerCase())
     return {
       id: r.id,
-      clientEmail: r.fields["Client Email"] ?? "",
+      clientEmail: email,
       dancerName: client?.name ?? "",
       userId: uid,
       prepMasterName: r.fields["Prep Master Name"] ?? "",
@@ -671,6 +687,7 @@ export async function adminGetAllBookings(): Promise<AdminBooking[]> {
       status: r.fields.Status ?? "Pending",
       notes: r.fields.Notes ?? "",
       sessionType: (r.fields["Session Type"] as SessionType) ?? null,
+      singleCreditUsed: r.fields["Single Credit Used"] === true,
     }
   })
 }
@@ -871,6 +888,31 @@ async function getClientsByUserIds(
     map.set(uid, {
       name: r.fields.Name ?? "",
       email: r.fields.Email ?? "",
+      phone: r.fields.Phone ?? "",
+    })
+  }
+  return map
+}
+
+async function getClientsByEmails(
+  emails: string[],
+): Promise<Map<string, { name: string; email: string; phone: string }>> {
+  const map = new Map<string, { name: string; email: string; phone: string }>()
+  if (emails.length === 0) return map
+
+  const clauses = emails
+    .map((e) => `{Email} = '${e.replace(/'/g, "\\'")}'`)
+    .join(", ")
+  const records = await list<ClientFields>(TABLES.clients, {
+    filterByFormula: `OR(${clauses})`,
+  })
+
+  for (const r of records) {
+    const em = r.fields.Email
+    if (!em) continue
+    map.set(em.toLowerCase(), {
+      name: r.fields.Name ?? "",
+      email: em,
       phone: r.fields.Phone ?? "",
     })
   }
