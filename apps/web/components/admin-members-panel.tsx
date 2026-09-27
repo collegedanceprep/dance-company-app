@@ -44,7 +44,7 @@ export function AdminMembersPanel({ members, bookings, plans, packages, query = 
   const [expanded, setExpanded] = useState<string | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
   const [localMembers, setLocalMembers] = useState<AdminMember[]>(members)
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({ pending: true, active: true, leads: false, inactive: false })
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({ active: true, leads: false, inactive: false })
   function toggleSection(key: string) { setOpenSections((prev) => ({ ...prev, [key]: !prev[key] })) }
 
   const filtered = query.trim()
@@ -237,9 +237,8 @@ export function AdminMembersPanel({ members, bookings, plans, packages, query = 
           {query ? <>No members match &ldquo;{query}&rdquo;.</> : "No members yet."}
         </p>
       )}
-      {(["pending", "active", "leads", "inactive"] as const).map((sectionKey) => {
+      {(["active", "leads", "inactive"] as const).map((sectionKey) => {
         const sectionMembers = filtered.filter((m) => {
-          if (sectionKey === "pending") return m.accountStatus === "pending"
           if (m.accountStatus === "pending") return false
           const s = memberStatus(m)
           if (sectionKey === "active") return s === "active"
@@ -247,7 +246,7 @@ export function AdminMembersPanel({ members, bookings, plans, packages, query = 
           return s === "inactive"
         })
         if (sectionMembers.length === 0) return null
-        const sectionLabel = sectionKey === "pending" ? "Pending Approval" : sectionKey === "active" ? "Active Members" : sectionKey === "leads" ? "Leads" : "Inactive"
+        const sectionLabel = sectionKey === "active" ? "Active Members" : sectionKey === "leads" ? "Leads" : "Inactive"
         const isOpen = openSections[sectionKey]
         return (
           <div key={sectionKey} className="flex flex-col gap-2">
