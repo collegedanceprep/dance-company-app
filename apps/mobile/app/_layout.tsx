@@ -1,6 +1,8 @@
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { API_BASE } from "@/lib/config"
 import { AppState } from "react-native"
+import { ForceUpdateModal } from "@/components/ForceUpdateModal"
+import Constants from "expo-constants"
 import { Stack } from "expo-router"
 import { StatusBar } from "expo-status-bar"
 import * as WebBrowser from "expo-web-browser"
@@ -31,11 +33,35 @@ import { ThemeProvider, useTheme } from "@/lib/theme-context"
 WebBrowser.maybeCompleteAuthSession()
 SplashScreen.preventAutoHideAsync()
 
+function semverLt(a: string, b: string): boolean {
+  const pa = a.split(".").map(Number)
+  const pb = b.split(".").map(Number)
+  for (let i = 0; i < 3; i++) {
+    const na = pa[i] ?? 0, nb = pb[i] ?? 0
+    if (na < nb) return true
+    if (na > nb) return false
+  }
+  return false
+}
+
 function RootLayoutInner() {
   const { data: session } = useSession()
   const { isDark } = useTheme()
   const router = useRouter()
   const listenerRef = useRef<{ remove: () => void } | null>(null)
+  const [updateRequired, setUpdateRequired] = useState(false)
+  const [appStoreUrl, setAppStoreUrl] = useState("https://apps.apple.com/app/id6744042829")
+
+  useEffect(() => {
+    const installedVersion: string = Constants.expoConfig?.version ?? "0.0.0"
+    fetch(`${API_BASE}/api/app/min-version`)
+      .then((r) => r.json())
+      .then(({ minVersion, appStoreUrl: url }) => {
+        if (url) setAppStoreUrl(url)
+        if (semverLt(installedVersion, minVersion)) setUpdateRequired(true)
+      })
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     registerNotificationCategories()
@@ -74,6 +100,7 @@ function RootLayoutInner() {
         <Stack.Screen name="member" />
         <Stack.Screen name="portal" />
       </Stack>
+      <ForceUpdateModal visible={updateRequired} appStoreUrl={appStoreUrl} />
     </>
   )
 }
