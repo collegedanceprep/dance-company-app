@@ -5,7 +5,7 @@ import {
   Modal, ScrollView, RefreshControl, ActivityIndicator, Alert,
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
-import { Search, ChevronDown, ChevronUp, Plus, X, Ticket, Package, Trash2, CalendarDays, Check, UserX, Clock } from "lucide-react-native"
+import { Search, ChevronDown, ChevronUp, Plus, X, Ticket, Package, Trash2, CalendarDays, Check, UserX } from "lucide-react-native"
 import { SPACING, RADIUS, initials } from "@/constants/theme"
 import { useColors } from "@/lib/theme-context"
 import { useAdmin } from "@/lib/admin-context"
@@ -15,7 +15,6 @@ import type { AdminMember, AdminBooking, MemberPlan, DancePackage } from "@/lib/
 
 const API = "https://app.collegedanceprep.com"
 
-type PendingUser = { id: string; name: string; email: string; status: string; createdAt: string }
 
 function lastNameKey(name: string): string {
   const parts = name.trim().split(/\s+/)
@@ -47,10 +46,7 @@ function memberStatusInfo(label: "Active" | "Inactive" | "Lead", COLORS: ReturnT
   return { label, bg: COLORS.grayLight, fg: COLORS.textMuted }
 }
 
-// Section list item types
-type SectionItem =
-  | { kind: "pending"; user: PendingUser }
-  | { kind: "member"; member: AdminMember }
+type SectionItem = { kind: "member"; member: AdminMember }
 
 export default function AdminMembersScreen() {
   const { data, loading, refresh } = useAdmin()
@@ -64,63 +60,12 @@ export default function AdminMembersScreen() {
   const [localMembers, setLocalMembers] = useState<AdminMember[] | null>(null)
   const [localPlans, setLocalPlans] = useState<MemberPlan[] | null>(null)
   const [localCredits, setLocalCredits] = useState<Record<string, number>>({})
-  const [pendingUsers, setPendingUsers] = useState<PendingUser[]>([])
-  const [actingOn, setActingOn] = useState<string | null>(null)
-
-  const loadPending = useCallback(async () => {
-    try {
-      const { data: result } = await authClient.$fetch(`${API}/api/admin/pending-users`)
-      if (Array.isArray(result)) setPendingUsers(result as PendingUser[])
-    } catch {}
-  }, [])
-
-  useEffect(() => { loadPending() }, [loadPending])
-
   const onRefresh = useCallback(async () => {
     setRefreshing(true)
-    await Promise.all([refresh(), loadPending()])
+    await refresh()
     setLocalMembers(null); setLocalPlans(null); setLocalCredits({})
     setRefreshing(false)
-  }, [refresh, loadPending])
-
-  async function handleApproval(userId: string, status: "active" | "denied") {
-    setActingOn(userId)
-    try {
-      await authClient.$fetch(`${API}/api/admin/users/${userId}/status`, {
-        method: "PATCH",
-        body: JSON.stringify({ status }),
-        headers: { "Content-Type": "application/json" },
-      })
-      setPendingUsers((prev) => prev.filter((u) => u.id !== userId))
-    } catch {
-      Alert.alert("Error", "Failed to update user status.")
-    }
-    setActingOn(null)
-  }
-
-  async function handleDeleteUser(userId: string, name: string) {
-    Alert.alert(
-      "Delete account",
-      `Permanently delete ${name || "this user"}'s account? This cannot be undone.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            setActingOn(userId)
-            try {
-              await authClient.$fetch(`${API}/api/admin/users/${userId}`, { method: "DELETE" })
-              setPendingUsers((prev) => prev.filter((u) => u.id !== userId))
-            } catch {
-              Alert.alert("Error", "Failed to delete account.")
-            }
-            setActingOn(null)
-          },
-        },
-      ],
-    )
-  }
+  }, [refresh])
 
   if (loading) {
     return (
@@ -141,11 +86,6 @@ export default function AdminMembersScreen() {
   function memberPlans(m: AdminMember) { return plans.filter((p) => p.userId === m.userId) }
   function creditsFor(m: AdminMember) { return localCredits[m.id] ?? m.creditsRemaining }
 
-  // Filter pending users by query
-  const filteredPending = q
-    ? pendingUsers.filter((u) => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q))
-    : pendingUsers
-
   // Group members by status
   const grouped: Record<"Active" | "Inactive" | "Lead", AdminMember[]> = { Active: [], Inactive: [], Lead: [] }
   for (const m of members) {
@@ -157,16 +97,10 @@ export default function AdminMembersScreen() {
 
   // Sort each group by last name
   const byLastName = (a: AdminMember, b: AdminMember) => lastNameKey(a.name || a.email).localeCompare(lastNameKey(b.name || b.email))
-  const sortedPending = [...filteredPending].sort((a, b) => lastNameKey(a.name || a.email).localeCompare(lastNameKey(b.name || b.email)))
 
-  const sections: { title: string; icon: "pending" | "active" | "inactive" | "lead"; collapsed?: boolean; onToggle?: () => void; data: SectionItem[] }[] = []
+  const sections: { title: string; icon: "active" | "inactive" | "lead"; collapsed?: boolean; onToggle?: () => void; data: SectionItem[] }[] = []
 
-  if (sortedPending.length > 0) {
-    sections.push({
-      title: `Pending Approval (${sortedPending.length})`,
-      icon: "pending",
-      data: sortedPending.map((u) => ({ kind: "pending" as const, user: u })),
-    })
+  {
   }
   for (const label of ["Active", "Lead", "Inactive"] as const) {
     const sorted = [...grouped[label]].sort(byLastName)
@@ -213,21 +147,10 @@ export default function AdminMembersScreen() {
         SectionSeparatorComponent={() => <View style={{ height: SPACING.sm }} />}
         ListEmptyComponent={
           <View style={styles.emptyWrap}>
-            <Text style={styles.empty}>{totalMembers === 0 && pendingUsers.length === 0 ? "No members yet." : "No members match your search."}</Text>
+            <Text style={styles.empty}>{totalMembers === 0 ? "No members yet." : "No members match your search."}</Text>
           </View>
         }
         renderItem={({ item }) => {
-          if (item.kind === "pending") {
-            return (
-              <PendingCard
-                user={item.user}
-                acting={actingOn === item.user.id}
-                onApprove={() => handleApproval(item.user.id, "active")}
-                onDeny={() => handleApproval(item.user.id, "denied")}
-                onDelete={() => handleDeleteUser(item.user.id, item.user.name)}
-              />
-            )
-          }
           const m = item.member
           const mPlans = memberPlans(m); const mBookings = memberBookings(m)
           const credits = creditsFor(m)
@@ -257,9 +180,7 @@ function SectionHeader({ title, icon, collapsed, onToggle, COLORS, styles }: {
   title: string; icon: string; collapsed?: boolean; onToggle?: () => void
   COLORS: ReturnType<typeof useColors>; styles: ReturnType<typeof makeStyles>
 }) {
-  const iconEl = icon === "pending"
-    ? <Clock size={14} color="#d97706" />
-    : icon === "active"
+  const iconEl = icon === "active"
     ? <Check size={14} color={COLORS.green} />
     : icon === "lead"
     ? <UserX size={14} color="#1d4ed8" />
@@ -279,50 +200,6 @@ function SectionHeader({ title, icon, collapsed, onToggle, COLORS, styles }: {
   return inner
 }
 
-function PendingCard({ user, acting, onApprove, onDeny, onDelete }: {
-  user: PendingUser; acting: boolean; onApprove: () => void; onDeny: () => void; onDelete: () => void
-}) {
-  const COLORS = useColors()
-  const styles = makeStyles(COLORS)
-  const signupDate = new Date(user.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-
-  return (
-    <View style={[styles.card, { borderColor: "#fcd34d", borderWidth: 1 }]}>
-      <View style={styles.pendingCardInner}>
-        <View style={styles.avatar}><Text style={styles.avatarText}>{initials(user.name || user.email || "?")}</Text></View>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text style={styles.name} numberOfLines={1}>{user.name || "(no name)"}</Text>
-          <Text style={styles.email} numberOfLines={1}>{user.email}</Text>
-          <Text style={[styles.email, { marginTop: 2 }]}>Signed up {signupDate}</Text>
-        </View>
-        <View style={styles.approvalBtns}>
-          <TouchableOpacity
-            style={styles.denyBtn} onPress={onDeny} disabled={acting} activeOpacity={0.7}
-          >
-            <X size={14} color={COLORS.red} />
-            <Text style={[styles.approvalBtnText, { color: COLORS.red }]}>Deny</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.approveBtn} onPress={onApprove} disabled={acting} activeOpacity={0.7}
-          >
-            {acting ? <ActivityIndicator size="small" color="#fff" /> : (
-              <>
-                <Check size={14} color="#fff" />
-                <Text style={[styles.approvalBtnText, { color: "#fff" }]}>Approve</Text>
-              </>
-            )}
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={onDelete} disabled={acting} activeOpacity={0.7}
-            style={{ padding: 4, marginTop: 4, alignSelf: "center" }}
-          >
-            <Trash2 size={14} color={COLORS.textMuted} />
-          </TouchableOpacity>
-        </View>
-      </View>
-    </View>
-  )
-}
 
 type MemberCardProps = {
   member: AdminMember; credits: number; plans: MemberPlan[]; bookings: AdminBooking[]
