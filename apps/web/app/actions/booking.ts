@@ -12,6 +12,7 @@ import {
   getBookedSlots,
   getActivePlanForUser,
   getMostRecentInactivePlanForUser,
+  getPlansForUser,
   setPlanStatus,
   type BookingFields,
   type ClientFields,
@@ -488,9 +489,17 @@ export async function createBooking(input: {
     }
 
     // Mark the used plan as Used:
-    // - Single-session plans (sessions=1): mark immediately
+    // - Single-session credit consumed (1→0): find matching active single plan by session type name
+    // - Single-session plans (sessions=1) with planId: mark immediately
     // - Pack plans: mark when credits hit 0
-    if (input.planId && input.planSessions === 1) {
+    if (useSingleCredit && newCredits === 0) {
+      const minLabel = input.sessionType?.replace("private-", "") ?? ""
+      const userPlans = await getPlansForUser(effectiveUserId)
+      const matchingPlan = userPlans.find(
+        (p) => p.status === "Active" && p.sessions === 1 && p.planName.toLowerCase().includes(minLabel)
+      ) ?? userPlans.find((p) => p.status === "Active" && p.sessions === 1)
+      if (matchingPlan) await setPlanStatus(matchingPlan.id, "Used")
+    } else if (input.planId && input.planSessions === 1) {
       await setPlanStatus(input.planId, "Used")
     } else if (newCredits === 0) {
       const planToMark = input.planId ? { id: input.planId } : await getActivePlanForUser(effectiveUserId)
