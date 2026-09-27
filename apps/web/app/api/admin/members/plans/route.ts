@@ -4,18 +4,21 @@ import { auth } from "@/lib/auth"
 import { isAdminEmail } from "@/lib/roles"
 import {
   adminAddCredits,
+  adminAddSingleSessionCredits,
   createMemberPlan,
   getActivePlanForUser,
   setPlanStatus,
   appBase,
   TABLES,
+  type ClientFields,
 } from "@/lib/airtable"
 import { PACKAGES } from "@/lib/packages"
 
-const SINGLE_SESSION_PLANS: Record<string, { name: string; price: number }> = {
-  "60 min": { name: "60-Min Single", price: 119 },
-  "45 min": { name: "45-Min Single", price: 89 },
-  "30 min": { name: "30-Min Single", price: 65 },
+const SINGLE_SESSION_PLANS: Record<string, { name: string; price: number; sessionType: string }> = {
+  "90 min": { name: "90-Min Single", price: 169, sessionType: "private-90" },
+  "60 min": { name: "60-Min Single", price: 119, sessionType: "private-60" },
+  "45 min": { name: "45-Min Single", price: 89,  sessionType: "private-45" },
+  "30 min": { name: "30-Min Single", price: 65,  sessionType: "private-30" },
 }
 
 export async function POST(req: Request) {
@@ -35,7 +38,7 @@ export async function POST(req: Request) {
   const currentCredits = (memberRecords[0].fields as any)["Credits Remaining"] ?? 0
 
   if (label) {
-    // Add single session
+    // Add single session — writes to the per-type field, not pack credits
     const sessionPlan = SINGLE_SESSION_PLANS[label]
     if (!sessionPlan) return NextResponse.json({ error: "Invalid session label." }, { status: 400 })
     const plan = await createMemberPlan({
@@ -45,7 +48,10 @@ export async function POST(req: Request) {
       sessions: 1,
       pricePaid: sessionPlan.price,
     })
-    await adminAddCredits(memberId, currentCredits, 1)
+    const currentSingle = (memberRecords[0].fields as ClientFields)[
+      ({ "private-30": "Single Credits 30", "private-45": "Single Credits 45", "private-60": "Single Credits 60", "private-90": "Single Credits 90" } as Record<string, keyof ClientFields>)[sessionPlan.sessionType]
+    ] as number | undefined ?? 0
+    await adminAddSingleSessionCredits(memberId, sessionPlan.sessionType, currentSingle)
     return NextResponse.json({ plan })
   }
 

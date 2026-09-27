@@ -343,11 +343,9 @@ function MemberCard({ member: m, credits, plans, bookings, packages, statusInfo,
   const [bookingsExpanded, setBookingsExpanded] = useState(false)
 
   function addSingleSession(label: string) {
-    const creditMap: Record<string, number> = { "90 min": 1.5, "60 min": 1, "45 min": 0.75, "30 min": 0.5 }
-    const credits_to_add = creditMap[label] ?? 1
     Alert.alert(
       "Add single session",
-      `Add a ${label} session (${credits_to_add} credit${credits_to_add !== 1 ? "s" : ""}) to ${m.name || m.email}?`,
+      `Add 1 × ${label} single session credit to ${m.name || m.email}?`,
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -359,7 +357,7 @@ function MemberCard({ member: m, credits, plans, bookings, packages, statusInfo,
             })
             setSaving(false)
             if (error || !data) { Alert.alert("Error", "Failed to add session."); return }
-            onPlanAdded((data as any).plan, credits_to_add)
+            onPlanAdded((data as any).plan, 0) // single credits are per-type; pack credits unchanged
           },
         },
       ],
