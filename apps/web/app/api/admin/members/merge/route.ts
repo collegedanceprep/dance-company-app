@@ -60,6 +60,18 @@ export async function POST(req: Request) {
     }
   } catch { /* non-fatal — admin can fix Airtable manually */ }
 
+  // Update Airtable: reassign any booking records pointing at fromId → intoId
+  try {
+    const safeBk = fromId.replace(/'/g, "\\'")
+    const bookingRecs = await appBase.list(TABLES.bookings, {
+      filterByFormula: `{User ID} = '${safeBk}'`,
+      revalidate: 0,
+    })
+    for (const rec of bookingRecs) {
+      await appBase.update(TABLES.bookings, rec.id, { "User ID": intoId })
+    }
+  } catch { /* non-fatal */ }
+
   // Delete the source user (cascades sessions)
   await db.delete(userTable).where(eq(userTable.id, fromId))
 
