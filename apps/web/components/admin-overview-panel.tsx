@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState } from "react"
 import type { AdminMember, AdminBooking, AdminWorker, MemberPlan } from "@/lib/airtable"
 import { SINGLE_HOUR_PRICE } from "@/lib/packages"
 
@@ -21,7 +21,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { BookingFilterBar, applyFilters, type SortDir } from "@/components/booking-filter-bar"
-import { TrendingUp, DollarSign, CalendarDays, Users, Award, Activity, ChevronDown, ChevronUp, Search } from "lucide-react"
+import { TrendingUp, DollarSign, CalendarDays, Users, Award, Activity, ChevronDown, ChevronUp, Search, Clock, CheckCircle, XCircle, AlertCircle } from "lucide-react"
 import { LocalTime } from "@/components/local-time"
 
 type Props = {
@@ -292,41 +292,83 @@ export function AdminOverviewPanel({ members, bookings, workers }: Props) {
               if (filtered.length === 0) {
                 return <p className="text-sm text-muted-foreground">No bookings for this period.</p>
               }
+
+              function isPast(b: AdminBooking) {
+                const t = b.utcDatetime ? new Date(b.utcDatetime).getTime() : b.date ? new Date(b.date).getTime() : 0
+                return t > 0 && t <= Date.now()
+              }
+              function effectiveStatus(b: AdminBooking) {
+                const s = b.status.toLowerCase()
+                if (s === "confirmed" && isPast(b)) return "completed"
+                return s
+              }
+
+              const STATUS_GROUPS = [
+                { key: "confirmed",  label: "Confirmed",  icon: <Clock className="size-3.5 text-primary" />,                        labelClass: "text-primary" },
+                { key: "pending",    label: "Pending",    icon: <AlertCircle className="size-3.5 text-amber-500" />,                 labelClass: "text-amber-500" },
+                { key: "completed",  label: "Completed",  icon: <CheckCircle className="size-3.5 text-emerald-500" />,               labelClass: "text-emerald-500" },
+                { key: "cancelled",  label: "Cancelled",  icon: <XCircle className="size-3.5 text-destructive" />,                   labelClass: "text-destructive" },
+                { key: "declined",   label: "Declined",   icon: <XCircle className="size-3.5 text-destructive" />,                   labelClass: "text-destructive" },
+                { key: "other",      label: "Other",      icon: null,                                                                labelClass: "text-muted-foreground" },
+              ]
+
+              const groups = STATUS_GROUPS.map((g) => ({
+                ...g,
+                items: filtered.filter((b) => {
+                  const es = effectiveStatus(b)
+                  if (g.key === "cancelled") return es.startsWith("cancelled")
+                  if (g.key === "other") return !STATUS_GROUPS.slice(0, -1).some((sg) => sg.key === "cancelled" ? es.startsWith("cancelled") : es === sg.key)
+                  return es === g.key
+                }),
+              })).filter((g) => g.items.length > 0)
+
               return (
-                <ul className="flex flex-col gap-1.5">
-                  {filtered.map((b) => {
-                    const isCancelled = b.status.toLowerCase().startsWith("cancelled")
-                    const isExpanded = expandedId === b.id
-                    return (
-                      <li key={b.id} className="rounded-md border text-sm overflow-hidden">
-                        <button
-                          onClick={() => setExpandedId(isExpanded ? null : b.id)}
-                          className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left hover:bg-muted/50 transition-colors"
-                        >
-                          <div className="min-w-0">
-                            <p className="font-medium truncate">{b.dancerName || b.clientEmail || "Client"}</p>
-                            <p className="text-xs text-muted-foreground">{b.prepMasterName}{b.date ? ` · ${b.date}` : ""}{b.time ? <> · <LocalTime slot={b.time} dateIso={b.date} utcDatetime={b.utcDatetime} /></> : ""}</p>
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <Badge
-                              variant={b.status.toLowerCase() === "confirmed" ? "default" : isCancelled ? "destructive" : "secondary"}
-                              className="capitalize"
-                            >
-                              {b.status}
-                            </Badge>
-                            {isExpanded ? <ChevronUp className="size-3.5 text-muted-foreground" /> : <ChevronDown className="size-3.5 text-muted-foreground" />}
-                          </div>
-                        </button>
-                        {isExpanded && (
-                          <div className="border-t bg-muted/30 px-3 py-2.5">
-                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Notes</p>
-                            <p className="text-sm">{b.notes?.trim() || <span className="text-muted-foreground italic">No notes for this booking.</span>}</p>
-                          </div>
-                        )}
-                      </li>
-                    )
-                  })}
-                </ul>
+                <div className="flex flex-col gap-3">
+                  {groups.map((g) => (
+                    <GroupSection key={g.key} label={g.label} count={g.items.length} icon={g.icon} labelClass={g.labelClass}>
+                      <ul className="flex flex-col gap-1.5">
+                        {g.items.map((b) => {
+                          const es = effectiveStatus(b)
+                          const isCancelled = es.startsWith("cancelled")
+                          const isExpanded = expandedId === b.id
+                          const badgeVariant = es === "confirmed" ? "default" : isCancelled || es === "declined" ? "destructive" : "secondary"
+                          return (
+                            <li key={b.id} className="rounded-md border text-sm overflow-hidden">
+                              <button
+                                onClick={() => setExpandedId(isExpanded ? null : b.id)}
+                                className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left hover:bg-muted/50 transition-colors"
+                              >
+                                <div className="min-w-0">
+                                  <p className="font-medium truncate">{b.dancerName || b.clientEmail || "Client"}</p>
+                                  <p className="text-xs text-muted-foreground">{b.prepMasterName}{b.date ? ` · ${b.date}` : ""}{b.time ? <> · <LocalTime slot={b.time} dateIso={b.date} utcDatetime={b.utcDatetime} /></> : ""}</p>
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                  <Badge variant={badgeVariant} className="capitalize">{es}</Badge>
+                                  {isExpanded ? <ChevronUp className="size-3.5 text-muted-foreground" /> : <ChevronDown className="size-3.5 text-muted-foreground" />}
+                                </div>
+                              </button>
+                              {isExpanded && (
+                                <div className="border-t bg-muted/30 px-3 py-2.5 flex flex-col gap-2">
+                                  {isCancelled ? (
+                                    <>
+                                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Cancellation Reason</p>
+                                      <p className="text-sm">{b.cancellationReason?.trim() || <span className="italic text-muted-foreground">No reason provided.</span>}</p>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Notes</p>
+                                      <p className="text-sm">{b.notes?.trim() || <span className="italic text-muted-foreground">No notes for this booking.</span>}</p>
+                                    </>
+                                  )}
+                                </div>
+                              )}
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </GroupSection>
+                  ))}
+                </div>
               )
             })()}
           </div>
@@ -373,6 +415,27 @@ function KpiCard({
   }
 
   return <Card className={baseClass}>{inner}</Card>
+}
+
+function GroupSection({ label, count, icon, labelClass, children }: { label: string; count: number; icon: React.ReactNode; labelClass: string; children: React.ReactNode }) {
+  const [open, setOpen] = useState(true)
+  return (
+    <div>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between py-1.5 px-0.5 mb-1.5"
+      >
+        <div className="flex items-center gap-1.5">
+          {icon}
+          <span className={`text-xs font-bold uppercase tracking-wide ${labelClass}`}>
+            {label} <span className="font-normal text-muted-foreground">({count})</span>
+          </span>
+        </div>
+        {open ? <ChevronUp className="size-3.5 text-muted-foreground" /> : <ChevronDown className="size-3.5 text-muted-foreground" />}
+      </button>
+      {open && children}
+    </div>
+  )
 }
 
 function RosterRow({ label, value }: { label: string; value: number }) {
