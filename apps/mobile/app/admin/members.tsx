@@ -100,8 +100,6 @@ export default function AdminMembersScreen() {
 
   const sections: { title: string; icon: "active" | "inactive" | "lead"; collapsed?: boolean; onToggle?: () => void; data: SectionItem[] }[] = []
 
-  {
-  }
   for (const label of ["Active", "Lead", "Inactive"] as const) {
     const sorted = [...grouped[label]].sort(byLastName)
     if (sorted.length > 0) {
