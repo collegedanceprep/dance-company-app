@@ -524,6 +524,9 @@ export function AdminMembersPanel({ members, bookings, plans, packages, query = 
                                   {SESSION_TYPE_LABELS[b.sessionType as import("@/lib/session-types").SessionType]}
                                 </span>
                               )}
+                              <span className={`ml-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold leading-none ${b.singleCreditUsed ? "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300" : "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"}`}>
+                                {b.singleCreditUsed ? "Single" : "Pack"}
+                              </span>
                             </div>
                             <Badge variant={statusVariant} className="capitalize shrink-0">
                               {b.status}

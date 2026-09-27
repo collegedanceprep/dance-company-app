@@ -366,11 +366,14 @@ function MemberCard({ member: m, credits, plans, bookings, packages, statusInfo,
                 const dsl = displayStatus.toLowerCase()
                 const bg = dsl === "confirmed" ? COLORS.primaryLight : dsl === "completed" ? COLORS.grayLight : dsl.startsWith("cancelled") ? COLORS.redLight : COLORS.grayLight
                 const fg = dsl === "confirmed" ? COLORS.primary : dsl === "completed" ? COLORS.textMuted : dsl.startsWith("cancelled") ? COLORS.red : COLORS.textMuted
+                const sessionLabel = b.sessionType === "private-30" ? "30 min" : b.sessionType === "private-45" ? "45 min" : b.sessionType === "private-90" ? "90 min" : "60 min"
+                const creditLabel = b.singleCreditUsed ? "Single" : "Pack"
                 return (
                   <View key={b.id} style={styles.bookingItem}>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.bookingName}>{b.prepMasterName || "PrepMaster"}</Text>
-                      <Text style={styles.bookingMeta}>{b.date}{b.time ? ` · ${formatTime(b.time)}` : ""}</Text>
+                      <Text style={styles.bookingMeta}>{b.date}{b.time ? ` · ${formatTime(b.time, b.utcDatetime)}` : ""}</Text>
+                      <Text style={styles.bookingMeta}>{sessionLabel} · {creditLabel}</Text>
                     </View>
                     <View style={[styles.badge, { backgroundColor: bg }]}><Text style={[styles.badgeText, { color: fg }]}>{displayStatus}</Text></View>
                   </View>
