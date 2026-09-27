@@ -390,6 +390,39 @@ export function signupReceivedEmail({ memberName }: { memberName: string }) {
   }
 }
 
+export function duplicateAccountWarningEmail({
+  memberName,
+  existingEmail,
+  appUrl,
+}: {
+  memberName: string
+  existingEmail: string
+  appUrl: string
+}) {
+  const body = `
+    <p style="font-size:15px;color:#374151;line-height:1.6;margin:0 0 16px">Hi ${firstName(memberName)},</p>
+    <p style="font-size:15px;color:#374151;line-height:1.6;margin:0 0 16px">
+      We noticed that an account with the name <strong>${memberName}</strong> already exists at
+      <strong>${existingEmail}</strong>.
+    </p>
+    <p style="font-size:15px;color:#374151;line-height:1.6;margin:0 0 16px">
+      If that's you, you may have accidentally created a duplicate account by signing in with Apple.
+      Please log in with your original account instead — or reply to this email and we'll help you merge them.
+    </p>
+    <p style="font-size:15px;color:#374151;line-height:1.6;margin:0 0 16px">
+      <a href="${appUrl}" style="display:inline-block;background:#111827;color:#fff;font-size:14px;font-weight:600;padding:10px 20px;border-radius:6px;text-decoration:none">
+        Go to College Dance Prep
+      </a>
+    </p>
+    <p style="font-size:13px;color:#6b7280;line-height:1.6;margin:0">
+      If you didn't sign up and don't recognize this, you can safely ignore this email.
+    </p>`
+  return {
+    subject: "Heads up — a duplicate account may have been created",
+    html: emailBase("Duplicate account detected", body),
+  }
+}
+
 export function prepMasterApprovedEmail({
   prepMasterName,
   portalUrl,

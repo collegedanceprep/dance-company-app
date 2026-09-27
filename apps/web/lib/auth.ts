@@ -3,7 +3,7 @@ import { expo } from "@better-auth/expo"
 import { pool, db } from "@/lib/db"
 import { user as userTable } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
-import { sendEmail, sendPasswordResetEmail, newMemberPendingEmail, signupReceivedEmail } from "@/lib/email"
+import { sendEmail, sendPasswordResetEmail, newMemberPendingEmail, signupReceivedEmail, duplicateAccountWarningEmail } from "@/lib/email"
 import { sendPushToUser } from "@/lib/push"
 
 export const auth = betterAuth({
@@ -256,6 +256,36 @@ export const auth = betterAuth({
           await db.update(userTable)
             .set({ status: "pending" })
             .where(eq(userTable.id, newUser.id))
+
+          // If this is an Apple relay sign-in, check for an existing account with
+          // the same name — the user may have accidentally created a duplicate by
+          // tapping "Hide My Email." Send them a heads-up at the relay address,
+          // which Apple forwards to their real inbox.
+          if (email.endsWith("@privaterelay.appleid.com") && newUser.name) {
+            try {
+              const { ilike, and: andOp, ne } = await import("drizzle-orm")
+              const existing = await db
+                .select({ email: userTable.email, name: userTable.name })
+                .from(userTable)
+                .where(andOp(
+                  ilike(userTable.name, newUser.name.trim()),
+                  ne(userTable.id, newUser.id),
+                ))
+                .limit(1)
+              if (existing.length > 0) {
+                const appUrl = process.env.BETTER_AUTH_URL
+                  ?? (process.env.VERCEL_PROJECT_PRODUCTION_URL
+                    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+                    : "https://app.collegedanceprep.com")
+                const warn = duplicateAccountWarningEmail({
+                  memberName: newUser.name,
+                  existingEmail: existing[0].email,
+                  appUrl,
+                })
+                await sendEmail({ to: newUser.email, subject: warn.subject, html: warn.html }).catch(() => {})
+              }
+            } catch { /* non-fatal */ }
+          }
 
           // Notify all admins via email + push
           const { inArray } = await import("drizzle-orm")
