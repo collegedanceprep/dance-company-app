@@ -31,7 +31,8 @@ function memberStatusLabel(
   member: AdminMember, memberPlans: MemberPlan[], memberBookings: AdminBooking[],
 ): "Active" | "Inactive" | "Lead" {
   const activePlan = memberPlans.find((p) => planDisplayStatus(p) === "Active")
-  if (member.creditsRemaining > 0 || activePlan) return "Active"
+  const totalSingle = Object.values(member.singleCredits ?? {}).reduce((s, v) => s + (v ?? 0), 0)
+  if (member.creditsRemaining > 0 || totalSingle > 0 || activePlan) return "Active"
   const oneYearAgo = Date.now() - 365 * 24 * 60 * 60 * 1000
   const recentBooking = memberBookings.some((b) => b.status.toLowerCase() !== "cancelled" && new Date(b.date).getTime() >= oneYearAgo)
   const recentPlan = memberPlans.some((p) => new Date(p.purchasedAt).getTime() >= oneYearAgo)
@@ -417,6 +418,16 @@ function MemberCard({ member: m, credits, plans, bookings, packages, statusInfo,
           <Ticket size={10} color={COLORS.primary} />
           <Text style={[styles.badgeText, { color: COLORS.primary }]}>{credits}</Text>
         </View>
+        {(["90", "60", "45", "30"] as const).map((min) => {
+          const count = (m.singleCredits as Record<string, number>)?.[min] ?? 0
+          if (!count) return null
+          return (
+            <View key={min} style={[styles.badge, { backgroundColor: COLORS.primaryLight, flexDirection: "row", gap: 3 }]}>
+              <Ticket size={10} color={COLORS.primary} />
+              <Text style={[styles.badgeText, { color: COLORS.primary }]}>{count}×{min}</Text>
+            </View>
+          )
+        })}
         {isOpen ? <ChevronUp size={16} color={COLORS.textMuted} /> : <ChevronDown size={16} color={COLORS.textMuted} />}
       </TouchableOpacity>
 
@@ -475,15 +486,17 @@ function MemberCard({ member: m, credits, plans, bookings, packages, statusInfo,
             {bookingsExpanded && (
               bookings.length === 0 ? <Text style={styles.hint}>No bookings yet.</Text> : bookings.map((b) => {
                 const sl = (b.status ?? "").toLowerCase()
-                const bg = sl === "confirmed" ? COLORS.primaryLight : sl.startsWith("cancelled") ? COLORS.redLight : COLORS.grayLight
-                const fg = sl === "confirmed" ? COLORS.primary : sl.startsWith("cancelled") ? COLORS.red : COLORS.textMuted
+                const isPastBooking = b.utcDatetime ? new Date(b.utcDatetime) <= new Date() : b.date ? new Date(b.date) <= new Date() : false
+                const displayStatus = sl === "confirmed" && isPastBooking ? "completed" : sl
+                const bg = displayStatus === "confirmed" ? COLORS.primaryLight : displayStatus === "completed" ? COLORS.grayLight : sl.startsWith("cancelled") ? COLORS.redLight : COLORS.grayLight
+                const fg = displayStatus === "confirmed" ? COLORS.primary : displayStatus === "completed" ? COLORS.textMuted : sl.startsWith("cancelled") ? COLORS.red : COLORS.textMuted
                 return (
                   <View key={b.id} style={styles.bookingItem}>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.bookingName}>{b.prepMasterName || "PrepMaster"}</Text>
                       <Text style={styles.bookingMeta}>{b.date}{b.time ? ` · ${formatTime(b.time)}` : ""}</Text>
                     </View>
-                    <View style={[styles.badge, { backgroundColor: bg }]}><Text style={[styles.badgeText, { color: fg }]}>{b.status}</Text></View>
+                    <View style={[styles.badge, { backgroundColor: bg }]}><Text style={[styles.badgeText, { color: fg }]}>{displayStatus}</Text></View>
                   </View>
                 )
               })

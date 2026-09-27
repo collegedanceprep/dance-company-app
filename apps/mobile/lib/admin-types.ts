@@ -1,3 +1,5 @@
+export type SingleCreditsByType = { "30": number; "45": number; "60": number; "90": number }
+
 export type AdminMember = {
   id: string
   name: string
@@ -6,6 +8,7 @@ export type AdminMember = {
   phone: string
   goals: string
   creditsRemaining: number
+  singleCredits: SingleCreditsByType
 }
 
 export type AdminWorker = {

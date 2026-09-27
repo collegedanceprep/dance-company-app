@@ -160,6 +160,9 @@ export function planDisplayStatus(plan: MemberPlan): string {
   if (plan.status === "Active" && plan.expiresAt && new Date(plan.expiresAt) < new Date()) {
     return "Inactive"
   }
+  if (plan.status === "Active" && plan.sessions === 0) {
+    return "Used"
+  }
   return plan.status
 }
 

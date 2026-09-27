@@ -78,7 +78,8 @@ export function AdminMembersPanel({ members, bookings, plans, packages, query = 
     const credits = creditsFor(member)
     const plans = memberPlans(member)
     const activePlan = plans.find((p) => planDisplayStatus(p) === "Active")
-    if (credits > 0 || member.singleSessionCredits > 0 || activePlan) return "active"
+    const totalSingle = Object.values(member.singleCredits ?? {}).reduce((s, v) => s + (v ?? 0), 0)
+    if (credits > 0 || totalSingle > 0 || activePlan) return "active"
     const oneYearAgo = Date.now() - 365 * 24 * 60 * 60 * 1000
     const recentBooking = memberBookings(member).some(
       (b) => b.status.toLowerCase() !== "cancelled" && new Date(b.date).getTime() >= oneYearAgo,
@@ -93,7 +94,7 @@ export function AdminMembersPanel({ members, bookings, plans, packages, query = 
     if (!confirm(`Add a ${label} single session to ${member.name || member.email}?`)) return
     startTransition(async () => {
       const result = await addComplimentaryCredits(
-        { id: member.id, userId: member.userId, email: member.email, creditsRemaining: creditsFor(member), singleSessionCredits: member.singleSessionCredits },
+        { id: member.id, userId: member.userId, email: member.email, creditsRemaining: creditsFor(member), singleCredits: member.singleCredits },
         label,
       )
       if (result.ok) {
@@ -300,12 +301,16 @@ export function AdminMembersPanel({ members, bookings, plans, packages, query = 
                     <Ticket className="size-3" />
                     {credits}
                   </Badge>
-                  {member.singleSessionCredits > 0 && (
-                    <Badge variant="outline" className="gap-1 border-primary/40 text-primary" title="Single session credits">
-                      <Ticket className="size-3" />
-                      {member.singleSessionCredits}×
-                    </Badge>
-                  )}
+                  {(["90", "60", "45", "30"] as const).map((min) => {
+                    const count = member.singleCredits?.[min] ?? 0
+                    if (!count) return null
+                    return (
+                      <Badge key={min} variant="outline" className="gap-1 border-primary/40 text-primary" title={`${min}-min single session credits`}>
+                        <Ticket className="size-3" />
+                        {count}×{min}
+                      </Badge>
+                    )
+                  })}
                   <Button
                     variant="ghost"
                     size="icon"
@@ -423,7 +428,13 @@ export function AdminMembersPanel({ members, bookings, plans, packages, query = 
                     >
                       Save
                     </Button>
-                    <span className="text-xs text-muted-foreground">Current: {credits} pack · {member.singleSessionCredits} single</span>
+                    <span className="text-xs text-muted-foreground">
+                      Current: {credits} pack
+                      {(["90", "60", "45", "30"] as const).map((min) => {
+                        const count = member.singleCredits?.[min] ?? 0
+                        return count > 0 ? ` · ${count}×${min}min single` : ""
+                      }).join("")}
+                    </span>
                   </div>
                 </div>
 

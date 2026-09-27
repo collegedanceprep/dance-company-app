@@ -54,7 +54,10 @@ export type ClientFields = {
   Phone?: string
   Goals?: string
   "Credits Remaining"?: number
-  "Single Session Credits"?: number
+  "Single Credits 30"?: number
+  "Single Credits 45"?: number
+  "Single Credits 60"?: number
+  "Single Credits 90"?: number
   "Parent Email"?: string
 }
 
@@ -554,6 +557,13 @@ export async function createMemberPlan(fields: {
 
 // --- Admin-only helpers (never call from dancer/PrepMaster code paths) ------
 
+export type SingleCreditsByType = {
+  "30": number
+  "45": number
+  "60": number
+  "90": number
+}
+
 export type AdminMember = {
   id: string
   name: string
@@ -562,7 +572,7 @@ export type AdminMember = {
   phone: string
   goals: string
   creditsRemaining: number
-  singleSessionCredits: number
+  singleCredits: SingleCreditsByType
   parentEmail: string
   accountStatus?: "pending" | "active"
 }
@@ -609,7 +619,12 @@ export async function adminGetAllMembers(): Promise<AdminMember[]> {
       phone: r.fields.Phone ?? "",
       goals: r.fields.Goals ?? "",
       creditsRemaining: r.fields["Credits Remaining"] ?? 0,
-      singleSessionCredits: r.fields["Single Session Credits"] ?? 0,
+      singleCredits: {
+        "30": r.fields["Single Credits 30"] ?? 0,
+        "45": r.fields["Single Credits 45"] ?? 0,
+        "60": r.fields["Single Credits 60"] ?? 0,
+        "90": r.fields["Single Credits 90"] ?? 0,
+      },
       parentEmail: r.fields["Parent Email"] ?? "",
     }))
 }
@@ -746,14 +761,21 @@ export async function adminAddCredits(
   })
 }
 
+const SINGLE_CREDIT_FIELD: Record<string, keyof ClientFields> = {
+  "private-30": "Single Credits 30",
+  "private-45": "Single Credits 45",
+  "private-60": "Single Credits 60",
+  "private-90": "Single Credits 90",
+}
+
 export async function adminAddSingleSessionCredits(
   memberId: string,
-  currentSingleCredits: number,
-  sessionsToAdd: number,
+  sessionType: string,
+  current: number,
 ): Promise<void> {
-  await update<ClientFields>(TABLES.clients, memberId, {
-    "Single Session Credits": currentSingleCredits + sessionsToAdd,
-  })
+  const field = SINGLE_CREDIT_FIELD[sessionType]
+  if (!field) throw new Error(`Unknown session type: ${sessionType}`)
+  await update<ClientFields>(TABLES.clients, memberId, { [field]: current + 1 } as Partial<ClientFields>)
 }
 
 export async function adminCreateMember(fields: {
@@ -778,7 +800,7 @@ export async function adminCreateMember(fields: {
     phone: record.fields.Phone ?? "",
     goals: record.fields.Goals ?? "",
     creditsRemaining: record.fields["Credits Remaining"] ?? 0,
-    singleSessionCredits: record.fields["Single Session Credits"] ?? 0,
+    singleCredits: { "30": 0, "45": 0, "60": 0, "90": 0 },
     parentEmail: record.fields["Parent Email"] ?? "",
   }
 }

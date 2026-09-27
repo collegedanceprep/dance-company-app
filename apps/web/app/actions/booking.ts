@@ -142,16 +142,17 @@ export async function cancelBooking(
         : await findClientByRecordId(profile.recordId)
       if (client) {
         const SESSION_CREDIT_COST: Record<string, number> = { "pack-hour": 1, "private-60": 1, "private-45": 0.75, "private-30": 0.5, "private-90": 1.5 }
+        const REFUND_SINGLE_FIELD: Record<string, keyof ClientFields> = {
+          "private-30": "Single Credits 30", "private-45": "Single Credits 45",
+          "private-60": "Single Credits 60", "private-90": "Single Credits 90",
+        }
         const sessionType = booking.fields["Session Type"] ?? "private-60"
-        const isSingle = ["private-30", "private-45", "private-60", "private-90"].includes(sessionType)
-        const singleNow = client.fields["Single Session Credits"] ?? 0
+        const refundSingleField = REFUND_SINGLE_FIELD[sessionType]
         const packNow = client.fields["Credits Remaining"] ?? 0
-        // Refund to single session pool if the booking originally used a single credit
-        // (detected by checking if single credits are lower than expected — simpler: refund single if session type is a per-private)
-        if (isSingle && singleNow < 1) {
-          await appBase.update<ClientFields>(TABLES.clients, client.id, {
-            "Single Session Credits": singleNow + 1,
-          })
+        // Refund to the type-matched single credit field; fall back to pack credits
+        if (refundSingleField) {
+          const singleNow = (client.fields[refundSingleField] as number | undefined) ?? 0
+          await appBase.update<ClientFields>(TABLES.clients, client.id, { [refundSingleField]: singleNow + 1 } as Partial<ClientFields>)
         } else {
           const creditRefund = SESSION_CREDIT_COST[sessionType] ?? 1
           await appBase.update<ClientFields>(TABLES.clients, client.id, {
@@ -396,15 +397,21 @@ export async function createBooking(input: {
       ? await findClientRecord(effectiveUserId)
       : await findClientByRecordId(profile.recordId)
     const packCredits = client?.fields["Credits Remaining"] ?? 0
-    const singleCredits = client?.fields["Single Session Credits"] ?? 0
-    const isSingleSession = ["private-30", "private-45", "private-60", "private-90"].includes(input.sessionType ?? "")
+    const SINGLE_CREDIT_FIELDS: Record<string, keyof ClientFields> = {
+      "private-30": "Single Credits 30",
+      "private-45": "Single Credits 45",
+      "private-60": "Single Credits 60",
+      "private-90": "Single Credits 90",
+    }
+    const singleField = SINGLE_CREDIT_FIELDS[input.sessionType ?? ""]
+    const singleCreditsForType = singleField ? (client?.fields[singleField] as number | undefined ?? 0) : 0
     const BOOKING_CREDIT_COST: Record<string, number> = {
       "pack-hour": 1, "private-60": 1, "private-45": 0.75, "private-30": 0.5, "private-90": 1.5,
     }
-    // Single session credits (whole number, 1 per booking) take priority over fractional pack credits
-    const useSingleCredit = isSingleSession && singleCredits >= 1
+    // Use a type-matched single session credit if available, otherwise fall back to pack credits
+    const useSingleCredit = singleCreditsForType >= 1
     const creditCost = useSingleCredit ? 1 : (BOOKING_CREDIT_COST[input.sessionType ?? "pack-hour"] ?? 1)
-    const credits = useSingleCredit ? singleCredits : packCredits
+    const credits = useSingleCredit ? singleCreditsForType : packCredits
     if (!client || credits < creditCost) {
       return {
         ok: false,
@@ -456,8 +463,8 @@ export async function createBooking(input: {
     // Deduct credit before creating the booking record; rollback on failure.
     const utcForCreate = etToUtcIso(input.date, input.time, pmTz)
     const newCredits = Math.round((credits - creditCost) * 100) / 100
-    await appBase.update<ClientFields>(TABLES.clients, client.id, useSingleCredit
-      ? { "Single Session Credits": newCredits }
+    await appBase.update<ClientFields>(TABLES.clients, client.id, useSingleCredit && singleField
+      ? { [singleField]: newCredits } as Partial<ClientFields>
       : { "Credits Remaining": newCredits }
     )
 

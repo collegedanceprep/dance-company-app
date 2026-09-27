@@ -31,11 +31,11 @@ import {
   type MemberPlan,
 } from "@/lib/airtable"
 
-const SINGLE_SESSION_PLANS: Record<string, { name: string; price: number; credits: number }> = {
-  "90 min": { name: "90-Min Single", price: 169, credits: 1.5 },
-  "60 min": { name: "60-Min Single", price: 119, credits: 1 },
-  "45 min": { name: "45-Min Single", price: 89, credits: 0.75 },
-  "30 min": { name: "30-Min Single", price: 65, credits: 0.5 },
+const SINGLE_SESSION_PLANS: Record<string, { name: string; price: number; sessionType: string }> = {
+  "90 min": { name: "90-Min Single", price: 169, sessionType: "private-90" },
+  "60 min": { name: "60-Min Single", price: 119, sessionType: "private-60" },
+  "45 min": { name: "45-Min Single", price: 89,  sessionType: "private-45" },
+  "30 min": { name: "30-Min Single", price: 65,  sessionType: "private-30" },
 }
 import { PACKAGES, type DancePackage } from "@/lib/packages"
 
@@ -129,13 +129,15 @@ export async function getAdminData(): Promise<{
 }
 
 export async function addComplimentaryCredits(
-  member: { id: string; userId: string; email: string; creditsRemaining: number; singleSessionCredits: number },
+  member: { id: string; userId: string; email: string; creditsRemaining: number; singleCredits: import("@/lib/airtable").SingleCreditsByType },
   label: string,
 ): Promise<{ ok: true; plan: MemberPlan } | { ok: false; error: string }> {
   try {
     await assertAdmin()
     const sessionPlan = SINGLE_SESSION_PLANS[label]
     if (!sessionPlan) return { ok: false, error: "Invalid session label." }
+    const minuteKey = label.replace(" min", "") as keyof import("@/lib/airtable").SingleCreditsByType
+    const currentForType = member.singleCredits[minuteKey] ?? 0
     const plan = await createMemberPlan({
       userId: member.userId,
       memberEmail: member.email,
@@ -144,8 +146,7 @@ export async function addComplimentaryCredits(
       pricePaid: sessionPlan.price,
       source: "admin",
     })
-    // Single sessions go into the dedicated single-session pool (always +1, not fractional)
-    await adminAddSingleSessionCredits(member.id, member.singleSessionCredits, 1)
+    await adminAddSingleSessionCredits(member.id, sessionPlan.sessionType, currentForType)
     revalidatePath("/admin")
     revalidatePath("/dashboard")
     revalidateTag(`member-${member.userId}`, "max")
