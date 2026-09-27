@@ -299,7 +299,7 @@ function MemberCard({ member: m, credits, plans, bookings, packages, statusInfo,
           return (
             <View key={min} style={[styles.badge, { backgroundColor: bg, flexDirection: "row", gap: 3 }]}>
               <Ticket size={10} color={fg} />
-              <Text style={[styles.badgeText, { color: fg }]}>{count} × {min} min</Text>
+              <Text style={[styles.badgeText, { color: fg }]}>{count > 1 ? `${count} × ` : ""}{min} min</Text>
             </View>
           )
         })}

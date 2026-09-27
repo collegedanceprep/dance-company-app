@@ -313,7 +313,7 @@ export function AdminMembersPanel({ members, bookings, plans, packages, query = 
                     return (
                       <Badge key={min} variant="outline" className={`gap-1 ${color}`} title={`${count} × ${min}-min single session credit${count !== 1 ? "s" : ""}`}>
                         <Ticket className="size-3" />
-                        {count} × {min} min
+                        {count > 1 ? `${count} × ` : ""}{min} min
                       </Badge>
                     )
                   })}
