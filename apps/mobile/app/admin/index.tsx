@@ -28,19 +28,20 @@ function BookingItem({ booking: b }: { booking: AdminBooking }) {
   const [expanded, setExpanded] = useState(false)
   const s = b.status.toLowerCase()
   const isPast = b.utcDatetime ? new Date(b.utcDatetime) <= new Date() : b.date ? new Date(b.date) <= new Date() : false
-  const effectiveStatus = s === "confirmed" && isPast ? "completed" : s
+  const effectiveStatus = s === "confirmed" && isPast ? "Completed" : (b.status ?? s)
+  const esl = effectiveStatus.toLowerCase()
   const bg =
-    effectiveStatus === "confirmed" ? COLORS.primaryLight
-    : effectiveStatus === "completed" ? COLORS.grayLight
+    esl === "confirmed" ? COLORS.primaryLight
+    : esl === "completed" ? COLORS.grayLight
     : effectiveStatus === "pending" ? COLORS.amberLight ?? "#fef3c7"
     : effectiveStatus === "declined" ? COLORS.amberLight ?? "#fef3c7"
     : s.startsWith("cancelled") ? COLORS.redLight
     : COLORS.grayLight
   const badgeColor =
-    effectiveStatus === "confirmed" ? COLORS.primary
-    : effectiveStatus === "completed" ? COLORS.textMuted
-    : effectiveStatus === "pending" ? COLORS.amber
-    : effectiveStatus === "declined" ? COLORS.amber
+    esl === "confirmed" ? COLORS.primary
+    : esl === "completed" ? COLORS.textMuted
+    : esl === "pending" ? COLORS.amber
+    : esl === "declined" ? COLORS.amber
     : s.startsWith("cancelled") ? COLORS.red
     : COLORS.textMuted
   const isCancelled = s.startsWith("cancelled")
@@ -111,8 +112,8 @@ function GroupedBookings({ bookings }: { bookings: AdminBooking[] }) {
 
   function effectiveStatus(b: AdminBooking): string {
     const s = b.status?.toLowerCase() ?? ""
-    if (s === "confirmed" && isPast(b)) return "completed"
-    return s
+    if (s === "confirmed" && isPast(b)) return "Completed"
+    return b.status ?? s
   }
 
   const STATUS_GROUPS: StatusGroup[] = [
@@ -128,9 +129,10 @@ function GroupedBookings({ bookings }: { bookings: AdminBooking[] }) {
     ...g,
     items: bookings.filter((b) => {
       const es = effectiveStatus(b)
-      if (g.key === "cancelled") return es.startsWith("cancelled")
-      if (g.key === "other") return !STATUS_GROUPS.slice(0, -1).some((sg) => sg.key === "cancelled" ? es.startsWith("cancelled") : es === sg.key)
-      return es === g.key
+      const esl = es.toLowerCase()
+      if (g.key === "cancelled") return esl.startsWith("cancelled")
+      if (g.key === "other") return !STATUS_GROUPS.slice(0, -1).some((sg) => sg.key === "cancelled" ? esl.startsWith("cancelled") : esl === sg.key)
+      return esl === g.key
     }),
   })).filter((g) => g.items.length > 0)
 

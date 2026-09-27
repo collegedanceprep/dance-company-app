@@ -24,6 +24,7 @@ function lastNameKey(name: string): string {
 
 function planDisplayStatus(plan: MemberPlan): string {
   if (plan.status === "Active" && plan.expiresAt && new Date(plan.expiresAt) < new Date()) return "Inactive"
+  if (plan.status === "Active" && plan.sessions === 0) return "Used"
   return plan.status
 }
 
@@ -487,7 +488,7 @@ function MemberCard({ member: m, credits, plans, bookings, packages, statusInfo,
               bookings.length === 0 ? <Text style={styles.hint}>No bookings yet.</Text> : bookings.map((b) => {
                 const sl = (b.status ?? "").toLowerCase()
                 const isPastBooking = b.utcDatetime ? new Date(b.utcDatetime) <= new Date() : b.date ? new Date(b.date) <= new Date() : false
-                const displayStatus = sl === "confirmed" && isPastBooking ? "completed" : sl
+                const displayStatus = sl === "confirmed" && isPastBooking ? "Completed" : (b.status ?? sl)
                 const bg = displayStatus === "confirmed" ? COLORS.primaryLight : displayStatus === "completed" ? COLORS.grayLight : sl.startsWith("cancelled") ? COLORS.redLight : COLORS.grayLight
                 const fg = displayStatus === "confirmed" ? COLORS.primary : displayStatus === "completed" ? COLORS.textMuted : sl.startsWith("cancelled") ? COLORS.red : COLORS.textMuted
                 return (
