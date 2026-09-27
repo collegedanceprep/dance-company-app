@@ -294,10 +294,12 @@ function MemberCard({ member: m, credits, plans, bookings, packages, statusInfo,
         {(["90", "60", "45", "30"] as const).map((min) => {
           const count = (m.singleCredits as Record<string, number>)?.[min] ?? 0
           if (!count) return null
+          const bg = min === "90" ? "#fff7ed" : min === "60" ? "#eff6ff" : min === "45" ? "#fffbeb" : "#faf5ff"
+          const fg = min === "90" ? "#c2410c" : min === "60" ? "#1d4ed8" : min === "45" ? "#b45309" : "#7e22ce"
           return (
-            <View key={min} style={[styles.badge, { backgroundColor: COLORS.primaryLight, flexDirection: "row", gap: 3 }]}>
-              <Ticket size={10} color={COLORS.primary} />
-              <Text style={[styles.badgeText, { color: COLORS.primary }]}>{count}×{min}</Text>
+            <View key={min} style={[styles.badge, { backgroundColor: bg, flexDirection: "row", gap: 3 }]}>
+              <Ticket size={10} color={fg} />
+              <Text style={[styles.badgeText, { color: fg }]}>{count} × {min} min</Text>
             </View>
           )
         })}

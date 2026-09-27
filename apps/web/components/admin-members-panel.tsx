@@ -303,10 +303,17 @@ export function AdminMembersPanel({ members, bookings, plans, packages, query = 
                   {(["90", "60", "45", "30"] as const).map((min) => {
                     const count = member.singleCredits?.[min] ?? 0
                     if (!count) return null
+                    const color = min === "90"
+                      ? "border-orange-300 bg-orange-50 text-orange-700 dark:bg-orange-950 dark:text-orange-300"
+                      : min === "60"
+                      ? "border-blue-300 bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
+                      : min === "45"
+                      ? "border-amber-300 bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300"
+                      : "border-purple-300 bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300"
                     return (
-                      <Badge key={min} variant="outline" className="gap-1 border-primary/40 text-primary" title={`${min}-min single session credits`}>
+                      <Badge key={min} variant="outline" className={`gap-1 ${color}`} title={`${count} × ${min}-min single session credit${count !== 1 ? "s" : ""}`}>
                         <Ticket className="size-3" />
-                        {count}×{min}
+                        {count} × {min} min
                       </Badge>
                     )
                   })}
