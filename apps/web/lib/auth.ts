@@ -277,10 +277,11 @@ export const auth = betterAuth({
                   ?? (process.env.VERCEL_PROJECT_PRODUCTION_URL
                     ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
                     : "https://app.collegedanceprep.com")
+                const mergeUrl = `${appUrl}/merge-account?from=${newUser.id}`
                 const warn = duplicateAccountWarningEmail({
                   memberName: newUser.name,
                   existingEmail: existing[0].email,
-                  appUrl,
+                  mergeUrl,
                 })
                 await sendEmail({ to: newUser.email, subject: warn.subject, html: warn.html }).catch(() => {})
               }

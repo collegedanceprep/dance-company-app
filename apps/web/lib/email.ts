@@ -393,11 +393,11 @@ export function signupReceivedEmail({ memberName }: { memberName: string }) {
 export function duplicateAccountWarningEmail({
   memberName,
   existingEmail,
-  appUrl,
+  mergeUrl,
 }: {
   memberName: string
   existingEmail: string
-  appUrl: string
+  mergeUrl: string
 }) {
   const body = `
     <p style="font-size:15px;color:#374151;line-height:1.6;margin:0 0 16px">Hi ${firstName(memberName)},</p>
@@ -407,15 +407,17 @@ export function duplicateAccountWarningEmail({
     </p>
     <p style="font-size:15px;color:#374151;line-height:1.6;margin:0 0 16px">
       If that's you, you may have accidentally created a duplicate account by signing in with Apple.
-      Please log in with your original account instead — or reply to this email and we'll help you merge them.
+      Click below to link your accounts — you'll sign in with your original password, and Apple Sign-In
+      will be added to that account so you can use either going forward.
     </p>
     <p style="font-size:15px;color:#374151;line-height:1.6;margin:0 0 16px">
-      <a href="${appUrl}" style="display:inline-block;background:#111827;color:#fff;font-size:14px;font-weight:600;padding:10px 20px;border-radius:6px;text-decoration:none">
-        Go to College Dance Prep
+      <a href="${mergeUrl}" style="display:inline-block;background:#111827;color:#fff;font-size:14px;font-weight:600;padding:10px 20px;border-radius:6px;text-decoration:none">
+        Link my accounts
       </a>
     </p>
     <p style="font-size:13px;color:#6b7280;line-height:1.6;margin:0">
-      If you didn't sign up and don't recognize this, you can safely ignore this email.
+      If you don't recognize this or it doesn't apply to you, you can safely ignore this email.
+      Questions? Reply and we'll sort it out.
     </p>`
   return {
     subject: "Heads up — a duplicate account may have been created",

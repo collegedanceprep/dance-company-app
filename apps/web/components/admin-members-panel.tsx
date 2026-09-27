@@ -57,6 +57,32 @@ export function AdminMembersPanel({ members, bookings, plans, packages, query = 
   const [editingCredits, setEditingCredits] = useState<Record<string, string>>({})
   const [localPlans, setLocalPlans] = useState<MemberPlan[]>(plans)
   const [isPending, startTransition] = useTransition()
+  const [mergeModal, setMergeModal] = useState<{ member: AdminMember } | null>(null)
+  const [mergeTargetId, setMergeTargetId] = useState("")
+  const [mergeLoading, setMergeLoading] = useState(false)
+
+  async function handleMerge() {
+    if (!mergeModal || !mergeTargetId.trim()) return
+    if (!confirm(`Merge ${mergeModal.member.email} INTO the account with user ID "${mergeTargetId.trim()}"? The selected account will be deleted.`)) return
+    setMergeLoading(true)
+    try {
+      const res = await fetch("/api/admin/members/merge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fromId: mergeModal.member.userId, intoId: mergeTargetId.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? "Merge failed.")
+      setLocalMembers((prev) => prev.filter((m) => m.id !== mergeModal.member.id))
+      setMergeModal(null)
+      setMergeTargetId("")
+      toast.success(`Merged into ${data.mergedInto}`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Merge failed.")
+    } finally {
+      setMergeLoading(false)
+    }
+  }
 
   function memberBookings(member: AdminMember) {
     return bookings.filter(
@@ -216,6 +242,7 @@ export function AdminMembersPanel({ members, bookings, plans, packages, query = 
   }
 
   return (
+    <>
     <div className="flex flex-col gap-3">
       <div className="flex justify-end">
         <Button size="sm" onClick={() => setShowAddForm((v) => !v)} variant={showAddForm ? "outline" : "default"}>
@@ -334,22 +361,24 @@ export function AdminMembersPanel({ members, bookings, plans, packages, query = 
                 <Separator />
 
                 {/* Profile info */}
-                {(member.phone || member.goals) && (
-                  <div className="grid gap-2 text-sm sm:grid-cols-2">
-                    {member.phone && (
-                      <div>
-                        <span className="text-muted-foreground">Phone </span>
-                        <span className="font-medium">{formatPhone(member.phone)}</span>
-                      </div>
-                    )}
-                    {member.goals && (
-                      <div className="sm:col-span-2">
-                        <span className="text-muted-foreground">Goals </span>
-                        <span className="font-medium">{member.goals}</span>
-                      </div>
-                    )}
+                <div className="grid gap-2 text-sm sm:grid-cols-2">
+                  {member.phone && (
+                    <div>
+                      <span className="text-muted-foreground">Phone </span>
+                      <span className="font-medium">{formatPhone(member.phone)}</span>
+                    </div>
+                  )}
+                  {member.goals && (
+                    <div className="sm:col-span-2">
+                      <span className="text-muted-foreground">Goals </span>
+                      <span className="font-medium">{member.goals}</span>
+                    </div>
+                  )}
+                  <div className="sm:col-span-2">
+                    <span className="text-muted-foreground">User ID </span>
+                    <span className="font-mono text-xs select-all">{member.userId}</span>
                   </div>
-                )}
+                </div>
 
                 {/* Assign a plan */}
                 <div className="flex flex-col gap-2">
@@ -479,16 +508,25 @@ export function AdminMembersPanel({ members, bookings, plans, packages, query = 
                   <p className="text-xs font-semibold uppercase tracking-wide text-destructive">Permanent Account Deletion</p>
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-xs text-muted-foreground">Delete this user from both the auth database and Airtable so the email can be re-used for testing.</p>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      disabled={isPending}
-                      onClick={() => handleDeleteTestAccount(member)}
-                      className="shrink-0"
-                    >
-                      <Trash2 className="mr-1.5 size-3.5" />
-                      Delete account
-                    </Button>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={isPending}
+                        onClick={() => { setMergeModal({ member }); setMergeTargetId("") }}
+                      >
+                        Merge account
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        disabled={isPending}
+                        onClick={() => handleDeleteTestAccount(member)}
+                      >
+                        <Trash2 className="mr-1.5 size-3.5" />
+                        Delete account
+                      </Button>
+                    </div>
                   </div>
                 </div>
 
@@ -546,6 +584,38 @@ export function AdminMembersPanel({ members, bookings, plans, packages, query = 
         )
       })}
     </div>
+
+    {mergeModal && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div className="w-full max-w-md rounded-lg border bg-background p-6 flex flex-col gap-4 shadow-xl">
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold text-base">Merge account</h2>
+            <Button size="icon" variant="ghost" onClick={() => setMergeModal(null)}><X className="size-4" /></Button>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            This will move all sign-in methods from <strong>{mergeModal.member.email}</strong> into
+            the target account, then delete this one. Enter the <strong>user ID</strong> of the account to keep.
+          </p>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="merge-target">Target user ID</Label>
+            <Input
+              id="merge-target"
+              placeholder="e.g. nolIH6PudpL64HNqaOcB4BvJlgXcUgtL"
+              value={mergeTargetId}
+              onChange={(e) => setMergeTargetId(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">Find the user ID in the target member's expanded panel under their email.</p>
+          </div>
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => setMergeModal(null)}>Cancel</Button>
+            <Button variant="destructive" disabled={mergeLoading || !mergeTargetId.trim()} onClick={handleMerge}>
+              {mergeLoading ? "Merging…" : "Merge & delete"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   )
 }
 
