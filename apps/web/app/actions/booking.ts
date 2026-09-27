@@ -129,7 +129,9 @@ export async function cancelBooking(
       ? await db.select({ timezone: userTable.timezone }).from(userTable).where(eq(userTable.email, pmForCancel.email)).limit(1)
           .then((rows) => rows[0]?.timezone ?? COMPANY_TZ)
       : COMPANY_TZ
-    const within24 = isWithin24Hours(booking.fields.Date ?? "", booking.fields.Time ?? "", pmCancelTz)
+    // Pending = never confirmed; skip the 24-hour penalty and always refund
+    const isPending = cancelStatus === "pending"
+    const within24 = !isPending && isWithin24Hours(booking.fields.Date ?? "", booking.fields.Time ?? "", pmCancelTz)
 
     await appBase.update<BookingFields>(TABLES.bookings, bookingId, {
       Status: within24 ? "Cancelled (Late)" : "Cancelled",

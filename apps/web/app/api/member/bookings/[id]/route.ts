@@ -85,9 +85,11 @@ export async function DELETE(
     ? await db.select({ timezone: userTable.timezone }).from(userTable).where(eq(userTable.email, pmForDel.email)).limit(1)
         .then((rows) => rows[0]?.timezone ?? COMPANY_TZ)
     : COMPANY_TZ
-  const within24 = isWithin24Hours(booking.fields.Date ?? "", booking.fields.Time ?? "", pmDelTz)
   const sessionType = booking.fields["Session Type"] as string | undefined
   const creditCost = SESSION_CREDIT_COST[sessionType ?? "pack-hour"] ?? 1
+  // Pending bookings are never confirmed — no 24-hour penalty, always refund
+  const isPending = currentStatus === "pending"
+  const within24 = !isPending && isWithin24Hours(booking.fields.Date ?? "", booking.fields.Time ?? "", pmDelTz)
 
   await appBase.update<BookingFields>(TABLES.bookings, id, {
     Status: within24 ? "Cancelled (Late)" : "Cancelled",
