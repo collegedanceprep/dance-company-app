@@ -78,19 +78,30 @@ export async function POST(req: Request) {
     "private-30": 0.5,
     "private-90": 1.5,
   }
-  const creditCost = CREDIT_COST[sessionType ?? "private-60"] ?? 1
+  const SINGLE_CREDIT_FIELDS: Record<string, keyof ClientFields> = {
+    "private-30": "Single Credits 30",
+    "private-45": "Single Credits 45",
+    "private-60": "Single Credits 60",
+    "private-90": "Single Credits 90",
+  }
 
   // Resolve parent → active child (respects parentActiveChild selection for multi-child families)
   const profile = await resolveClientProfile({ id: user.id, email: user.email, name: user.name ?? "" }, true)
   if (!profile.recordId) {
     return NextResponse.json({ ok: false, error: "NO_CREDITS" })
   }
-  const credits = profile.creditsRemaining
+  const effectiveUserId = profile.effectiveUserId || user.id
+  const effectiveEmail = profile.email || user.email
+
+  // Check per-type single session credit first, then fall back to pack credits
+  const singleField = SINGLE_CREDIT_FIELDS[sessionType ?? ""]
+  const singleCreditsForType = singleField ? (profile.singleCredits[singleField.replace("Single Credits ", "") as "30" | "45" | "60" | "90"] ?? 0) : 0
+  const useSingleCredit = singleCreditsForType >= 1
+  const creditCost = useSingleCredit ? 1 : (CREDIT_COST[sessionType ?? "private-60"] ?? 1)
+  const credits = useSingleCredit ? singleCreditsForType : profile.creditsRemaining
   if (credits < creditCost) {
     return NextResponse.json({ ok: false, error: "NO_CREDITS" })
   }
-  const effectiveUserId = profile.effectiveUserId || user.id
-  const effectiveEmail = profile.email || user.email
 
   // Validate slot is within availability
   const prepMaster = await getPrepMaster(prepMasterId)
@@ -138,9 +149,15 @@ export async function POST(req: Request) {
   // Deduct credit before creating the booking so a booking is never created
   // without a corresponding credit deduction.
   const newCredits = Math.round((credits - creditCost) * 100) / 100
-  await appBase.update<ClientFields>(TABLES.clients, profile.recordId, {
-    "Credits Remaining": newCredits,
-  })
+  if (useSingleCredit && singleField) {
+    await appBase.update<ClientFields>(TABLES.clients, profile.recordId, {
+      [singleField]: newCredits,
+    } as Partial<ClientFields>)
+  } else {
+    await appBase.update<ClientFields>(TABLES.clients, profile.recordId, {
+      "Credits Remaining": newCredits,
+    })
+  }
 
   // Create booking — rollback the credit deduction if this fails
   let record: Awaited<ReturnType<typeof appBase.create<BookingFields>>>
@@ -155,20 +172,35 @@ export async function POST(req: Request) {
       Status: "Pending",
       Notes: notes ?? "",
       "Session Type": sessionType ?? "private-60",
+      ...(useSingleCredit ? { "Single Credit Used": true } : {}),
     })
   } catch (err) {
     // Booking creation failed — refund the credit so the member is not charged
-    await appBase.update<ClientFields>(TABLES.clients, profile.recordId, {
-      "Credits Remaining": credits,
-    }).catch(() => {})
+    if (useSingleCredit && singleField) {
+      await appBase.update<ClientFields>(TABLES.clients, profile.recordId, {
+        [singleField]: singleCreditsForType,
+      } as Partial<ClientFields>).catch(() => {})
+    } else {
+      await appBase.update<ClientFields>(TABLES.clients, profile.recordId, {
+        "Credits Remaining": profile.creditsRemaining,
+      }).catch(() => {})
+    }
     await db.delete(bookingAttemptLock).where(eq(bookingAttemptLock.id, lockId)).catch(() => {})
     return NextResponse.json({ ok: false, error: "Failed to create booking. Your credit has been refunded." })
   }
 
   // Mark plan used if needed
-  if (planId && planSessions === 1) {
+  if (useSingleCredit && newCredits === 0) {
+    const minLabel = sessionType?.replace("private-", "") ?? ""
+    const { getPlansForUser } = await import("@/lib/airtable")
+    const userPlans = await getPlansForUser(effectiveUserId)
+    const matchingPlan = userPlans.find(
+      (p) => p.status === "Active" && p.sessions === 1 && p.planName.toLowerCase().includes(minLabel)
+    ) ?? userPlans.find((p) => p.status === "Active" && p.sessions === 1)
+    if (matchingPlan) await setPlanStatus(matchingPlan.id, "Used")
+  } else if (!useSingleCredit && planId && planSessions === 1) {
     await setPlanStatus(planId, "Used")
-  } else if (newCredits <= 0) {
+  } else if (!useSingleCredit && newCredits <= 0) {
     const planToMark = planId ? { id: planId } : await getActivePlanForUser(effectiveUserId)
     if (planToMark) await setPlanStatus(planToMark.id, "Used")
   }

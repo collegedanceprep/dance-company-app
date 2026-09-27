@@ -380,7 +380,6 @@ export default function BookScreen() {
   const [detailLoading, setDetailLoading] = useState(false)
   const [plans, setPlans] = useState<MemberPlan[]>([])
   const [credits, setCredits] = useState(0)
-  const [singleCredits, setSingleCredits] = useState<{ "30": number; "45": number; "60": number; "90": number }>({ "30": 0, "45": 0, "60": 0, "90": 0 })
   const [confirming, setConfirming] = useState(false)
   const [isParentView, setIsParentView] = useState(false)
   const [childFirstName, setChildFirstName] = useState("")
@@ -398,9 +397,8 @@ export default function BookScreen() {
     try {
       const { data, error } = await authClient.$fetch(`${API_BASE}/api/member/dashboard`)
       if (error || !data) return
-      const d = data as { profile: { creditsRemaining: number; singleCredits?: { "30": number; "45": number; "60": number; "90": number }; isParentView?: boolean; name?: string }; plans: MemberPlan[] }
+      const d = data as { profile: { creditsRemaining: number; isParentView?: boolean; name?: string }; plans: MemberPlan[] }
       setCredits(d.profile.creditsRemaining)
-      if (d.profile.singleCredits) setSingleCredits(d.profile.singleCredits)
       setPlans(d.plans)
       setIsParentView(d.profile.isParentView ?? false)
       setChildFirstName((d.profile.isParentView && d.profile.name) ? d.profile.name.split(" ")[0] : "")
@@ -411,8 +409,7 @@ export default function BookScreen() {
 
   const handleSelectCoach = useCallback(async (coach: Coach) => {
     const activePlans = plans.filter((p) => planDisplayStatus(p) === "Active")
-    const totalSingle = Object.values(singleCredits).reduce((a, b) => a + b, 0)
-    if (activePlans.length === 0 && credits < 1 && totalSingle < 1) {
+    if (activePlans.length === 0 && credits < 1) {
       Alert.alert("No credits", "You need at least 1 credit to book a session.", [
         { text: "View Plans", onPress: () => router.push("/member/plans" as any) },
         { text: "Cancel", style: "cancel" },
@@ -426,7 +423,7 @@ export default function BookScreen() {
       setDetail(data as CoachDetail); setStep("booking")
     } catch (e) { Alert.alert("Error", e instanceof Error ? e.message : "Could not load availability.") }
     finally { setDetailLoading(false) }
-  }, [plans, credits, singleCredits, router])
+  }, [plans, credits, router])
 
   const CREDIT_COST: Record<string, number> = {
     "pack-hour": 1, "private-60": 1, "private-45": 0.75, "private-30": 0.5, "private-90": 1.5,
@@ -437,15 +434,6 @@ export default function BookScreen() {
   }) => {
     if (!selectedCoach) return
     const creditCost = CREDIT_COST[args.sessionType ?? "private-60"] ?? 1
-    const minKey = (args.sessionType ?? "").replace("private-", "") as "30" | "45" | "60" | "90"
-    const hasSingleForType = (singleCredits[minKey] ?? 0) >= 1
-    if (!hasSingleForType && credits < creditCost) {
-      Alert.alert("No credits", "Purchase a package to book a session.", [
-        { text: "View Plans", onPress: () => router.push("/member/plans" as any) },
-        { text: "Cancel", style: "cancel" },
-      ])
-      return
-    }
     setConfirming(true)
     try {
       const utcDatetime = toUtcDatetime(args.date, args.time)
@@ -469,7 +457,7 @@ export default function BookScreen() {
       Alert.alert("Session requested!", `Your request with ${selectedCoach.name} on ${args.date} at ${args.time} has been sent. ${creditLabel} used.`, [{ text: "Done", onPress: () => router.back() }])
     } catch (e) { Alert.alert("Error", e instanceof Error ? e.message : "Could not create booking.") }
     finally { setConfirming(false) }
-  }, [selectedCoach, credits, singleCredits, router])
+  }, [selectedCoach, credits, router])
 
   const title = step === "coaches" ? "Choose a PrepMaster" : selectedCoach?.name ?? "Book a Session"
 
