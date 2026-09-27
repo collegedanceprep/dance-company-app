@@ -54,6 +54,7 @@ export type ClientFields = {
   Phone?: string
   Goals?: string
   "Credits Remaining"?: number
+  "Single Session Credits"?: number
   "Parent Email"?: string
 }
 
@@ -561,6 +562,7 @@ export type AdminMember = {
   phone: string
   goals: string
   creditsRemaining: number
+  singleSessionCredits: number
   parentEmail: string
   accountStatus?: "pending" | "active"
 }
@@ -607,6 +609,7 @@ export async function adminGetAllMembers(): Promise<AdminMember[]> {
       phone: r.fields.Phone ?? "",
       goals: r.fields.Goals ?? "",
       creditsRemaining: r.fields["Credits Remaining"] ?? 0,
+      singleSessionCredits: r.fields["Single Session Credits"] ?? 0,
       parentEmail: r.fields["Parent Email"] ?? "",
     }))
 }
@@ -743,6 +746,16 @@ export async function adminAddCredits(
   })
 }
 
+export async function adminAddSingleSessionCredits(
+  memberId: string,
+  currentSingleCredits: number,
+  sessionsToAdd: number,
+): Promise<void> {
+  await update<ClientFields>(TABLES.clients, memberId, {
+    "Single Session Credits": currentSingleCredits + sessionsToAdd,
+  })
+}
+
 export async function adminCreateMember(fields: {
   name: string
   email: string
@@ -765,6 +778,7 @@ export async function adminCreateMember(fields: {
     phone: record.fields.Phone ?? "",
     goals: record.fields.Goals ?? "",
     creditsRemaining: record.fields["Credits Remaining"] ?? 0,
+    singleSessionCredits: record.fields["Single Session Credits"] ?? 0,
     parentEmail: record.fields["Parent Email"] ?? "",
   }
 }

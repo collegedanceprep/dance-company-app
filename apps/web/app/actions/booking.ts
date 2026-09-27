@@ -143,14 +143,24 @@ export async function cancelBooking(
       if (client) {
         const SESSION_CREDIT_COST: Record<string, number> = { "pack-hour": 1, "private-60": 1, "private-45": 0.75, "private-30": 0.5, "private-90": 1.5 }
         const sessionType = booking.fields["Session Type"] ?? "private-60"
-        const creditRefund = SESSION_CREDIT_COST[sessionType] ?? 1
-        const current = client.fields["Credits Remaining"] ?? 0
-        await appBase.update<ClientFields>(TABLES.clients, client.id, {
-          "Credits Remaining": Math.round((current + creditRefund) * 100) / 100,
-        })
+        const isSingle = ["private-30", "private-45", "private-60", "private-90"].includes(sessionType)
+        const singleNow = client.fields["Single Session Credits"] ?? 0
+        const packNow = client.fields["Credits Remaining"] ?? 0
+        // Refund to single session pool if the booking originally used a single credit
+        // (detected by checking if single credits are lower than expected — simpler: refund single if session type is a per-private)
+        if (isSingle && singleNow < 1) {
+          await appBase.update<ClientFields>(TABLES.clients, client.id, {
+            "Single Session Credits": singleNow + 1,
+          })
+        } else {
+          const creditRefund = SESSION_CREDIT_COST[sessionType] ?? 1
+          await appBase.update<ClientFields>(TABLES.clients, client.id, {
+            "Credits Remaining": Math.round((packNow + creditRefund) * 100) / 100,
+          })
+        }
 
-        // If credits were at 0, reactivate the most recently expired plan
-        if (current === 0) {
+        // If pack credits were at 0, reactivate the most recently expired plan
+        if (packNow === 0) {
           const inactivePlan = await getMostRecentInactivePlanForUser(effectiveUserId)
           if (inactivePlan) await setPlanStatus(inactivePlan.id, "Active")
         }
@@ -385,11 +395,16 @@ export async function createBooking(input: {
     const client = effectiveUserId
       ? await findClientRecord(effectiveUserId)
       : await findClientByRecordId(profile.recordId)
-    const credits = client?.fields["Credits Remaining"] ?? 0
+    const packCredits = client?.fields["Credits Remaining"] ?? 0
+    const singleCredits = client?.fields["Single Session Credits"] ?? 0
+    const isSingleSession = ["private-30", "private-45", "private-60", "private-90"].includes(input.sessionType ?? "")
     const BOOKING_CREDIT_COST: Record<string, number> = {
       "pack-hour": 1, "private-60": 1, "private-45": 0.75, "private-30": 0.5, "private-90": 1.5,
     }
-    const creditCost = BOOKING_CREDIT_COST[input.sessionType ?? "pack-hour"] ?? 1
+    // Single session credits (whole number, 1 per booking) take priority over fractional pack credits
+    const useSingleCredit = isSingleSession && singleCredits >= 1
+    const creditCost = useSingleCredit ? 1 : (BOOKING_CREDIT_COST[input.sessionType ?? "pack-hour"] ?? 1)
+    const credits = useSingleCredit ? singleCredits : packCredits
     if (!client || credits < creditCost) {
       return {
         ok: false,
@@ -441,9 +456,10 @@ export async function createBooking(input: {
     // Deduct credit before creating the booking record; rollback on failure.
     const utcForCreate = etToUtcIso(input.date, input.time, pmTz)
     const newCredits = Math.round((credits - creditCost) * 100) / 100
-    await appBase.update<ClientFields>(TABLES.clients, client.id, {
-      "Credits Remaining": newCredits,
-    })
+    await appBase.update<ClientFields>(TABLES.clients, client.id, useSingleCredit
+      ? { "Single Session Credits": newCredits }
+      : { "Credits Remaining": newCredits }
+    )
 
     let record: Awaited<ReturnType<typeof appBase.create<BookingFields>>>
     try {

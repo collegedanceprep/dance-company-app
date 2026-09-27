@@ -13,6 +13,7 @@ import {
   adminGetAllBookings,
   adminGetAllWorkers,
   adminAddCredits,
+  adminAddSingleSessionCredits,
   adminGetAllPlans,
   adminUpdateWorker,
   adminDeleteWorker,
@@ -128,7 +129,7 @@ export async function getAdminData(): Promise<{
 }
 
 export async function addComplimentaryCredits(
-  member: { id: string; userId: string; email: string; creditsRemaining: number },
+  member: { id: string; userId: string; email: string; creditsRemaining: number; singleSessionCredits: number },
   label: string,
 ): Promise<{ ok: true; plan: MemberPlan } | { ok: false; error: string }> {
   try {
@@ -139,11 +140,12 @@ export async function addComplimentaryCredits(
       userId: member.userId,
       memberEmail: member.email,
       planName: sessionPlan.name,
-      sessions: sessionPlan.credits,
+      sessions: 1,
       pricePaid: sessionPlan.price,
       source: "admin",
     })
-    await adminAddCredits(member.id, member.creditsRemaining, sessionPlan.credits)
+    // Single sessions go into the dedicated single-session pool (always +1, not fractional)
+    await adminAddSingleSessionCredits(member.id, member.singleSessionCredits, 1)
     revalidatePath("/admin")
     revalidatePath("/dashboard")
     revalidateTag(`member-${member.userId}`, "max")

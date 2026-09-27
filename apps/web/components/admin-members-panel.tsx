@@ -78,7 +78,7 @@ export function AdminMembersPanel({ members, bookings, plans, packages, query = 
     const credits = creditsFor(member)
     const plans = memberPlans(member)
     const activePlan = plans.find((p) => planDisplayStatus(p) === "Active")
-    if (credits > 0 || activePlan) return "active"
+    if (credits > 0 || member.singleSessionCredits > 0 || activePlan) return "active"
     const oneYearAgo = Date.now() - 365 * 24 * 60 * 60 * 1000
     const recentBooking = memberBookings(member).some(
       (b) => b.status.toLowerCase() !== "cancelled" && new Date(b.date).getTime() >= oneYearAgo,
@@ -90,17 +90,14 @@ export function AdminMembersPanel({ members, bookings, plans, packages, query = 
   }
 
   function handleAddCredits(member: AdminMember, label: string) {
-    const creditMap: Record<string, number> = { "90 min": 1.5, "60 min": 1, "45 min": 0.75, "30 min": 0.5 }
-    const creditsToAdd = creditMap[label] ?? 1
-    if (!confirm(`Add a ${label} session (${creditsToAdd} credit${creditsToAdd !== 1 ? "s" : ""}) to ${member.name || member.email}?`)) return
+    if (!confirm(`Add a ${label} single session to ${member.name || member.email}?`)) return
     startTransition(async () => {
       const result = await addComplimentaryCredits(
-        { id: member.id, userId: member.userId, email: member.email, creditsRemaining: creditsFor(member) },
+        { id: member.id, userId: member.userId, email: member.email, creditsRemaining: creditsFor(member), singleSessionCredits: member.singleSessionCredits },
         label,
       )
       if (result.ok) {
         setLocalPlans((prev) => [result.plan, ...prev])
-        setLocalCredits((prev) => ({ ...prev, [member.id]: creditsFor(member) + creditsToAdd }))
         toast.success(`Added ${label} single session to ${member.name || member.email}.`)
       } else {
         toast.error(result.error)
@@ -299,10 +296,16 @@ export function AdminMembersPanel({ members, bookings, plans, packages, query = 
                     {status === "active" ? "Active" : status === "lead" ? "Lead" : "Inactive"}
                   </Badge>
 
-                  <Badge variant="secondary" className="gap-1">
+                  <Badge variant="secondary" className="gap-1" title="Pack credits (fractional)">
                     <Ticket className="size-3" />
                     {credits}
                   </Badge>
+                  {member.singleSessionCredits > 0 && (
+                    <Badge variant="outline" className="gap-1 border-primary/40 text-primary" title="Single session credits">
+                      <Ticket className="size-3" />
+                      {member.singleSessionCredits}×
+                    </Badge>
+                  )}
                   <Button
                     variant="ghost"
                     size="icon"
@@ -402,7 +405,7 @@ export function AdminMembersPanel({ members, bookings, plans, packages, query = 
 
                 {/* Edit credit balance */}
                 <div className="flex flex-col gap-2">
-                  <p className="text-sm font-medium">Set credit balance</p>
+                  <p className="text-sm font-medium">Set pack credit balance</p>
                   <div className="flex items-center gap-2">
                     <Input
                       type="number"
@@ -420,7 +423,7 @@ export function AdminMembersPanel({ members, bookings, plans, packages, query = 
                     >
                       Save
                     </Button>
-                    <span className="text-xs text-muted-foreground">Current: {credits}</span>
+                    <span className="text-xs text-muted-foreground">Current: {credits} pack · {member.singleSessionCredits} single</span>
                   </div>
                 </div>
 
