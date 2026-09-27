@@ -171,7 +171,7 @@ export async function POST(req: Request) {
       ...(serverUtcDatetime ? { "UTC Datetime": serverUtcDatetime } : {}),
       Status: "Pending",
       Notes: notes ?? "",
-      "Session Type": sessionType ?? "private-60",
+      "Session Type": sessionType ?? "pack-hour",
       ...(useSingleCredit ? { "Single Credit Used": true } : {}),
     })
   } catch (err) {

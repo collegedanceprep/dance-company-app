@@ -486,8 +486,9 @@ function MemberCard({ member: m, credits, plans, bookings, packages, statusInfo,
                 const sl = (b.status ?? "").toLowerCase()
                 const isPastBooking = b.utcDatetime ? new Date(b.utcDatetime) <= new Date() : b.date ? new Date(b.date) <= new Date() : false
                 const displayStatus = sl === "confirmed" && isPastBooking ? "Completed" : (b.status ?? sl)
-                const bg = displayStatus === "confirmed" ? COLORS.primaryLight : displayStatus === "completed" ? COLORS.grayLight : sl.startsWith("cancelled") ? COLORS.redLight : COLORS.grayLight
-                const fg = displayStatus === "confirmed" ? COLORS.primary : displayStatus === "completed" ? COLORS.textMuted : sl.startsWith("cancelled") ? COLORS.red : COLORS.textMuted
+                const dsl = displayStatus.toLowerCase()
+                const bg = dsl === "confirmed" ? COLORS.primaryLight : dsl === "completed" ? COLORS.grayLight : dsl.startsWith("cancelled") ? COLORS.redLight : COLORS.grayLight
+                const fg = dsl === "confirmed" ? COLORS.primary : dsl === "completed" ? COLORS.textMuted : dsl.startsWith("cancelled") ? COLORS.red : COLORS.textMuted
                 return (
                   <View key={b.id} style={styles.bookingItem}>
                     <View style={{ flex: 1 }}>

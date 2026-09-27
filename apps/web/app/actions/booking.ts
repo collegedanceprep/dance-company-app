@@ -150,7 +150,7 @@ export async function cancelBooking(
         await refundBookingCredit(client.id, client.fields, sessionType, usedSingleCredit, effectiveUserId)
 
         // If pack credits were at 0, reactivate the most recently expired plan
-        if (packNow === 0) {
+        if (!usedSingleCredit && (client.fields["Credits Remaining"] ?? 0) === 0) {
           const inactivePlan = await getMostRecentInactivePlanForUser(effectiveUserId)
           if (inactivePlan) await setPlanStatus(inactivePlan.id, "Active")
         }
