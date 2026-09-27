@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server"
 import { headers } from "next/headers"
+
+export const dynamic = "force-dynamic"
 import { auth } from "@/lib/auth"
 import { isAdminEmail } from "@/lib/roles"
 import {
@@ -59,7 +61,9 @@ export async function GET() {
       accountStatus: (pendingMap.get(m.email.trim().toLowerCase()) === "pending" ? "pending" : "active") as "pending" | "active",
     }))
 
-    return NextResponse.json({ members: membersWithStatus, bookings, workers: workersWithStatus, plans, packages: PACKAGES })
+    return NextResponse.json({ members: membersWithStatus, bookings, workers: workersWithStatus, plans, packages: PACKAGES }, {
+      headers: { "Cache-Control": "no-store" },
+    })
   } catch (err) {
     console.error("[admin/dashboard] error:", err)
     return NextResponse.json(
