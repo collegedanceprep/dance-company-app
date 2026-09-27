@@ -230,7 +230,7 @@ export async function PATCH(
       if (client) {
         const sessionType = booking.fields["Session Type"] ?? "private-60"
         const usedSingleCredit = booking.fields["Single Credit Used"] === true
-        await refundBookingCredit(client.id, client.fields, sessionType, usedSingleCredit)
+        await refundBookingCredit(client.id, client.fields, sessionType, usedSingleCredit, dancerUserId)
         if (!usedSingleCredit && (client.fields["Credits Remaining"] ?? 0) === 0) {
           const inactivePlan = await getMostRecentInactivePlanForUser(dancerUserId)
           if (inactivePlan) await setPlanStatus(inactivePlan.id, "Active").catch(() => {})
@@ -309,7 +309,7 @@ export async function PATCH(
       if (client) {
         const sessionType = booking.fields["Session Type"] ?? "private-60"
         const usedSingleCredit = booking.fields["Single Credit Used"] === true
-        await refundBookingCredit(client.id, client.fields, sessionType, usedSingleCredit)
+        await refundBookingCredit(client.id, client.fields, sessionType, usedSingleCredit, dancerUserId)
         if (!usedSingleCredit && (client.fields["Credits Remaining"] ?? 0) === 0) {
           const inactivePlan = await getMostRecentInactivePlanForUser(dancerUserId)
           if (inactivePlan) await setPlanStatus(inactivePlan.id, "Active")

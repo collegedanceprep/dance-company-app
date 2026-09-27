@@ -147,7 +147,7 @@ export async function cancelBooking(
       if (client) {
         const sessionType = booking.fields["Session Type"] ?? "private-60"
         const usedSingleCredit = booking.fields["Single Credit Used"] === true
-        await refundBookingCredit(client.id, client.fields, sessionType, usedSingleCredit)
+        await refundBookingCredit(client.id, client.fields, sessionType, usedSingleCredit, effectiveUserId)
 
         // If pack credits were at 0, reactivate the most recently expired plan
         if (packNow === 0) {

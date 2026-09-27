@@ -103,7 +103,7 @@ export async function DELETE(
       : await findClientByRecordId(profile.recordId)
     if (client) {
       const usedSingleCredit = booking.fields["Single Credit Used"] === true
-      await refundBookingCredit(client.id, client.fields, sessionType ?? "pack-hour", usedSingleCredit)
+      await refundBookingCredit(client.id, client.fields, sessionType ?? "pack-hour", usedSingleCredit, effectiveUserId)
       if (!usedSingleCredit && (client.fields["Credits Remaining"] ?? 0) === 0 && effectiveUserId) {
         const inactivePlan = await getMostRecentInactivePlanForUser(effectiveUserId)
         if (inactivePlan) await setPlanStatus(inactivePlan.id, "Active").catch(() => {})

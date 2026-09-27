@@ -779,12 +779,22 @@ export async function refundBookingCredit(
   clientFields: ClientFields,
   sessionType: string,
   usedSingleCredit: boolean,
+  userId?: string,
 ): Promise<void> {
   if (usedSingleCredit) {
     const field = SINGLE_CREDIT_FIELD[sessionType]
     if (field) {
       const current = (clientFields[field] as number | undefined) ?? 0
       await update<ClientFields>(TABLES.clients, clientId, { [field]: current + 1 } as Partial<ClientFields>)
+      // Reactivate the matching Used single-session plan so the member can book again
+      if (userId) {
+        const minLabel = sessionType.replace("private-", "")
+        const plans = await getPlansForUser(userId)
+        const usedPlan = plans.find(
+          (p) => p.status === "Used" && p.sessions === 1 && p.planName.toLowerCase().includes(minLabel)
+        ) ?? plans.find((p) => p.status === "Used" && p.sessions === 1)
+        if (usedPlan) await setPlanStatus(usedPlan.id, "Active").catch(() => {})
+      }
       return
     }
   }
