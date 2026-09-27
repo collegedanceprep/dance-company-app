@@ -10,6 +10,7 @@ export type ClientProfile = {
   phone: string
   goals: string
   creditsRemaining: number
+  singleCredits: { "30": number; "45": number; "60": number; "90": number }
   parentEmail: string
   effectiveUserId: string
   isParentView: boolean
@@ -84,6 +85,12 @@ export async function resolveClientProfile(
         phone: chosen.fields.Phone ?? "",
         goals: chosen.fields.Goals ?? "",
         creditsRemaining: chosen.fields["Credits Remaining"] ?? 0,
+        singleCredits: {
+          "30": chosen.fields["Single Credits 30"] ?? 0,
+          "45": chosen.fields["Single Credits 45"] ?? 0,
+          "60": chosen.fields["Single Credits 60"] ?? 0,
+          "90": chosen.fields["Single Credits 90"] ?? 0,
+        },
         parentEmail: chosen.fields["Parent Email"] ?? user.email,
         effectiveUserId: chosen.fields["User ID"] ?? "",
         isParentView: true,
@@ -110,6 +117,12 @@ export async function resolveClientProfile(
     phone: record?.fields.Phone ?? "",
     goals: record?.fields.Goals ?? "",
     creditsRemaining: record?.fields["Credits Remaining"] ?? 0,
+    singleCredits: {
+      "30": record?.fields["Single Credits 30"] ?? 0,
+      "45": record?.fields["Single Credits 45"] ?? 0,
+      "60": record?.fields["Single Credits 60"] ?? 0,
+      "90": record?.fields["Single Credits 90"] ?? 0,
+    },
     parentEmail: record?.fields["Parent Email"] ?? "",
     effectiveUserId: record?.fields["User ID"] ?? user.id,
     isParentView: false,

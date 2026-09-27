@@ -93,8 +93,25 @@ export async function DELETE(req: Request) {
   if (!planRecords[0]) return NextResponse.json({ error: "Plan not found." }, { status: 404 })
   if (!clientRecords[0]) return NextResponse.json({ error: "Member not found." }, { status: 404 })
 
-  const planSessionsFromRecord = (planRecords[0].fields as any)["Sessions"] ?? 0
+  const planFields = planRecords[0].fields as any
+  const planSessionsFromRecord = planFields["Sessions"] ?? 0
+  const planName: string = planFields["Plan Name"] ?? ""
   await appBase.destroy(TABLES.plans, planId)
+
+  // Detect single-session plans by their name pattern and deduct from the correct field
+  const singleMinMatch = planName.match(/^(\d+)-Min Single/i)
+  if (singleMinMatch) {
+    const minKey = singleMinMatch[1]
+    const fieldMap: Record<string, string> = { "30": "Single Credits 30", "45": "Single Credits 45", "60": "Single Credits 60", "90": "Single Credits 90" }
+    const field = fieldMap[minKey]
+    if (field) {
+      const current = (clientRecords[0].fields as any)[field] ?? 0
+      const newVal = Math.max(0, current - 1)
+      await appBase.update(TABLES.clients, memberId, { [field]: newVal })
+      return NextResponse.json({ ok: true })
+    }
+  }
+
   const currentCredits = (clientRecords[0].fields as any)["Credits Remaining"] ?? 0
   const newCredits = Math.max(0, currentCredits - planSessionsFromRecord)
   await appBase.update(TABLES.clients, memberId, { "Credits Remaining": newCredits })

@@ -51,6 +51,7 @@ export async function GET() {
         phone: profile.phone,
         goals: profile.goals,
         creditsRemaining: profile.creditsRemaining,
+        singleCredits: profile.singleCredits,
         parentEmail: profile.parentEmail,
         isParentView: profile.isParentView,
       },
