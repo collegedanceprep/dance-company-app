@@ -48,19 +48,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ received: true })
     }
 
-    // For packs, metadata `sessions` is the credit count directly.
-    // For single sessions, duration determines fractional credits (30min=0.5, 45min=0.75, 60min=1).
-    const SINGLE_SESSION_CREDITS: Record<string, number> = {
-      "private-30": 0.5,
-      "private-45": 0.75,
-      "private-60": 1,
-      "private-90": 1.5,
+    const SINGLE_CREDIT_FIELD_MAP: Record<string, keyof ClientFields> = {
+      "private-30": "Single Credits 30",
+      "private-45": "Single Credits 45",
+      "private-60": "Single Credits 60",
+      "private-90": "Single Credits 90",
     }
     const rawCount = parseInt(sessions, 10)
-    const creditAmount =
-      itemType === "pack"
-        ? rawCount
-        : (sessionType ? (SINGLE_SESSION_CREDITS[sessionType] ?? rawCount) : rawCount)
+    // For packs: creditAmount is the number of pack credits.
+    // For single sessions: creditAmount is always 1 (one session of that type).
+    const creditAmount = itemType === "pack" ? rawCount : 1
     const pricePaid = (session.amount_total ?? 0) / 100
 
     // Find the member's Airtable record by User ID.
@@ -115,12 +112,26 @@ export async function POST(req: NextRequest) {
     const effectiveUserId = client?.fields["User ID"] || userId
     const effectiveEmail = client?.fields.Email || userEmail || ""
 
-    const priorBalance = client ? (client.fields["Credits Remaining"] ?? 0) : 0
-    const newBalance = Math.round((priorBalance + creditAmount) * 100) / 100
+    // For single sessions, write to the type-specific field so the booking route
+    // can enforce session-type locking. For packs, write to Credits Remaining.
+    const singleField = sessionType ? SINGLE_CREDIT_FIELD_MAP[sessionType] : undefined
+    let newBalance: number
     if (client) {
-      await appBase.update<ClientFields>(TABLES.clients, client.id, {
-        "Credits Remaining": newBalance,
-      })
+      if (itemType !== "pack" && singleField) {
+        const priorSingle = (client.fields[singleField] as number | undefined) ?? 0
+        newBalance = priorSingle + 1
+        await appBase.update<ClientFields>(TABLES.clients, client.id, {
+          [singleField]: newBalance,
+        } as Partial<ClientFields>)
+      } else {
+        const priorBalance = client.fields["Credits Remaining"] ?? 0
+        newBalance = Math.round((priorBalance + creditAmount) * 100) / 100
+        await appBase.update<ClientFields>(TABLES.clients, client.id, {
+          "Credits Remaining": newBalance,
+        })
+      }
+    } else {
+      newBalance = creditAmount
     }
 
     // Create a Plan record in Airtable with the correct expiry
