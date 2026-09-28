@@ -1,12 +1,25 @@
 import { Resend } from "resend"
+import nodemailer from "nodemailer"
 
 const REPLY_TO = "collegedanceprep@gmail.com"
-const FROM = "College Dance Prep <noreply@collegedanceprep.com>"
+const FROM_RESEND = "College Dance Prep <noreply@collegedanceprep.com>"
+const FROM_GMAIL = process.env.GMAIL_FROM ?? ""
 const YEAR = new Date().getFullYear()
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.collegedanceprep.com"
 
+// Use Resend when the domain is verified; fall back to Gmail SMTP in the meantime.
+// Flip RESEND_DOMAIN_VERIFIED=true in Vercel once resend.com shows the domain as Active.
+const USE_RESEND = process.env.RESEND_DOMAIN_VERIFIED === "true"
+
 function getResend() {
   return new Resend(process.env.Resend_Key)
+}
+
+function getGmailTransport() {
+  return nodemailer.createTransport({
+    service: "gmail",
+    auth: { user: process.env.GMAIL_FROM, pass: process.env.GMAIL_APP_PASSWORD },
+  })
 }
 
 export async function sendEmail({
@@ -20,16 +33,29 @@ export async function sendEmail({
   html: string
   cc?: string | string[]
 }) {
-  if (!process.env.Resend_Key) return
-  const resend = getResend()
-  await resend.emails.send({
-    from: FROM,
-    replyTo: REPLY_TO,
-    to: Array.isArray(to) ? to : [to],
-    ...(cc ? { cc: Array.isArray(cc) ? cc : [cc] } : {}),
-    subject,
-    html,
-  })
+  if (USE_RESEND) {
+    if (!process.env.Resend_Key) return
+    const resend = getResend()
+    await resend.emails.send({
+      from: FROM_RESEND,
+      replyTo: REPLY_TO,
+      to: Array.isArray(to) ? to : [to],
+      ...(cc ? { cc: Array.isArray(cc) ? cc : [cc] } : {}),
+      subject,
+      html,
+    })
+  } else {
+    if (!process.env.GMAIL_FROM || !process.env.GMAIL_APP_PASSWORD) return
+    const transport = getGmailTransport()
+    await transport.sendMail({
+      from: FROM_GMAIL,
+      replyTo: REPLY_TO,
+      to: Array.isArray(to) ? to.join(", ") : to,
+      ...(cc ? { cc: Array.isArray(cc) ? cc.join(", ") : cc } : {}),
+      subject,
+      html,
+    })
+  }
 }
 
 function emailBase(subtitle: string, bodyHtml: string) {
