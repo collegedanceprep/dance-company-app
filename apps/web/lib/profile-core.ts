@@ -99,6 +99,41 @@ export async function resolveClientProfile(
     }
   }
 
+  // Before creating a new record, do a final parent check.
+  // This catches the case where the child's Airtable record had the parent email
+  // set AFTER the parent signed up (the databaseHooks check would have missed it).
+  if (!record && !noCreate) {
+    const lateChildren = await findClientsByParentEmail(user.email ?? "")
+    if (lateChildren.length > 0) {
+      let chosen = lateChildren[0]
+      if (lateChildren.length > 1) {
+        const [sel] = await db.select().from(parentActiveChild).where(eq(parentActiveChild.parentUserId, user.id)).limit(1)
+        if (sel) {
+          const match = lateChildren.find((c) => c.fields["User ID"] === sel.childUserId)
+          if (match) chosen = match
+        }
+      }
+      return {
+        recordId: chosen.id,
+        name: chosen.fields.Name ?? "",
+        email: chosen.fields.Email ?? "",
+        phone: chosen.fields.Phone ?? "",
+        goals: chosen.fields.Goals ?? "",
+        creditsRemaining: chosen.fields["Credits Remaining"] ?? 0,
+        singleCredits: {
+          "30": chosen.fields["Single Credits 30"] ?? 0,
+          "45": chosen.fields["Single Credits 45"] ?? 0,
+          "60": chosen.fields["Single Credits 60"] ?? 0,
+          "90": chosen.fields["Single Credits 90"] ?? 0,
+        },
+        parentEmail: chosen.fields["Parent Email"] ?? user.email,
+        effectiveUserId: chosen.fields["User ID"] ?? "",
+        isParentView: true,
+        isNewProfile: false,
+      }
+    }
+  }
+
   let isNewProfile = false
   if (!record && !noCreate) {
     record = await appBase.create<ClientFields>(TABLES.clients, {
