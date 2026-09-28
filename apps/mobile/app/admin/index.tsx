@@ -197,10 +197,10 @@ export default function AdminOverviewScreen() {
   }
   const thisMonth = bookings.filter((b) => b.date?.startsWith(monthPrefix(monthOffset)))
   const confirmed = thisMonth.filter((b) => b.status?.toLowerCase() === "confirmed" && !isSessionPast(b))
-  const completed = thisMonth.filter((b) => b.status?.toLowerCase() !== "cancelled" && isSessionPast(b))
+  const completed = thisMonth.filter((b) => { const s = b.status?.toLowerCase() ?? ""; return (s === "completed" || s === "confirmed") && isSessionPast(b) })
   const cancelled = thisMonth.filter((b) => b.status?.toLowerCase().startsWith("cancelled"))
   const revenue = completed.reduce((sum, b) => sum + sessionRevenue(b.sessionType), 0)
-  const allCompleted = bookings.filter((b) => b.status?.toLowerCase() !== "cancelled" && isSessionPast(b))
+  const allCompleted = bookings.filter((b) => { const s = b.status?.toLowerCase() ?? ""; return (s === "completed" || s === "confirmed") && isSessionPast(b) })
   const allRevenue = allCompleted.reduce((sum, b) => sum + sessionRevenue(b.sessionType), 0)
   const workerRateMap = new Map(workers.map((w) => [w.name, w.hourlyRate]))
   const payOwedThisMonth = completed.reduce((sum, b) => {

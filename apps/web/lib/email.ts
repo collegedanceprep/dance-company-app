@@ -1,19 +1,12 @@
-import nodemailer from "nodemailer"
+import { Resend } from "resend"
 
 const REPLY_TO = "collegedanceprep@gmail.com"
+const FROM = "College Dance Prep <noreply@collegedanceprep.com>"
 const YEAR = new Date().getFullYear()
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://app.collegedanceprep.com"
 
-function getTransporter() {
-  return nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 465,
-    secure: true,
-    auth: {
-      user: process.env.GMAIL_FROM,
-      pass: process.env.GMAIL_APP_PASSWORD,
-    },
-  })
+function getResend() {
+  return new Resend(process.env.Resend_Key)
 }
 
 export async function sendEmail({
@@ -27,13 +20,13 @@ export async function sendEmail({
   html: string
   cc?: string | string[]
 }) {
-  if (!process.env.GMAIL_APP_PASSWORD) return
-  const transporter = getTransporter()
-  await transporter.sendMail({
-    from: `"College Dance Prep" <${process.env.GMAIL_FROM}>`,
+  if (!process.env.Resend_Key) return
+  const resend = getResend()
+  await resend.emails.send({
+    from: FROM,
     replyTo: REPLY_TO,
-    to: Array.isArray(to) ? to.join(", ") : to,
-    ...(cc ? { cc: Array.isArray(cc) ? cc.join(", ") : cc } : {}),
+    to: Array.isArray(to) ? to : [to],
+    ...(cc ? { cc: Array.isArray(cc) ? cc : [cc] } : {}),
     subject,
     html,
   })
