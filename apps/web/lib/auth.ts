@@ -297,6 +297,15 @@ export const auth = betterAuth({
                 .where(inArray(userTable.email, adminEmails))
             : []
 
+          // Re-fetch the user so we get the name as saved by the OAuth provider
+          // (Apple writes the name in a separate step after the hook fires).
+          const [freshUser] = await db
+            .select({ name: userTable.name })
+            .from(userTable)
+            .where(eq(userTable.id, newUser.id))
+            .limit(1)
+          const memberName = freshUser?.name || newUser.name
+
           const appUrl = process.env.BETTER_AUTH_URL
             ?? (process.env.VERCEL_PROJECT_PRODUCTION_URL
               ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
@@ -304,19 +313,19 @@ export const auth = betterAuth({
           const reviewUrl = `${appUrl}/admin`
 
           const { subject, html } = newMemberPendingEmail({
-            memberName: newUser.name,
+            memberName,
             memberEmail: newUser.email,
             reviewUrl,
           })
 
-          const signupEmail = signupReceivedEmail({ memberName: newUser.name })
+          const signupEmail = signupReceivedEmail({ memberName })
           await Promise.allSettled([
             sendEmail({ to: newUser.email, subject: signupEmail.subject, html: signupEmail.html }),
             ...admins.map((admin) => sendEmail({ to: admin.email, subject, html })),
             ...admins.map((admin) =>
               sendPushToUser(admin.id, {
                 title: "New member request",
-                body: `${newUser.name} signed up and is awaiting approval.`,
+                body: `${memberName} signed up and is awaiting approval.`,
                 data: { route: "/admin" },
               })
             ),
