@@ -63,6 +63,18 @@ function CreditsCard({ plans, credits }: { plans: MemberPlan[]; credits: number 
       </View>
       {isEmpty ? (
         <Text style={styles.emptyText}>Purchase a package to start booking.</Text>
+      ) : shownPlans.length === 0 && view === "active" && credits > 0 ? (
+        <View style={styles.planItem}>
+          <View style={styles.planRow}>
+            <Package size={13} color={COLORS.primary} style={{ marginTop: 1 }} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.planName}>Session credits<Text style={styles.planCredits}>{"  "}{credits} {credits === 1 ? "credit" : "credits"} remaining</Text></Text>
+            </View>
+            <View style={[styles.planBadge, { backgroundColor: COLORS.greenLight }]}>
+              <Text style={[styles.planBadgeText, { color: COLORS.green }]}>Active</Text>
+            </View>
+          </View>
+        </View>
       ) : shownPlans.length === 0 ? (
         <Text style={styles.emptyText}>{view === "active" ? "No active credits." : "No used credits yet."}</Text>
       ) : (
