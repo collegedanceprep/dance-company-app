@@ -27,7 +27,12 @@ export async function PATCH(
   const [target] = await db.select().from(userTable).where(eq(userTable.id, id)).limit(1)
   if (!target) return NextResponse.json({ error: "User not found" }, { status: 404 })
 
-  await db.update(userTable).set({ status, updatedAt: new Date() }).where(eq(userTable.id, id))
+  await db.update(userTable).set({
+    status,
+    updatedAt: new Date(),
+    approvedBy: me.email,
+    approvedAt: new Date(),
+  }).where(eq(userTable.id, id))
 
   // Check if this user is a PrepMaster — they must not get a member (client) record
   let isPrepMaster = false

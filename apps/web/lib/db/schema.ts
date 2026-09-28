@@ -27,6 +27,9 @@ export const user = pgTable("user", {
   // true when the user self-identified as a parent/guardian at signup.
   // Prevents a dancer Airtable record from ever being created for them.
   isParentAccount: boolean("isParentAccount").notNull().default(false),
+  // Audit trail for manual status changes (pending → active/denied).
+  approvedBy: text("approvedBy"),   // email of the admin who changed the status
+  approvedAt: timestamp("approvedAt"),
 })
 
 export const session = pgTable("session", {
