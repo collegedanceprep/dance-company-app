@@ -63,15 +63,45 @@ export async function POST(req: NextRequest) {
         : (sessionType ? (SINGLE_SESSION_CREDITS[sessionType] ?? rawCount) : rawCount)
     const pricePaid = (session.amount_total ?? 0) / 100
 
-    // Find the member's Airtable record by User ID
+    // Find the member's Airtable record by User ID.
+    // For parent accounts, the parent has no dancer record — look up their active child instead
+    // so the credit lands on the child's record (which is what the booking flow checks).
     const safeId = userId.replace(/'/g, "\\'")
-    const clients = await appBase.list<ClientFields>(TABLES.clients, {
+    let client = (await appBase.list<ClientFields>(TABLES.clients, {
       filterByFormula: `{User ID} = '${safeId}'`,
       maxRecords: 1,
-    })
-    let client = clients[0]
+    }))[0]
 
-    // New members may not have an Airtable record yet — create one so credits land
+    if (!client && userEmail) {
+      // Check if this is a parent purchasing on behalf of their child
+      const safeEmail = userEmail.trim().toLowerCase().replace(/'/g, "\\'")
+      const childRecords = await appBase.list<ClientFields>(TABLES.clients, {
+        filterByFormula: `LOWER({Parent Email}) = '${safeEmail}'`,
+        maxRecords: 1,
+      })
+      if (childRecords[0]) {
+        client = childRecords[0]
+      }
+    }
+
+    // Also check isParentAccount flag in DB — catches parents who signed up via the parent flow
+    if (!client) {
+      const { db: dbInst } = await import("@/lib/db")
+      const { user: userTable } = await import("@/lib/db/schema")
+      const { eq: eqOp } = await import("drizzle-orm")
+      const [userRow] = await dbInst.select({ isParentAccount: userTable.isParentAccount, email: userTable.email })
+        .from(userTable).where(eqOp(userTable.id, userId)).limit(1)
+      if (userRow?.isParentAccount) {
+        const safeEmail = (userRow.email ?? "").trim().toLowerCase().replace(/'/g, "\\'")
+        const childRecords = await appBase.list<ClientFields>(TABLES.clients, {
+          filterByFormula: `LOWER({Parent Email}) = '${safeEmail}'`,
+          maxRecords: 1,
+        })
+        if (childRecords[0]) client = childRecords[0]
+      }
+    }
+
+    // Non-parent new member: create a record so credits land
     if (!client && userEmail) {
       client = await appBase.create<ClientFields>(TABLES.clients, {
         Name: userEmail.split("@")[0],
@@ -80,6 +110,10 @@ export async function POST(req: NextRequest) {
         "Credits Remaining": 0,
       })
     }
+
+    // Use the child's User ID for plan/credit records when the purchaser is a parent
+    const effectiveUserId = client?.fields["User ID"] || userId
+    const effectiveEmail = client?.fields.Email || userEmail || ""
 
     const priorBalance = client ? (client.fields["Credits Remaining"] ?? 0) : 0
     const newBalance = Math.round((priorBalance + creditAmount) * 100) / 100
@@ -100,8 +134,8 @@ export async function POST(req: NextRequest) {
       : undefined
 
     await createMemberPlan({
-      userId,
-      memberEmail: userEmail ?? "",
+      userId: effectiveUserId,
+      memberEmail: effectiveEmail,
       planName,
       sessions: creditAmount,
       pricePaid,
@@ -111,9 +145,10 @@ export async function POST(req: NextRequest) {
     })
 
     // Bust the member's cached dashboard/profile data so the new credits show immediately
-    revalidateTag(`member-${userId}`)
+    revalidateTag(`member-${effectiveUserId}`)
+    if (effectiveUserId !== userId) revalidateTag(`member-${userId}`)
 
-    // In-app + push notification
+    // In-app + push notification — send to the purchasing user (parent or dancer)
     createNotification({
       userId,
       type: "purchase_complete",
