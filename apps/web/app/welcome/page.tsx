@@ -1,11 +1,12 @@
 "use client"
+import { Suspense } from "react"
 import Link from "next/link"
 import { CheckCircle, Smartphone } from "lucide-react"
 import { useSearchParams } from "next/navigation"
 
 const APP_STORE_URL = "https://apps.apple.com/app/id6744042829"
 
-export default function WelcomePage() {
+function WelcomeContent() {
   const searchParams = useSearchParams()
   const isPrep = searchParams.get("role") === "prep"
   const deepLink = isPrep ? "cdp://" : "cdp://member/plans"
@@ -51,5 +52,13 @@ export default function WelcomePage() {
         Continue on web
       </Link>
     </div>
+  )
+}
+
+export default function WelcomePage() {
+  return (
+    <Suspense>
+      <WelcomeContent />
+    </Suspense>
   )
 }

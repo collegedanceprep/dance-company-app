@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { Suspense, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { authClient } from "@/lib/auth-client"
 import { Button } from "@/components/ui/button"
@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { BrandLogo } from "@/components/brand-logo"
 import { Loader2, GitMerge } from "lucide-react"
 
-export default function MergeAccountPage() {
+function MergeAccountContent() {
   const router = useRouter()
   const params = useSearchParams()
   const fromId = params.get("from") ?? ""
@@ -112,5 +112,13 @@ export default function MergeAccountPage() {
         </p>
       </div>
     </main>
+  )
+}
+
+export default function MergeAccountPage() {
+  return (
+    <Suspense>
+      <MergeAccountContent />
+    </Suspense>
   )
 }
