@@ -38,6 +38,17 @@ const PRICE_POINTS = [
 
 function fmt(n: number) { return `$${n.toFixed(2)}` }
 
+function formatSessionType(t: string): string {
+  const map: Record<string, string> = {
+    "pack-hour": "Pack hour",
+    "private-30": "30 min per-private",
+    "private-45": "45 min per-private",
+    "private-60": "60 min per-private",
+    "private-90": "90 min per-private",
+  }
+  return map[t] ?? t
+}
+
 export default function AdminPrepMastersScreen() {
   const { data, loading, refresh } = useAdmin()
   const COLORS = useColors()
@@ -333,7 +344,7 @@ function PrepMasterProfile({ worker, bookings, onBack, onSaved, onDeleted }: {
                   </TouchableOpacity>
                   {months.map((m) => (
                     <TouchableOpacity key={m} style={[styles.filterChip, filterMonth === m && styles.filterChipActive]} onPress={() => setFilterMonth(m)} activeOpacity={0.7}>
-                      <Text style={[styles.filterChipText, filterMonth === m && { color: COLORS.primary }]}>{new Date(m + "-01").toLocaleDateString("en-US", { month: "short", year: "numeric" })}</Text>
+                      <Text style={[styles.filterChipText, filterMonth === m && { color: COLORS.primary }]}>{new Date(m + "-01T12:00:00").toLocaleDateString("en-US", { month: "short", year: "numeric" })}</Text>
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
@@ -349,6 +360,7 @@ function PrepMasterProfile({ worker, bookings, onBack, onSaved, onDeleted }: {
                       <View style={{ flex: 1 }}>
                         <Text style={styles.bookingName}>{b.dancerName || b.clientEmail || "Client"}</Text>
                         <Text style={styles.bookingMeta}>{b.date}{b.time ? ` · ${formatTime(b.time)}` : ""}</Text>
+                        {b.sessionType ? <Text style={styles.bookingSessionType}>{formatSessionType(b.sessionType)}</Text> : null}
                       </View>
                       <View style={[styles.badge, { backgroundColor: bg }]}><Text style={[styles.badgeText, { color: fg }]}>{b.status}</Text></View>
                       {isOpen ? <ChevronUp size={12} color={COLORS.textMuted} /> : <ChevronDown size={12} color={COLORS.textMuted} />}
@@ -406,9 +418,29 @@ function PrepMasterProfile({ worker, bookings, onBack, onSaved, onDeleted }: {
 function DetailGrid({ b }: { b: AdminBooking }) {
   const COLORS = useColors()
   const styles = makeStyles(COLORS)
+
+  const timezone = b.utcDatetime
+    ? Intl.DateTimeFormat().resolvedOptions().timeZone
+    : null
+
+  const localTime = b.utcDatetime
+    ? new Date(b.utcDatetime).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZoneName: "short" })
+    : null
+
+  const cells: [string, string][] = [
+    ["Dancer", b.dancerName || "—"],
+    ["Email", b.clientEmail || "—"],
+    ["Date", b.date || "—"],
+    ["Time", b.time ? formatTime(b.time) : "—"],
+    ["Session type", b.sessionType ? formatSessionType(b.sessionType) : "—"],
+    ["Status", b.status],
+    ...(localTime ? [["Local time", localTime] as [string, string]] : []),
+    ...(timezone ? [["Timezone", timezone] as [string, string]] : []),
+  ]
+
   return (
     <View style={styles.detailGrid}>
-      {[["Dancer", b.dancerName || "—"], ["Email", b.clientEmail || "—"], ["Date", b.date || "—"], ["Time", b.time ? formatTime(b.time) : "—"], ["Status", b.status]].map(([label, value]) => (
+      {cells.map(([label, value]) => (
         <View key={label} style={styles.detailCell}>
           <Text style={styles.detailCellLabel}>{label}</Text>
           <Text style={styles.detailCellValue}>{value}</Text>
@@ -557,6 +589,7 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     bookingRow: { flexDirection: "row", alignItems: "center", gap: SPACING.sm, padding: SPACING.sm },
     bookingName: { fontSize: 13, fontWeight: "600", color: COLORS.text },
     bookingMeta: { fontSize: 11, color: COLORS.textMuted, marginTop: 1 },
+    bookingSessionType: { fontSize: 11, color: COLORS.primary, marginTop: 2, fontWeight: "500" },
     bookingDetail: { borderTopWidth: 1, borderTopColor: COLORS.border, padding: SPACING.sm, gap: SPACING.sm, backgroundColor: COLORS.surface },
     detailGrid: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.sm },
     detailCell: { flex: 1, minWidth: "40%" },
