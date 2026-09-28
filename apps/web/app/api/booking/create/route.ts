@@ -88,6 +88,7 @@ export async function POST(req: Request) {
   // Resolve parent → active child (respects parentActiveChild selection for multi-child families)
   const profile = await resolveClientProfile({ id: user.id, email: user.email, name: user.name ?? "" }, true)
   if (!profile.recordId) {
+    console.error("[booking/create] NO_CREDITS: no recordId for user", user.id, "email", user.email)
     return NextResponse.json({ ok: false, error: "NO_CREDITS" })
   }
   const effectiveUserId = profile.effectiveUserId || user.id
@@ -104,6 +105,7 @@ export async function POST(req: Request) {
   const creditCost = useSingleCredit ? 1 : (CREDIT_COST[sessionType ?? "private-60"] ?? 1)
   const credits = useSingleCredit ? singleCreditsForType : profile.creditsRemaining
   if (credits < creditCost) {
+    console.error("[booking/create] NO_CREDITS: credits check failed for user", user.id, "sessionType", sessionType, "singleCredits", profile.singleCredits, "creditsRemaining", profile.creditsRemaining, "useSingleCredit", useSingleCredit, "credits", credits, "creditCost", creditCost)
     return NextResponse.json({ ok: false, error: "NO_CREDITS" })
   }
 
