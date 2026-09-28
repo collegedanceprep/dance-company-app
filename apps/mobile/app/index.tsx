@@ -27,12 +27,13 @@ export default function Index() {
         const role: string = (data as any).role ?? "dancer"
         const status: string = (data as any).status ?? "active"
         const userId = (data as any).id
+        const isParent: boolean = (data as any).isParent || (data as any).isParentAccount
 
         if (status === "denied") { router.replace("/(auth)/denied"); return }
 
         // For dancers who haven't completed onboarding, show it first regardless of
         // pending status — welcome.tsx routes them to pending after they save/skip.
-        if (role === "dancer" && userId && !(data as any).isParent) {
+        if (role === "dancer" && userId && !isParent) {
           const seen = await SecureStore.getItemAsync(`welcome_seen_${userId}`)
           if (!seen) {
             await SecureStore.setItemAsync(`welcome_seen_${userId}`, "1")
@@ -47,7 +48,7 @@ export default function Index() {
         if (role === "admin") { router.replace("/admin"); return }
         if (role === "prep_master") { router.replace("/portal"); return }
         if (role === "dancer" && userId) {
-          if ((data as any).isParent) {
+          if (isParent) {
             router.replace("/(auth)/child-picker")
             return
           }

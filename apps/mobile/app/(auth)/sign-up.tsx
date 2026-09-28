@@ -226,6 +226,10 @@ export default function SignUpScreen() {
             <Text style={styles.footerText}>Already have an account? </Text>
             <Link href="/(auth)/sign-in" asChild><TouchableOpacity><Text style={styles.footerLink}>Sign in</Text></TouchableOpacity></Link>
           </View>
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>Signing up as a parent? </Text>
+            <Link href="/(auth)/parent-sign-up" asChild><TouchableOpacity><Text style={styles.footerLink}>Tap here</Text></TouchableOpacity></Link>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

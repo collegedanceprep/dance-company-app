@@ -24,6 +24,9 @@ export const user = pgTable("user", {
   status: text("status").notNull().default("pending"),
   // IANA timezone string e.g. "America/Denver". Updated on each app launch.
   timezone: text("timezone"),
+  // true when the user self-identified as a parent/guardian at signup.
+  // Prevents a dancer Airtable record from ever being created for them.
+  isParentAccount: boolean("isParentAccount").notNull().default(false),
 })
 
 export const session = pgTable("session", {

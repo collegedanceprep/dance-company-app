@@ -1,6 +1,6 @@
 import { TABLES, appBase, getPlansForUser, type ClientFields } from "@/lib/airtable"
 import { db } from "@/lib/db"
-import { parentActiveChild } from "@/lib/db/schema"
+import { parentActiveChild, user as userTable } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 
 export type ClientProfile = {
@@ -93,6 +93,30 @@ export async function resolveClientProfile(
         },
         parentEmail: chosen.fields["Parent Email"] ?? user.email,
         effectiveUserId: chosen.fields["User ID"] ?? "",
+        isParentView: true,
+        isNewProfile: false,
+      }
+    }
+  }
+
+  // Never create a dancer record for a self-identified parent account.
+  if (!record && !noCreate) {
+    const [userRow] = await db
+      .select({ isParentAccount: userTable.isParentAccount })
+      .from(userTable)
+      .where(eq(userTable.id, user.id))
+      .limit(1)
+    if (userRow?.isParentAccount) {
+      return {
+        recordId: "",
+        name: user.name,
+        email: user.email,
+        phone: "",
+        goals: "",
+        creditsRemaining: 0,
+        singleCredits: { "30": 0, "45": 0, "60": 0, "90": 0 },
+        parentEmail: user.email,
+        effectiveUserId: "",
         isParentView: true,
         isNewProfile: false,
       }

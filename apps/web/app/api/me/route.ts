@@ -18,9 +18,10 @@ export async function GET() {
   const user = await getSessionUserWithRole()
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const [row] = await db.select({ status: userTable.status }).from(userTable).where(eq(userTable.id, user.id))
+  const [row] = await db.select({ status: userTable.status, isParentAccount: userTable.isParentAccount }).from(userTable).where(eq(userTable.id, user.id))
   // Default to "pending" when no row found — never let an unknown user through as active
   const status = row?.status ?? "pending"
+  const isParentAccount = row?.isParentAccount ?? false
 
   // Check if this user is a parent (has children linked via Parent Email in Airtable)
   let isParent = false
@@ -60,5 +61,6 @@ export async function GET() {
     role: user.role,
     status: effectiveStatus,
     isParent,
+    isParentAccount,
   })
 }
