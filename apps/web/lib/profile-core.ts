@@ -99,34 +99,68 @@ export async function resolveClientProfile(
     }
   }
 
-  // Never create a dancer record for a self-identified parent account.
-  if (!record && !noCreate) {
+  // Parent detection — runs regardless of noCreate so that the booking route
+  // (which passes noCreate=true) can still find a parent's child record.
+  // Only the actual record CREATION below is gated on noCreate.
+  if (!record) {
     const [userRow] = await db
       .select({ isParentAccount: userTable.isParentAccount })
       .from(userTable)
       .where(eq(userTable.id, user.id))
       .limit(1)
     if (userRow?.isParentAccount) {
-      return {
-        recordId: "",
-        name: user.name,
-        email: user.email,
-        phone: "",
-        goals: "",
-        creditsRemaining: 0,
-        singleCredits: { "30": 0, "45": 0, "60": 0, "90": 0 },
-        parentEmail: user.email,
-        effectiveUserId: "",
-        isParentView: true,
-        isNewProfile: false,
+      const lateChildren = await findClientsByParentEmail(user.email ?? "")
+      if (lateChildren.length > 0) {
+        let chosen = lateChildren[0]
+        if (lateChildren.length > 1) {
+          const [sel] = await db.select().from(parentActiveChild).where(eq(parentActiveChild.parentUserId, user.id)).limit(1)
+          if (sel) {
+            const match = lateChildren.find((c) => c.fields["User ID"] === sel.childUserId)
+            if (match) chosen = match
+          }
+        }
+        return {
+          recordId: chosen.id,
+          name: chosen.fields.Name ?? "",
+          email: chosen.fields.Email ?? "",
+          phone: chosen.fields.Phone ?? "",
+          goals: chosen.fields.Goals ?? "",
+          creditsRemaining: chosen.fields["Credits Remaining"] ?? 0,
+          singleCredits: {
+            "30": chosen.fields["Single Credits 30"] ?? 0,
+            "45": chosen.fields["Single Credits 45"] ?? 0,
+            "60": chosen.fields["Single Credits 60"] ?? 0,
+            "90": chosen.fields["Single Credits 90"] ?? 0,
+          },
+          parentEmail: chosen.fields["Parent Email"] ?? user.email,
+          effectiveUserId: chosen.fields["User ID"] ?? "",
+          isParentView: true,
+          isNewProfile: false,
+        }
       }
+      // isParentAccount=true but no child linked yet — return empty so booking fails gracefully
+      if (noCreate) {
+        return {
+          recordId: "",
+          name: user.name,
+          email: user.email,
+          phone: "",
+          goals: "",
+          creditsRemaining: 0,
+          singleCredits: { "30": 0, "45": 0, "60": 0, "90": 0 },
+          parentEmail: user.email,
+          effectiveUserId: "",
+          isParentView: true,
+          isNewProfile: false,
+        }
+      }
+      // noCreate=false (dashboard): fall through to create a placeholder dancer record
     }
   }
 
-  // Before creating a new record, do a final parent check.
-  // This catches the case where the child's Airtable record had the parent email
-  // set AFTER the parent signed up (the databaseHooks check would have missed it).
-  if (!record && !noCreate) {
+  // Late parent check — catches parents who aren't flagged isParentAccount
+  // but whose child set {Parent Email} after the parent first signed up.
+  if (!record) {
     const lateChildren = await findClientsByParentEmail(user.email ?? "")
     if (lateChildren.length > 0) {
       let chosen = lateChildren[0]
