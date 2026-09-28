@@ -1,9 +1,23 @@
+"use client"
 import Link from "next/link"
 import { CheckCircle, Smartphone } from "lucide-react"
+import { useSearchParams } from "next/navigation"
 
-export default async function WelcomePage({ searchParams }: { searchParams: Promise<{ role?: string }> }) {
-  const { role } = await searchParams
-  const isPrep = role === "prep"
+const APP_STORE_URL = "https://apps.apple.com/app/id6744042829"
+
+export default function WelcomePage() {
+  const searchParams = useSearchParams()
+  const isPrep = searchParams.get("role") === "prep"
+  const deepLink = isPrep ? "cdp://" : "cdp://member/plans"
+
+  function handleOpenApp() {
+    // Try the deep link; if the app isn't installed the browser won't navigate
+    // so after a short delay redirect to the App Store instead.
+    window.location.href = deepLink
+    setTimeout(() => {
+      window.location.href = APP_STORE_URL
+    }, 1500)
+  }
 
   return (
     <div className="flex min-h-[60vh] flex-col items-center justify-center gap-6 text-center px-4">
@@ -22,13 +36,13 @@ export default async function WelcomePage({ searchParams }: { searchParams: Prom
         </p>
       </div>
 
-      <a
-        href={isPrep ? "cdp://" : "cdp://member/plans"}
+      <button
+        onClick={handleOpenApp}
         className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-base font-semibold text-white shadow-sm hover:opacity-90 transition-opacity"
       >
         <Smartphone className="size-5" />
         {isPrep ? "Open PrepMaster App" : "Open CDP Booking App"}
-      </a>
+      </button>
 
       <Link
         href={isPrep ? "/portal" : "/dashboard"}
