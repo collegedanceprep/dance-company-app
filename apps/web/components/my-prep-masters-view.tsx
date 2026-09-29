@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useCallback } from "react"
-import { ChevronDown, ChevronLeft, ChevronRight, Users } from "lucide-react"
+import { ChevronDown, ChevronLeft, ChevronRight, Users, Search, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { PrepMaster, PrepMasterBooking } from "@/lib/airtable"
 import { Badge } from "@/components/ui/badge"
@@ -82,6 +82,7 @@ export function MyPrepMastersView({
   const [openIds, setOpenIds] = useState<Set<string>>(new Set())
   const [selectedRD, setSelectedRD] = useState(initialRdName)
   const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "confirmed" | "completed" | "canceled">("all")
+  const [search, setSearch] = useState("")
 
   const fetchTeam = useCallback(async (y: number, m: number, rdName: string) => {
     setLoading(true)
@@ -138,11 +139,17 @@ export function MyPrepMastersView({
 
   // When a stat is selected, narrow each PrepMaster's bookings to that status
   // and drop anyone with no matching bookings this month.
-  const visibleTeam = statusFilter === "all"
+  const statusFilteredTeam = statusFilter === "all"
     ? team
     : team
         .map((entry) => ({ ...entry, bookings: entry.bookings.filter((b) => b.status === statusFilter) }))
         .filter((entry) => entry.bookings.length > 0)
+
+  const visibleTeam = search.trim()
+    ? statusFilteredTeam.filter((entry) =>
+        entry.pm.name.toLowerCase().includes(search.trim().toLowerCase()),
+      )
+    : statusFilteredTeam
 
   return (
     <div className="flex flex-col gap-6">
@@ -229,6 +236,28 @@ export function MyPrepMastersView({
         )}
       </div>
 
+      {/* Search by name */}
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by PrepMaster name…"
+          className="w-full rounded-lg border bg-background py-2 pl-9 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+        />
+        {search && (
+          <button
+            type="button"
+            onClick={() => setSearch("")}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            aria-label="Clear search"
+          >
+            <X className="size-4" />
+          </button>
+        )}
+      </div>
+
       {/* PrepMaster list */}
       {loading ? (
         <div className="flex items-center justify-center py-12 text-muted-foreground text-sm">
@@ -238,9 +267,11 @@ export function MyPrepMastersView({
         <div className="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground">
           <Users className="size-10 opacity-30" />
           <p className="text-sm">
-            {statusFilter === "all"
-              ? "No PrepMasters found for this month."
-              : `No ${STATUS_LABELS[statusFilter].toLowerCase()} bookings this month.`}
+            {search.trim()
+              ? `No PrepMasters match "${search.trim()}".`
+              : statusFilter === "all"
+                ? "No PrepMasters found for this month."
+                : `No ${STATUS_LABELS[statusFilter].toLowerCase()} bookings this month.`}
           </p>
         </div>
       ) : (
