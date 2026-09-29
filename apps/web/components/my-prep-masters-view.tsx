@@ -367,12 +367,19 @@ export function MyPrepMastersView({
                                 className="text-xs text-muted-foreground"
                               />
                             </div>
-                            <Badge
-                              variant={STATUS_BADGE[bk.status]?.variant}
-                              className={cn("shrink-0", STATUS_BADGE[bk.status]?.className)}
-                            >
-                              {STATUS_LABELS[bk.status] ?? bk.status}
-                            </Badge>
+                            <div className="flex flex-col items-end gap-1 shrink-0">
+                              <Badge
+                                variant={STATUS_BADGE[bk.status]?.variant}
+                                className={cn("shrink-0", STATUS_BADGE[bk.status]?.className)}
+                              >
+                                {STATUS_LABELS[bk.status] ?? bk.status}
+                              </Badge>
+                              {bk.isReschedulePending && (
+                                <Badge className="shrink-0 border-blue-300 bg-blue-100 text-blue-700 dark:border-blue-700 dark:bg-blue-950 dark:text-blue-400">
+                                  Rescheduled
+                                </Badge>
+                              )}
+                            </div>
                           </div>
                         )
                       })
