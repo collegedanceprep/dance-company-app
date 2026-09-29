@@ -1,14 +1,85 @@
 "use client"
 
+import { Suspense, useEffect, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import Link from "next/link"
-import { CheckCircle, Smartphone } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { CheckCircle, Smartphone, Loader2, AlertTriangle } from "lucide-react"
 
-export default function PurchaseSuccessPage() {
+type State = "confirming" | "ready" | "delayed" | "error"
+
+function PurchaseSuccessContent() {
+  const searchParams = useSearchParams()
+  const sessionId = searchParams.get("session_id")
+  const [state, setState] = useState<State>("confirming")
+
+  useEffect(() => {
+    if (!sessionId) {
+      setState("error")
+      return
+    }
+    let cancelled = false
+    fetch("/api/checkout/confirm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId }),
+    })
+      .then((res) => res.json())
+      .then((data: { fulfilled?: boolean; paymentStatus?: string }) => {
+        if (cancelled) return
+        if (data.fulfilled) setState("ready")
+        else if (data.paymentStatus && data.paymentStatus !== "paid") setState("delayed")
+        else setState("error")
+      })
+      .catch(() => {
+        if (!cancelled) setState("error")
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [sessionId])
+
   function openApp() {
     // Try to open the native app via custom scheme. After a short delay,
     // if the app didn't open (user doesn't have it installed), do nothing.
     window.location.href = "cdp://member/plans"
+  }
+
+  if (state === "confirming") {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-6 text-center px-4">
+        <Loader2 className="size-10 animate-spin text-primary" aria-hidden="true" />
+        <div>
+          <h1 className="font-heading text-2xl font-bold tracking-tight">Confirming your purchase…</h1>
+          <p className="mt-2 text-muted-foreground max-w-sm">
+            Hang tight while we add your session credits — this only takes a second.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (state === "delayed" || state === "error") {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-6 text-center px-4">
+        <div className="flex size-20 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30">
+          <AlertTriangle className="size-10 text-amber-600 dark:text-amber-400" />
+        </div>
+        <div>
+          <h1 className="font-heading text-3xl font-bold tracking-tight">Still confirming…</h1>
+          <p className="mt-2 text-muted-foreground max-w-sm">
+            {state === "delayed"
+              ? "Your payment is still processing. Don't worry — you won't be charged again, and your credits will show up shortly."
+              : "We couldn't confirm this purchase automatically. If you were charged, your credits will still be added within a few minutes."}
+          </p>
+        </div>
+        <Link
+          href="/dashboard"
+          className="text-sm text-muted-foreground underline underline-offset-2 hover:text-foreground transition-colors"
+        >
+          Continue to dashboard
+        </Link>
+      </div>
+    )
   }
 
   return (
@@ -40,5 +111,13 @@ export default function PurchaseSuccessPage() {
         </Link>
       </p>
     </div>
+  )
+}
+
+export default function PurchaseSuccessPage() {
+  return (
+    <Suspense>
+      <PurchaseSuccessContent />
+    </Suspense>
   )
 }
