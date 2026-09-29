@@ -26,6 +26,23 @@ export function isAdminEmail(email: string): boolean {
   return getAdminEmails().includes(email.trim().toLowerCase())
 }
 
+/**
+ * The set of emails that should have access to the Ops Management tab
+ * (company-wide bookings/scheduling view, no payment data). Configured via
+ * the OPS_MANAGEMENT_EMAILS env var as a comma-separated list, same pattern
+ * as ADMIN_EMAILS. If unset, no one has ops access (safe default).
+ */
+export function getOpsManagementEmails(): string[] {
+  return (process.env.OPS_MANAGEMENT_EMAILS ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean)
+}
+
+export function isOpsManagementEmail(email: string): boolean {
+  return getOpsManagementEmails().includes(email.trim().toLowerCase())
+}
+
 /** Returns true if the given email has an active prep master invite. */
 export async function isInvitedPrepMaster(email: string): Promise<boolean> {
   const normalized = email.trim().toLowerCase()

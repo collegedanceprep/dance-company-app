@@ -17,6 +17,9 @@ type Props = {
   isAdmin: boolean
   allRDs: string[]
   initialRdName: string
+  title?: string
+  subtitle?: (count: number) => string
+  apiEndpoint?: string
 }
 
 const MONTHS = [
@@ -61,7 +64,17 @@ function formatDate(dateStr: string) {
   }
 }
 
-export function MyPrepMastersView({ initialTeam, initialYear, initialMonth, isAdmin, allRDs, initialRdName }: Props) {
+export function MyPrepMastersView({
+  initialTeam,
+  initialYear,
+  initialMonth,
+  isAdmin,
+  allRDs,
+  initialRdName,
+  title = "My PrepMasters",
+  subtitle = (count) => `${count} PrepMaster${count !== 1 ? "s" : ""} on your team`,
+  apiEndpoint = "/api/portal/my-prep-masters",
+}: Props) {
   const [team, setTeam] = useState<TeamEntry[]>(initialTeam)
   const [year, setYear] = useState(initialYear)
   const [month, setMonth] = useState(initialMonth)
@@ -75,13 +88,13 @@ export function MyPrepMastersView({ initialTeam, initialYear, initialMonth, isAd
     try {
       const params = new URLSearchParams({ year: String(y), month: String(m) })
       if (isAdmin && rdName) params.set("rdName", rdName)
-      const res = await fetch(`/api/portal/my-prep-masters?${params}`)
+      const res = await fetch(`${apiEndpoint}?${params}`)
       const data = await res.json()
       setTeam(data.team ?? [])
     } finally {
       setLoading(false)
     }
-  }, [isAdmin])
+  }, [isAdmin, apiEndpoint])
 
   const changeMonth = (delta: number) => {
     let m = month + delta
@@ -134,10 +147,8 @@ export function MyPrepMastersView({ initialTeam, initialYear, initialMonth, isAd
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="font-heading text-3xl font-bold tracking-tight">My PrepMasters</h1>
-        <p className="mt-1 text-muted-foreground">
-          {team.length} PrepMaster{team.length !== 1 ? "s" : ""} on your team
-        </p>
+        <h1 className="font-heading text-3xl font-bold tracking-tight">{title}</h1>
+        <p className="mt-1 text-muted-foreground">{subtitle(team.length)}</p>
       </div>
 
       {/* Admin RD selector */}

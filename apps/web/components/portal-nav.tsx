@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { CalendarDays, Clock, CalendarPlus, Inbox, UserCircle, BookOpen, Users } from "lucide-react"
+import { CalendarDays, Clock, CalendarPlus, Inbox, UserCircle, BookOpen, Users, ClipboardList } from "lucide-react"
 
 const BASE_LINKS = [
   { href: "/portal", label: "Schedule", icon: CalendarDays },
@@ -15,14 +15,23 @@ const BASE_LINKS = [
 ]
 
 const RD_LINK = { href: "/portal/my-prep-masters", label: "My PrepMasters", icon: Users }
+const OPS_LINK = { href: "/portal/ops-management", label: "Ops Management", icon: ClipboardList }
 
-type Props = { isRD?: boolean }
+type Props = { isRD?: boolean; isOps?: boolean; opsOnly?: boolean }
 
-export function PortalNav({ isRD }: Props) {
+export function PortalNav({ isRD, isOps, opsOnly }: Props) {
   const pathname = usePathname()
-  const links = isRD
-    ? [BASE_LINKS[0], RD_LINK, ...BASE_LINKS.slice(1)]
-    : BASE_LINKS
+  // A person who has ops access but isn't an admin or PrepMaster only makes
+  // sense of the Ops Management tab — the booking/schedule tabs are for
+  // PrepMasters managing their own sessions.
+  const links = opsOnly
+    ? [OPS_LINK]
+    : [
+        BASE_LINKS[0],
+        ...(isRD ? [RD_LINK] : []),
+        ...(isOps ? [OPS_LINK] : []),
+        ...BASE_LINKS.slice(1),
+      ]
 
   return (
     <nav className="flex items-center gap-0.5 border-b overflow-x-auto scrollbar-none">

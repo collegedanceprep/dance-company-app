@@ -8,6 +8,7 @@ import {
   getSessionUserWithRole,
   homePathForRole,
   markInviteAccepted,
+  isOpsManagementEmail,
 } from "@/lib/roles"
 import { getPrepMasterByEmail, isAirtableConfigured } from "@/lib/airtable"
 import { ShieldCheck } from "lucide-react"
@@ -17,8 +18,9 @@ export default async function PortalLayout({ children }: { children: ReactNode }
   if (!user) redirect("/")
 
   const isAdmin = user.role === "admin"
+  const isOps = isOpsManagementEmail(user.email)
 
-  if (!isAdmin && user.role !== "prep_master") redirect(homePathForRole(user.role))
+  if (!isAdmin && user.role !== "prep_master" && !isOps) redirect(homePathForRole(user.role))
 
   if (user.role === "prep_master") {
     await markInviteAccepted(user.email)
@@ -35,7 +37,7 @@ export default async function PortalLayout({ children }: { children: ReactNode }
     <div className="min-h-screen">
       <StaffHeader
         user={{ name: user.name, email: user.email, image: user.image }}
-        roleLabel={isAdmin ? "Admin" : "PrepMaster"}
+        roleLabel={isAdmin ? "Admin" : user.role === "prep_master" ? "PrepMaster" : "Ops"}
         homeHref="/portal"
         isAdmin={isAdmin}
       />
@@ -53,7 +55,7 @@ export default async function PortalLayout({ children }: { children: ReactNode }
         </div>
       )}
       <div className="mx-auto max-w-5xl px-5 pt-4">
-        <PortalNav isRD={showMyPrepMasters} />
+        <PortalNav isRD={showMyPrepMasters} isOps={isAdmin || isOps} opsOnly={!isAdmin && user.role !== "prep_master"} />
       </div>
       <main className="mx-auto max-w-5xl px-5 py-8">{children}</main>
       <Toaster position="top-center" />

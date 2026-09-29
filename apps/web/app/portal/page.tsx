@@ -1,9 +1,10 @@
+import { redirect } from "next/navigation"
 import {
   getPrepMasterByEmail,
   isAirtableConfigured,
   getBookingsForPrepMaster,
 } from "@/lib/airtable"
-import { getSessionUserWithRole } from "@/lib/roles"
+import { getSessionUserWithRole, isOpsManagementEmail } from "@/lib/roles"
 import { isCalendarConnected } from "@/lib/google-calendar"
 import { AirtableSetupNotice } from "@/components/airtable-setup-notice"
 import { GoogleCalendarButton } from "@/components/google-calendar-button"
@@ -19,6 +20,12 @@ function startOfToday() {
 export default async function PortalPage() {
   const user = await getSessionUserWithRole()
   const firstName = user?.name?.split(" ")[0] ?? "there"
+
+  // Ops-only users (not admin, not a PrepMaster) have no schedule of their
+  // own — send them straight to the Ops Management tab.
+  if (user && user.role !== "admin" && user.role !== "prep_master" && isOpsManagementEmail(user.email)) {
+    redirect("/portal/ops-management")
+  }
 
   // Silently remove any stale Airtable Members record for this PrepMaster
   // so it never gets a User ID stamped on it and spills into the Members panel.
