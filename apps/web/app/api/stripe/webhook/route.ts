@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { revalidateTag } from "next/cache"
+import { sql } from "drizzle-orm"
 import { stripe } from "@/lib/stripe"
 import {
   TABLES,
@@ -12,6 +13,13 @@ import { createNotification } from "@/app/actions/notifications"
 import { sendEmail, purchaseReceiptEmail } from "@/lib/email"
 import { db } from "@/lib/db"
 import { stripeWebhookProcessed } from "@/lib/db/schema"
+
+// Stable 32-bit hash of a string → safe Postgres bigint for advisory locks
+function advisoryLockKey(s: string): number {
+  let h = 0
+  for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0
+  return h
+}
 
 const WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET
 if (!WEBHOOK_SECRET) throw new Error("STRIPE_WEBHOOK_SECRET env var is not set")
@@ -114,24 +122,38 @@ export async function POST(req: NextRequest) {
 
     // For single sessions, write to the type-specific field so the booking route
     // can enforce session-type locking. For packs, write to Credits Remaining.
+    // Serialize concurrent webhooks for the same user with a Postgres advisory lock
+    // so two rapid purchases don't both read the same stale value and both write +1.
     const singleField = sessionType ? SINGLE_CREDIT_FIELD_MAP[sessionType] : undefined
     let newBalance: number
-    if (client) {
-      if (itemType !== "pack" && singleField) {
-        const priorSingle = (client.fields[singleField] as number | undefined) ?? 0
-        newBalance = priorSingle + 1
-        await appBase.update<ClientFields>(TABLES.clients, client.id, {
-          [singleField]: newBalance,
-        } as Partial<ClientFields>)
+    const lockKey = advisoryLockKey(effectiveUserId)
+    await db.execute(sql`SELECT pg_advisory_lock(${lockKey}::bigint)`)
+    try {
+      if (client) {
+        // Re-fetch the record inside the lock to get the latest value
+        const fresh = (await appBase.list<ClientFields>(TABLES.clients, {
+          filterByFormula: `{User ID} = '${effectiveUserId.replace(/'/g, "\\'")}'`,
+          maxRecords: 1,
+        }))[0] ?? client
+
+        if (itemType !== "pack" && singleField) {
+          const priorSingle = (fresh.fields[singleField] as number | undefined) ?? 0
+          newBalance = priorSingle + 1
+          await appBase.update<ClientFields>(TABLES.clients, fresh.id, {
+            [singleField]: newBalance,
+          } as Partial<ClientFields>)
+        } else {
+          const priorBalance = fresh.fields["Credits Remaining"] ?? 0
+          newBalance = Math.round((priorBalance + creditAmount) * 100) / 100
+          await appBase.update<ClientFields>(TABLES.clients, fresh.id, {
+            "Credits Remaining": newBalance,
+          })
+        }
       } else {
-        const priorBalance = client.fields["Credits Remaining"] ?? 0
-        newBalance = Math.round((priorBalance + creditAmount) * 100) / 100
-        await appBase.update<ClientFields>(TABLES.clients, client.id, {
-          "Credits Remaining": newBalance,
-        })
+        newBalance = creditAmount
       }
-    } else {
-      newBalance = creditAmount
+    } finally {
+      await db.execute(sql`SELECT pg_advisory_unlock(${lockKey}::bigint)`)
     }
 
     // Create a Plan record in Airtable with the correct expiry
