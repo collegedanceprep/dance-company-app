@@ -51,6 +51,7 @@ export default async function DashboardPage() {
   let plans: MemberPlan[] = []
   let error: string | null = null
   let isParent = false
+  let hasLinkedChild = true
   let displayName = user?.name?.split(" ")[0] ?? "Dancer"
   let calendarConnected = false
 
@@ -58,18 +59,22 @@ export default async function DashboardPage() {
   const noCreate = user?.role === "admin" || user?.role === "prep_master"
   try {
     const profile = await getOrCreateProfile({ noCreate, resolvedUser })
-    const effectiveId = profile.effectiveUserId || user!.id
-    const [myBookings, myPlans, calConn] = await Promise.all([
-      getBookingsForUserId(effectiveId),
-      getMyPlans(effectiveId, profile.email || user!.email),
-      user ? isCalendarConnected(user.id) : Promise.resolve(false),
-    ])
-    credits = profile.creditsRemaining
-    bookings = myBookings
-    plans = myPlans
-    calendarConnected = calConn
     isParent = profile.isParentView
-    displayName = (profile.name ?? "").split(" ")[0] || displayName
+    hasLinkedChild = !isParent || Boolean(profile.recordId)
+
+    if (hasLinkedChild) {
+      const effectiveId = profile.effectiveUserId || user!.id
+      const [myBookings, myPlans, calConn] = await Promise.all([
+        getBookingsForUserId(effectiveId),
+        getMyPlans(effectiveId, profile.email || user!.email),
+        user ? isCalendarConnected(user.id) : Promise.resolve(false),
+      ])
+      credits = profile.creditsRemaining
+      bookings = myBookings
+      plans = myPlans
+      calendarConnected = calConn
+      displayName = (profile.name ?? "").split(" ")[0] || displayName
+    }
   } catch (err) {
     error = err instanceof Error ? err.message : "Something went wrong."
   }
@@ -130,6 +135,15 @@ export default async function DashboardPage() {
     }
   }
 
+  if (isParent && !hasLinkedChild) {
+    return (
+      <div className="flex flex-col gap-8">
+        <Greeting name={displayName} isParent={isParent} />
+        <NoChildLinkedNotice parentEmail={user?.email ?? ""} />
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col gap-8">
       <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -186,17 +200,40 @@ export default async function DashboardPage() {
   )
 }
 
-function Greeting({ name, isParent }: { name: string; isParent: boolean }) {
+function Greeting({ name, isParent, hasLinkedChild = true }: { name: string; isParent: boolean; hasLinkedChild?: boolean }) {
   return (
     <div>
       <h1 className="font-heading text-3xl font-bold tracking-tight">
-        {isParent ? `${name}'s account` : `Welcome, ${name}.`}
+        {isParent && hasLinkedChild ? `${name}'s account` : `Welcome, ${name}.`}
       </h1>
       <p className="mt-1 text-muted-foreground">
         {isParent
-          ? `You're viewing ${name}'s sessions and credits as a parent.`
+          ? hasLinkedChild
+            ? `You're viewing ${name}'s sessions and credits as a parent.`
+            : "You're signed in as a parent."
           : "Here's what's happening with your training."}
       </p>
     </div>
+  )
+}
+
+function NoChildLinkedNotice({ parentEmail }: { parentEmail: string }) {
+  return (
+    <Card>
+      <CardContent className="flex flex-col items-center gap-3 py-12 text-center">
+        <div className="flex size-12 items-center justify-center rounded-full bg-primary/10">
+          <AlertTriangle className="size-6 text-primary" />
+        </div>
+        <div className="max-w-sm">
+          <p className="font-medium text-foreground">No dancer linked to your account yet</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Ask your dancer to sign up and enter{" "}
+            <span className="font-medium text-foreground">{parentEmail}</span> in the &quot;Parent
+            email&quot; field during their signup. Once they do, their sessions and credits will
+            show up here automatically.
+          </p>
+        </div>
+      </CardContent>
+    </Card>
   )
 }

@@ -190,6 +190,15 @@ export function AuthForm({ initialError }: { initialError?: string }) {
           {isSignUp ? "Sign in" : "Create an account"}
         </button>
       </p>
+
+      {isSignUp && (
+        <p className="mt-2 text-sm text-muted-foreground">
+          Signing up as a parent?{" "}
+          <Link href="/parent-signup" className="font-medium text-primary underline-offset-4 hover:underline">
+            Tap here
+          </Link>
+        </p>
+      )}
     </div>
   )
 }
