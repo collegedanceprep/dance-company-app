@@ -849,6 +849,26 @@ export async function adminCreateMember(fields: {
   goals?: string
   creditsRemaining?: number
 }): Promise<AdminMember> {
+  const safeEmail = fields.email.trim().toLowerCase().replace(/'/g, "\\'")
+  const existing = await list<ClientFields>(TABLES.clients, {
+    filterByFormula: `LOWER({Email}) = '${safeEmail}'`,
+    maxRecords: 1,
+    revalidate: 0,
+  })
+  if (existing.length > 0) {
+    const r = existing[0]
+    return {
+      id: r.id,
+      name: r.fields.Name ?? "",
+      email: r.fields.Email ?? "",
+      userId: r.fields["User ID"] ?? "",
+      phone: r.fields.Phone ?? "",
+      goals: r.fields.Goals ?? "",
+      creditsRemaining: r.fields["Credits Remaining"] ?? 0,
+      singleCredits: { "30": r.fields["Single Credits 30"] ?? 0, "45": r.fields["Single Credits 45"] ?? 0, "60": r.fields["Single Credits 60"] ?? 0, "90": r.fields["Single Credits 90"] ?? 0 },
+      parentEmail: r.fields["Parent Email"] ?? "",
+    }
+  }
   const record = await create<ClientFields>(TABLES.clients, {
     Name: fields.name,
     Email: fields.email,

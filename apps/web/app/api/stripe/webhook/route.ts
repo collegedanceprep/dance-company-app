@@ -106,14 +106,24 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Non-parent new member: create a record so credits land
+    // Non-parent new member: create a record so credits land.
+    // Re-check by email first to avoid duplicate records from concurrent webhooks.
     if (!client && userEmail) {
-      client = await appBase.create<ClientFields>(TABLES.clients, {
-        Name: userEmail.split("@")[0],
-        Email: userEmail,
-        "User ID": userId,
-        "Credits Remaining": 0,
-      })
+      const safeEmail2 = userEmail.trim().toLowerCase().replace(/'/g, "\\'")
+      const byEmail = (await appBase.list<ClientFields>(TABLES.clients, {
+        filterByFormula: `LOWER({Email}) = '${safeEmail2}'`,
+        maxRecords: 1,
+      }))[0]
+      if (byEmail) {
+        client = byEmail
+      } else {
+        client = await appBase.create<ClientFields>(TABLES.clients, {
+          Name: userEmail.split("@")[0],
+          Email: userEmail,
+          "User ID": userId,
+          "Credits Remaining": 0,
+        })
+      }
     }
 
     // Use the child's User ID for plan/credit records when the purchaser is a parent
