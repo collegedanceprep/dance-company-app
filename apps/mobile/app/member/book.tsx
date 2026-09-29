@@ -158,11 +158,24 @@ function BookingStep({
   const [selectedTime, setSelectedTime] = useState<string | null>(null)
   const [notes, setNotes] = useState("")
   const [selectedDuration, setSelectedDuration] = useState<"private-30" | "private-45" | "private-60" | "private-90" | null>(null)
-  const CREDIT_COST: Record<string, number> = { "private-30": 0.5, "private-45": 0.75, "private-60": 1, "private-90": 1.5 }
-  const creditCost = selectedDuration ? (CREDIT_COST[selectedDuration] ?? 1) : 1
   const activePlans = useMemo(() => plans.filter((p) => planDisplayStatus(p) === "Active"), [plans])
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(activePlans.length === 1 ? activePlans[0].id : null)
   const showPlanPicker = activePlans.length > 1
+  const effectivePlan = activePlans.find((p) => p.id === selectedPlanId) ?? (activePlans.length === 1 ? activePlans[0] : null)
+
+  // A single-session credit (e.g. "Single 30min") can only pay for that exact
+  // length — lock the session length to match it so the two can never get out
+  // of sync. Mirrors the web booking flow's lockedDuration behavior.
+  const lockedDuration = useMemo<"private-30" | "private-45" | "private-60" | "private-90" | null>(() => {
+    if (!effectivePlan) return null
+    const st = planSessionType(effectivePlan.planName) as "private-30" | "private-45" | "private-60" | "private-90"
+    if (st === "private-60") return null
+    return st
+  }, [effectivePlan])
+  const activeDuration = lockedDuration ?? selectedDuration
+
+  const CREDIT_COST: Record<string, number> = { "private-30": 0.5, "private-45": 0.75, "private-60": 1, "private-90": 1.5 }
+  const creditCost = activeDuration ? (CREDIT_COST[activeDuration] ?? 1) : 1
 
   const DURATIONS: { value: "private-30" | "private-45" | "private-60" | "private-90"; label: string }[] = [
     { value: "private-30", label: "30 min" },
@@ -217,13 +230,12 @@ function BookingStep({
     })
   }, [weekDays, detail.week, detail.bookedSlots, detail.pmTimezone, today])
 
-  const effectivePlan = activePlans.find((p) => p.id === selectedPlanId) ?? (activePlans.length === 1 ? activePlans[0] : null)
   const noStructuredCredits = activePlans.length === 0 && credits > 0
-  const canConfirm = selectedDate && selectedTime && selectedDuration && (effectivePlan || noStructuredCredits) && !confirming
+  const canConfirm = selectedDate && selectedTime && activeDuration && (effectivePlan || noStructuredCredits) && !confirming
 
   function handleConfirm() {
-    if (!selectedDate || !selectedTime || !selectedDuration) return
-    onConfirm({ date: selectedDate, time: selectedTime, notes, planId: effectivePlan?.id, planSessions: effectivePlan?.sessions, sessionType: selectedDuration })
+    if (!selectedDate || !selectedTime || !activeDuration) return
+    onConfirm({ date: selectedDate, time: selectedTime, notes, planId: effectivePlan?.id, planSessions: effectivePlan?.sessions, sessionType: activeDuration })
   }
 
   const DAY_LABELS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"]
@@ -332,15 +344,21 @@ function BookingStep({
         </View>
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>{showPlanPicker ? "3" : "2"}. Session length</Text>
+          {lockedDuration && (
+            <Text style={styles.lockedDurationNote}>
+              Locked to {DURATIONS.find((d) => d.value === lockedDuration)?.label} to match your selected credit.
+            </Text>
+          )}
           <View style={{ flexDirection: "row", gap: SPACING.sm }}>
             {DURATIONS.map((d) => (
               <TouchableOpacity
                 key={d.value}
-                style={[styles.durationBtn, selectedDuration === d.value && styles.durationBtnActive]}
-                onPress={() => setSelectedDuration(d.value)}
-                activeOpacity={0.7}
+                style={[styles.durationBtn, activeDuration === d.value && styles.durationBtnActive, lockedDuration && d.value !== lockedDuration && styles.durationBtnDisabled]}
+                onPress={() => { if (!lockedDuration) setSelectedDuration(d.value) }}
+                disabled={!!lockedDuration}
+                activeOpacity={lockedDuration ? 1 : 0.7}
               >
-                <Text style={[styles.durationBtnText, selectedDuration === d.value && { color: COLORS.primary }]}>{d.label}</Text>
+                <Text style={[styles.durationBtnText, activeDuration === d.value && { color: COLORS.primary }]}>{d.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -352,7 +370,7 @@ function BookingStep({
         <View style={styles.confirmBar}>
           {selectedDate && selectedTime ? (
             <View style={{ flex: 1 }}>
-              <Text style={styles.confirmDate}>{new Date(`${selectedDate}T00:00:00`).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })} · {selectedDaySlots ? (Array.from(selectedDaySlots.localToPmSlot.entries()).find(([, pm]) => pm === selectedTime)?.[0] ?? selectedTime) : selectedTime}{selectedDuration ? ` · ${DURATIONS.find((d) => d.value === selectedDuration)?.label}` : ""}</Text>
+              <Text style={styles.confirmDate}>{new Date(`${selectedDate}T00:00:00`).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })} · {selectedDaySlots ? (Array.from(selectedDaySlots.localToPmSlot.entries()).find(([, pm]) => pm === selectedTime)?.[0] ?? selectedTime) : selectedTime}{activeDuration ? ` · ${DURATIONS.find((d) => d.value === activeDuration)?.label}` : ""}</Text>
               <Text style={styles.confirmWith}>with {detail.coach.name}</Text>
             </View>
           ) : <Text style={[styles.confirmWith, { flex: 1 }]}>Select a date, time, and length to continue.</Text>}
@@ -550,6 +568,8 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     confirmBtnText: { fontSize: 14, fontWeight: "700", color: "#fff" },
     durationBtn: { flex: 1, alignItems: "center", paddingVertical: 12, borderRadius: RADIUS.sm, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.surface },
     durationBtnActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryLight },
+    durationBtnDisabled: { opacity: 0.4 },
     durationBtnText: { fontSize: 14, fontWeight: "700", color: COLORS.text },
+    lockedDurationNote: { fontSize: 12, color: COLORS.textMuted, marginTop: -4, marginBottom: 2 },
   })
 }
