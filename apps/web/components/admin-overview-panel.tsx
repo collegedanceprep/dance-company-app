@@ -63,8 +63,21 @@ export function AdminOverviewPanel({ members, bookings, workers }: Props) {
   const [sheetMonth, setSheetMonth] = useState(monthKey)
   const thisMonth = bookings.filter((b) => b.date?.startsWith(monthKey))
   const confirmed = thisMonth.filter((b) => b.status.toLowerCase() === "confirmed" && !isSessionPast(b))
+  // Includes late cancels on purpose — they still bill, so revenue/payOwed below
+  // need them in "completed." The KPI breakdown below uses its own mutually
+  // exclusive counts instead, so a late cancel isn't shown in both buckets.
   const completed = thisMonth.filter((b) => b.status.toLowerCase() !== "cancelled" && isSessionPast(b))
   const cancelled = thisMonth.filter((b) => b.status.toLowerCase().startsWith("cancelled"))
+
+  // Mutually exclusive status counts for the "Bookings this month" breakdown —
+  // each booking lands in exactly one bucket so the sub-counts always sum to
+  // thisMonth.length. (The financial `completed` above deliberately overlaps
+  // with late cancels; this doesn't.)
+  const pendingCount = thisMonth.filter((b) => b.status.toLowerCase() === "pending").length
+  const confirmedCount = confirmed.length
+  const completedCount = thisMonth.filter((b) => b.status.toLowerCase() === "confirmed" && isSessionPast(b)).length
+  const cancelledCount = cancelled.length
+  const declinedCount = thisMonth.filter((b) => b.status.toLowerCase() === "declined").length
 
   // Revenue = sum of per-session price based on session type
   const revenue = completed.reduce((sum, b) => sum + sessionRevenue(b), 0)
@@ -135,7 +148,7 @@ export function AdminOverviewPanel({ members, bookings, workers }: Props) {
           icon={<CalendarDays className="size-4 text-primary" />}
           label="Bookings this month"
           value={String(thisMonth.length)}
-          sub={`${confirmed.length} confirmed · ${completed.length} completed · ${cancelled.length} cancelled`}
+          sub={`${pendingCount} pending · ${confirmedCount} confirmed · ${completedCount} completed · ${cancelledCount} cancelled${declinedCount > 0 ? ` · ${declinedCount} declined` : ""}`}
           onClick={() => setSheetOpen(true)}
         />
         <KpiCard
