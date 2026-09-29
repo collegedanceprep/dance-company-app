@@ -1004,12 +1004,25 @@ export async function getMonthBookingsForTeam(
     if (!["pending", "confirmed", "completed"].includes(statusLc) && !statusLc.startsWith("cancel")) continue
     const uid = r.fields["User ID"] ?? ""
     const client = clientMap.get(uid)
+    // "Completed" isn't its own Airtable status — a Confirmed booking whose
+    // date has already passed is what "completed" means everywhere else in
+    // the app (see isSessionPast in admin-overview-panel.tsx). Without this,
+    // past-dated confirmed sessions stay stuck showing "Confirmed" forever.
+    const sessionMs = r.fields["UTC Datetime"]
+      ? new Date(r.fields["UTC Datetime"]).getTime()
+      : r.fields.Date ? new Date(r.fields.Date).getTime() : 0
+    const isPast = sessionMs > 0 && sessionMs <= Date.now()
+    const derivedStatus = statusLc.startsWith("cancel")
+      ? "canceled"
+      : statusLc === "confirmed" && isPast
+        ? "completed"
+        : statusLc
     grouped.get(pmName)!.push({
       id: r.id,
       date: r.fields.Date ?? "",
       time: r.fields.Time ?? "",
       utcDatetime: r.fields["UTC Datetime"] ?? null,
-      status: statusLc.startsWith("cancel") ? "canceled" : statusLc,
+      status: derivedStatus,
       notes: r.fields.Notes ?? "",
       prepMasterNotes: r.fields["Prep Master Notes"] ?? "",
       declineReason: r.fields["Decline Reason"] ?? "",
