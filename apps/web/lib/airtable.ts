@@ -984,6 +984,14 @@ export async function getMonthBookingsForTeam(
     revalidate: 0,
   })
 
+  // Bookings only store the dancer's User ID / email — the display name
+  // lives on the Members record, so it has to be looked up separately
+  // (matches getBookingsForPrepMaster above).
+  const userIds = Array.from(
+    new Set(records.map((r) => r.fields["User ID"]).filter(Boolean) as string[]),
+  )
+  const clientMap = await getClientsByUserIds(userIds)
+
   const grouped = new Map<string, PrepMasterBooking[]>()
   for (const name of pmNames) grouped.set(name, [])
 
@@ -994,6 +1002,8 @@ export async function getMonthBookingsForTeam(
     const statusLc = status.toLowerCase()
     // Only include confirmed, completed, cancelled
     if (!["confirmed", "completed"].includes(statusLc) && !statusLc.startsWith("cancel")) continue
+    const uid = r.fields["User ID"] ?? ""
+    const client = clientMap.get(uid)
     grouped.get(pmName)!.push({
       id: r.id,
       date: r.fields.Date ?? "",
@@ -1004,10 +1014,10 @@ export async function getMonthBookingsForTeam(
       prepMasterNotes: r.fields["Prep Master Notes"] ?? "",
       declineReason: r.fields["Decline Reason"] ?? "",
       cancellationReason: r.fields["Cancellation Reason"] ?? "",
-      dancerName: r.fields.Name ?? "",
+      dancerName: client?.name ?? "",
       dancerEmail: r.fields["Client Email"] ?? "",
       dancerPhone: "",
-      userId: r.fields["User ID"] ?? "",
+      userId: uid,
       sessionType: r.fields["Session Type"] ?? null,
       isReschedulePending: r.fields["Is Reschedule"] ?? false,
     })

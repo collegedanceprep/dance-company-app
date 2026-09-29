@@ -4,6 +4,9 @@ import { useState, useCallback } from "react"
 import { ChevronDown, ChevronLeft, ChevronRight, Users } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { PrepMaster, PrepMasterBooking } from "@/lib/airtable"
+import { Badge } from "@/components/ui/badge"
+import { LocalTime } from "@/components/local-time"
+import { getUniversityColor } from "@/lib/university-colors"
 
 type TeamEntry = { pm: PrepMaster; bookings: PrepMasterBooking[] }
 
@@ -21,10 +24,13 @@ const MONTHS = [
   "June","July","August","September","October","November","December",
 ]
 
-const STATUS_STYLES: Record<string, string> = {
-  confirmed: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400",
-  completed: "bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-400",
-  canceled:  "bg-red-50 text-red-700 dark:bg-red-950/60 dark:text-red-400",
+// Matches the app-wide status convention (see admin-overview-panel.tsx):
+// confirmed = primary brand color, canceled = destructive/red. Completed
+// isn't one of the three canonical states, so it gets a neutral outline.
+const STATUS_VARIANT: Record<string, "default" | "outline" | "destructive"> = {
+  confirmed: "default",
+  completed: "outline",
+  canceled: "destructive",
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -53,6 +59,7 @@ export function MyPrepMastersView({ initialTeam, initialYear, initialMonth, isAd
   const [loading, setLoading] = useState(false)
   const [openIds, setOpenIds] = useState<Set<string>>(new Set())
   const [selectedRD, setSelectedRD] = useState(initialRdName)
+  const [statusFilter, setStatusFilter] = useState<"all" | "confirmed" | "completed" | "canceled">("all")
 
   const fetchTeam = useCallback(async (y: number, m: number, rdName: string) => {
     setLoading(true)
@@ -106,6 +113,14 @@ export function MyPrepMastersView({ initialTeam, initialYear, initialMonth, isAd
     { total: 0, confirmed: 0, completed: 0, canceled: 0 },
   )
 
+  // When a stat is selected, narrow each PrepMaster's bookings to that status
+  // and drop anyone with no matching bookings this month.
+  const visibleTeam = statusFilter === "all"
+    ? team
+    : team
+        .map((entry) => ({ ...entry, bookings: entry.bookings.filter((b) => b.status === statusFilter) }))
+        .filter((entry) => entry.bookings.length > 0)
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -157,21 +172,37 @@ export function MyPrepMastersView({ initialTeam, initialYear, initialMonth, isAd
 
         <div className="grid grid-cols-4 divide-x divide-border">
           {[
-            { label: "Total",     value: stats.total,     cls: "" },
-            { label: "Confirmed", value: stats.confirmed, cls: "text-emerald-600 dark:text-emerald-400" },
-            { label: "Completed", value: stats.completed, cls: "text-blue-600 dark:text-blue-400" },
-            { label: "Canceled",  value: stats.canceled,  cls: "text-red-600 dark:text-red-400" },
-          ].map(({ label, value, cls }) => (
-            <div key={label} className="flex flex-col items-center py-1">
+            { label: "Total",     value: stats.total,     cls: "",                  filterKey: "all" as const },
+            { label: "Confirmed", value: stats.confirmed, cls: "text-primary",       filterKey: "confirmed" as const },
+            { label: "Completed", value: stats.completed, cls: "text-muted-foreground", filterKey: "completed" as const },
+            { label: "Canceled",  value: stats.canceled,  cls: "text-destructive",   filterKey: "canceled" as const },
+          ].map(({ label, value, cls, filterKey }) => (
+            <button
+              key={label}
+              type="button"
+              onClick={() => setStatusFilter((prev) => (prev === filterKey ? "all" : filterKey))}
+              className={cn(
+                "flex flex-col items-center py-1.5 rounded-md transition-colors hover:bg-muted/50",
+                statusFilter === filterKey && filterKey !== "all" && "bg-muted/70 ring-1 ring-inset ring-primary/40",
+              )}
+            >
               <span className={cn("text-2xl font-bold tabular-nums", cls)}>
                 {loading ? "—" : value}
               </span>
               <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mt-0.5">
                 {label}
               </span>
-            </div>
+            </button>
           ))}
         </div>
+        {statusFilter !== "all" && (
+          <p className="text-xs text-muted-foreground -mt-2">
+            Showing only {STATUS_LABELS[statusFilter].toLowerCase()} bookings.{" "}
+            <button type="button" onClick={() => setStatusFilter("all")} className="underline underline-offset-2 hover:text-foreground">
+              Clear filter
+            </button>
+          </p>
+        )}
       </div>
 
       {/* PrepMaster list */}
@@ -179,15 +210,19 @@ export function MyPrepMastersView({ initialTeam, initialYear, initialMonth, isAd
         <div className="flex items-center justify-center py-12 text-muted-foreground text-sm">
           Loading…
         </div>
-      ) : team.length === 0 ? (
+      ) : visibleTeam.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground">
           <Users className="size-10 opacity-30" />
-          <p className="text-sm">No PrepMasters found for this month.</p>
+          <p className="text-sm">
+            {statusFilter === "all"
+              ? "No PrepMasters found for this month."
+              : `No ${STATUS_LABELS[statusFilter].toLowerCase()} bookings this month.`}
+          </p>
         </div>
       ) : (
         <div className="flex flex-col gap-2">
-          {team.map(({ pm, bookings }) => {
-            const isOpen = openIds.has(pm.name)
+          {visibleTeam.map(({ pm, bookings }) => {
+            const isOpen = statusFilter !== "all" || openIds.has(pm.name)
             const counts = bookings.reduce(
               (a, b) => { a[b.status] = (a[b.status] ?? 0) + 1; return a },
               {} as Record<string, number>,
@@ -210,23 +245,29 @@ export function MyPrepMastersView({ initialTeam, initialYear, initialMonth, isAd
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold truncate">{pm.name}</p>
-                    <p className="text-xs text-muted-foreground">{pm.university || "—"}</p>
+                    {pm.university ? (() => {
+                      const { bg, text } = getUniversityColor(pm.university)
+                      return (
+                        <span
+                          className="mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold leading-none"
+                          style={{ backgroundColor: bg, color: text }}
+                        >
+                          {pm.university}
+                        </span>
+                      )
+                    })() : (
+                      <p className="text-xs text-muted-foreground">—</p>
+                    )}
                   </div>
                   <div className="flex gap-1.5 shrink-0">
                     {counts.confirmed > 0 && (
-                      <span className="rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 text-[11px] font-semibold px-2 py-0.5">
-                        {counts.confirmed} confirmed
-                      </span>
+                      <Badge variant="default">{counts.confirmed} confirmed</Badge>
                     )}
                     {counts.completed > 0 && (
-                      <span className="rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 text-[11px] font-semibold px-2 py-0.5">
-                        {counts.completed} completed
-                      </span>
+                      <Badge variant="outline">{counts.completed} completed</Badge>
                     )}
                     {counts.canceled > 0 && (
-                      <span className="rounded-full bg-red-50 dark:bg-red-950/60 text-red-700 dark:text-red-400 text-[11px] font-semibold px-2 py-0.5">
-                        {counts.canceled} canceled
-                      </span>
+                      <Badge variant="destructive">{counts.canceled} canceled</Badge>
                     )}
                     {bookings.length === 0 && (
                       <span className="text-xs text-muted-foreground">No bookings</span>
@@ -261,16 +302,16 @@ export function MyPrepMastersView({ initialTeam, initialYear, initialMonth, isAd
                             <div className="w-px h-8 bg-border shrink-0" />
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium truncate">{bk.dancerName || "Member"}</p>
-                              <p className="text-xs text-muted-foreground">{bk.time}</p>
+                              <LocalTime
+                                slot={bk.time}
+                                dateIso={bk.date}
+                                utcDatetime={bk.utcDatetime}
+                                className="text-xs text-muted-foreground"
+                              />
                             </div>
-                            <span
-                              className={cn(
-                                "shrink-0 rounded-full text-[11px] font-semibold px-2.5 py-0.5",
-                                STATUS_STYLES[bk.status] ?? "",
-                              )}
-                            >
+                            <Badge variant={STATUS_VARIANT[bk.status] ?? "outline"} className="shrink-0">
                               {STATUS_LABELS[bk.status] ?? bk.status}
-                            </span>
+                            </Badge>
                           </div>
                         )
                       })
