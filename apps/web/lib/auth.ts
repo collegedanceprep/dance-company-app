@@ -26,20 +26,59 @@ export const auth = betterAuth({
     },
   },
   socialProviders: {
-    // Apple Sign-In: verify the identity token from expo-apple-authentication
-    // against Apple's JWKS. No server-side credentials needed for native-only flow.
+    // Apple Sign-In supports both:
+    //   1. Native (Expo): identity token verified against Apple JWKS, audience = native bundle ID
+    //   2. Web OAuth: standard redirect flow using Services ID as client_id
     apple: {
-      clientId: process.env.APPLE_CLIENT_ID ?? "com.collegedanceprep.app",
-      clientSecret: process.env.APPLE_CLIENT_SECRET ?? "",
+      // Web OAuth uses the Services ID; native tokens carry the bundle ID as audience —
+      // both are validated in verifyIdToken below.
+      clientId: process.env.APPLE_WEB_CLIENT_ID ?? "com.collegedanceprep.web",
+      // Client secret is a short-lived JWT signed with the private key (Apple requirement for web OAuth).
+      clientSecret: await (async () => {
+        const keyPem = process.env.APPLE_WEB_PRIVATE_KEY
+        const keyId = process.env.APPLE_WEB_KEY_ID
+        const teamId = process.env.APPLE_WEB_TEAM_ID
+        const clientId = process.env.APPLE_WEB_CLIENT_ID ?? "com.collegedanceprep.web"
+        if (!keyPem || !keyId || !teamId) return process.env.APPLE_CLIENT_SECRET ?? ""
+        try {
+          const { importPKCS8, SignJWT } = await import("jose")
+          const privateKey = await importPKCS8(keyPem.replace(/\\n/g, "\n"), "ES256")
+          const now = Math.floor(Date.now() / 1000)
+          return await new SignJWT({})
+            .setProtectedHeader({ alg: "ES256", kid: keyId })
+            .setIssuer(teamId)
+            .setIssuedAt(now)
+            .setExpirationTime(now + 15777000) // ~6 months
+            .setAudience("https://appleid.apple.com")
+            .setSubject(clientId)
+            .sign(privateKey)
+        } catch {
+          return process.env.APPLE_CLIENT_SECRET ?? ""
+        }
+      })(),
       verifyIdToken: async (token: string) => {
         try {
           const { createRemoteJWKSet, jwtVerify } = await import("jose")
           const JWKS = createRemoteJWKSet(new URL("https://appleid.apple.com/auth/keys"))
-          const { payload } = await jwtVerify(token, JWKS, {
-            issuer: "https://appleid.apple.com",
-            audience: process.env.APPLE_CLIENT_ID ?? "com.collegedanceprep.app",
-          })
-          if (!payload.sub) return false
+          // Accept tokens from both the native app bundle and the web Services ID
+          const validAudiences = [
+            process.env.APPLE_CLIENT_ID ?? "com.collegedanceprep.app",
+            process.env.APPLE_WEB_CLIENT_ID ?? "com.collegedanceprep.web",
+          ]
+          let payload: import("jose").JWTPayload | undefined
+          for (const aud of validAudiences) {
+            try {
+              const result = await jwtVerify(token, JWKS, {
+                issuer: "https://appleid.apple.com",
+                audience: aud,
+              })
+              payload = result.payload
+              break
+            } catch {
+              // try next audience
+            }
+          }
+          if (!payload?.sub) return false
           return {
             user: {
               id: payload.sub as string,

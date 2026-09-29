@@ -37,6 +37,7 @@ export type AdminBooking = {
   notes: string
   cancellationReason?: string | null
   sessionType: string | null
+  singleCreditUsed?: boolean
 }
 
 export type MemberPlan = {

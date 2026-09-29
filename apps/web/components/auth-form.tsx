@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Loader2, Eye, EyeOff } from "lucide-react"
 import { GoogleSignInButton } from "@/components/google-sign-in-button"
+import { AppleSignInButton } from "@/components/apple-sign-in-button"
 
 export function AuthForm({ initialError }: { initialError?: string }) {
   const router = useRouter()
@@ -171,6 +172,7 @@ export function AuthForm({ initialError }: { initialError?: string }) {
       </div>
 
       <GoogleSignInButton callbackURL="/" className="w-full" />
+      <AppleSignInButton callbackURL="/" className="w-full" />
 
       <p className="mt-4 text-sm text-muted-foreground">
         {isSignUp ? "Already have an account?" : "New to College Dance Prep?"}{" "}
