@@ -557,9 +557,9 @@ export function AdminMembersPanel({ members, bookings, plans, packages, query = 
                 {/* Danger zone */}
                 <div className="flex flex-col gap-2 rounded-md border border-destructive/30 bg-destructive/5 p-3">
                   <p className="text-xs font-semibold uppercase tracking-wide text-destructive">Permanent Account Deletion</p>
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <p className="text-xs text-muted-foreground">Delete this user from both the auth database and Airtable so the email can be re-used for testing.</p>
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex flex-wrap items-center gap-2 shrink-0">
                       <Button
                         size="sm"
                         variant="outline"
