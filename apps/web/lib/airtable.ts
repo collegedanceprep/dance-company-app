@@ -1000,8 +1000,8 @@ export async function getMonthBookingsForTeam(
     if (!grouped.has(pmName)) continue
     const status = r.fields.Status ?? "pending"
     const statusLc = status.toLowerCase()
-    // Only include confirmed, completed, cancelled
-    if (!["confirmed", "completed"].includes(statusLc) && !statusLc.startsWith("cancel")) continue
+    // Only include pending, confirmed, completed, cancelled
+    if (!["pending", "confirmed", "completed"].includes(statusLc) && !statusLc.startsWith("cancel")) continue
     const uid = r.fields["User ID"] ?? ""
     const client = clientMap.get(uid)
     grouped.get(pmName)!.push({

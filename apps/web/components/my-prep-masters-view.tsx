@@ -24,17 +24,26 @@ const MONTHS = [
   "June","July","August","September","October","November","December",
 ]
 
-// Matches the app-wide status convention (see admin-overview-panel.tsx):
-// confirmed = primary brand color, canceled = destructive/red. Completed
-// isn't one of the three canonical states, so it gets a neutral outline.
-const STATUS_VARIANT: Record<string, "default" | "outline" | "destructive"> = {
-  confirmed: "default",
-  completed: "outline",
-  canceled: "destructive",
+// Matches the app-wide status convention: confirmed = primary brand color,
+// pending = amber (see admin-prep-masters-panel.tsx's invite-pending badge),
+// completed = green, canceled = destructive/red.
+const STATUS_BADGE: Record<string, { variant?: "default" | "destructive"; className?: string }> = {
+  confirmed: { variant: "default" },
+  pending: { className: "border-amber-300 bg-amber-100 text-amber-700 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-400" },
+  completed: { className: "border-green-300 bg-green-100 text-green-700 dark:border-green-700 dark:bg-green-950 dark:text-green-400" },
+  canceled: { variant: "destructive" },
+}
+
+const STATUS_TEXT_CLASS: Record<string, string> = {
+  confirmed: "text-primary",
+  pending: "text-amber-600 dark:text-amber-400",
+  completed: "text-green-600 dark:text-green-400",
+  canceled: "text-destructive",
 }
 
 const STATUS_LABELS: Record<string, string> = {
   confirmed: "Confirmed",
+  pending: "Pending",
   completed: "Completed",
   canceled:  "Canceled",
 }
@@ -59,7 +68,7 @@ export function MyPrepMastersView({ initialTeam, initialYear, initialMonth, isAd
   const [loading, setLoading] = useState(false)
   const [openIds, setOpenIds] = useState<Set<string>>(new Set())
   const [selectedRD, setSelectedRD] = useState(initialRdName)
-  const [statusFilter, setStatusFilter] = useState<"all" | "confirmed" | "completed" | "canceled">("all")
+  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "confirmed" | "completed" | "canceled">("all")
 
   const fetchTeam = useCallback(async (y: number, m: number, rdName: string) => {
     setLoading(true)
@@ -104,13 +113,14 @@ export function MyPrepMastersView({ initialTeam, initialYear, initialMonth, isAd
     (acc, { bookings }) => {
       for (const b of bookings) {
         acc.total++
-        if (b.status === "confirmed") acc.confirmed++
+        if (b.status === "pending") acc.pending++
+        else if (b.status === "confirmed") acc.confirmed++
         else if (b.status === "completed") acc.completed++
         else if (b.status === "canceled") acc.canceled++
       }
       return acc
     },
-    { total: 0, confirmed: 0, completed: 0, canceled: 0 },
+    { total: 0, pending: 0, confirmed: 0, completed: 0, canceled: 0 },
   )
 
   // When a stat is selected, narrow each PrepMaster's bookings to that status
@@ -170,12 +180,13 @@ export function MyPrepMastersView({ initialTeam, initialYear, initialMonth, isAd
           </div>
         </div>
 
-        <div className="grid grid-cols-4 divide-x divide-border">
+        <div className="grid grid-cols-5 divide-x divide-border">
           {[
-            { label: "Total",     value: stats.total,     cls: "",                  filterKey: "all" as const },
-            { label: "Confirmed", value: stats.confirmed, cls: "text-primary",       filterKey: "confirmed" as const },
-            { label: "Completed", value: stats.completed, cls: "text-muted-foreground", filterKey: "completed" as const },
-            { label: "Canceled",  value: stats.canceled,  cls: "text-destructive",   filterKey: "canceled" as const },
+            { label: "Total",     value: stats.total,     cls: "",                              filterKey: "all" as const },
+            { label: "Pending",   value: stats.pending,   cls: STATUS_TEXT_CLASS.pending,        filterKey: "pending" as const },
+            { label: "Confirmed", value: stats.confirmed, cls: STATUS_TEXT_CLASS.confirmed,       filterKey: "confirmed" as const },
+            { label: "Completed", value: stats.completed, cls: STATUS_TEXT_CLASS.completed,       filterKey: "completed" as const },
+            { label: "Canceled",  value: stats.canceled,  cls: STATUS_TEXT_CLASS.canceled,        filterKey: "canceled" as const },
           ].map(({ label, value, cls, filterKey }) => (
             <button
               key={label}
@@ -260,14 +271,17 @@ export function MyPrepMastersView({ initialTeam, initialYear, initialMonth, isAd
                     )}
                   </div>
                   <div className="flex gap-1.5 shrink-0">
+                    {counts.pending > 0 && (
+                      <Badge {...STATUS_BADGE.pending}>{counts.pending} pending</Badge>
+                    )}
                     {counts.confirmed > 0 && (
-                      <Badge variant="default">{counts.confirmed} confirmed</Badge>
+                      <Badge {...STATUS_BADGE.confirmed}>{counts.confirmed} confirmed</Badge>
                     )}
                     {counts.completed > 0 && (
-                      <Badge variant="outline">{counts.completed} completed</Badge>
+                      <Badge {...STATUS_BADGE.completed}>{counts.completed} completed</Badge>
                     )}
                     {counts.canceled > 0 && (
-                      <Badge variant="destructive">{counts.canceled} canceled</Badge>
+                      <Badge {...STATUS_BADGE.canceled}>{counts.canceled} canceled</Badge>
                     )}
                     {bookings.length === 0 && (
                       <span className="text-xs text-muted-foreground">No bookings</span>
@@ -309,7 +323,10 @@ export function MyPrepMastersView({ initialTeam, initialYear, initialMonth, isAd
                                 className="text-xs text-muted-foreground"
                               />
                             </div>
-                            <Badge variant={STATUS_VARIANT[bk.status] ?? "outline"} className="shrink-0">
+                            <Badge
+                              variant={STATUS_BADGE[bk.status]?.variant}
+                              className={cn("shrink-0", STATUS_BADGE[bk.status]?.className)}
+                            >
                               {STATUS_LABELS[bk.status] ?? bk.status}
                             </Badge>
                           </div>
