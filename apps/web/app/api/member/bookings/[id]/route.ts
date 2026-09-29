@@ -13,7 +13,7 @@ import { db } from "@/lib/db"
 import { user as userTable, calendarEventLink } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 import { resolveClientProfile } from "@/lib/profile-core"
-import { deleteCalendarEvent } from "@/lib/google-calendar"
+import { deleteCalendarEvent, getCalendarBusySlots } from "@/lib/google-calendar"
 
 async function getSessionUser() {
   const session = await auth.api.getSession({ headers: await headers() })
@@ -204,10 +204,11 @@ export async function PATCH(
   // Look up PrepMaster timezone before 24hr check so the window is anchored to the PM's clock
   const pmName = booking.fields["Prep Master Name"] ?? ""
   const [pmEntry] = await getPrepMasters().then((all) => all.filter((p) => p.name === pmName))
-  const pmTz = pmEntry?.email
-    ? await db.select({ timezone: userTable.timezone }).from(userTable).where(eq(userTable.email, pmEntry.email)).limit(1)
-        .then((rows) => rows[0]?.timezone ?? COMPANY_TZ)
-    : COMPANY_TZ
+  const pmUserRow = pmEntry?.email
+    ? await db.select({ id: userTable.id, timezone: userTable.timezone }).from(userTable).where(eq(userTable.email, pmEntry.email)).limit(1)
+        .then((rows) => rows[0])
+    : undefined
+  const pmTz = pmUserRow?.timezone ?? COMPANY_TZ
 
   if (isWithin24Hours(booking.fields.Date ?? "", booking.fields.Time ?? "", pmTz)) {
     return NextResponse.json({ ok: false, error: "Bookings within 24 hours cannot be rescheduled." }, { status: 422 })
@@ -249,6 +250,13 @@ export async function PATCH(
         const openSlots = slotsForDate(body.date, week)
         if (!openSlots.includes(body.time)) {
           return NextResponse.json({ ok: false, error: "That time is outside this PrepMaster's availability." }, { status: 422 })
+        }
+      }
+      // Block if PM's Google Calendar shows a conflict (mirrors create route)
+      if (pmUserRow?.id) {
+        const busySlots = await getCalendarBusySlots(pmUserRow.id, body.date, 60, pmTz)
+        if (busySlots.includes(body.time)) {
+          return NextResponse.json({ ok: false, error: "That time is no longer available. Please choose another slot." }, { status: 409 })
         }
       }
     }

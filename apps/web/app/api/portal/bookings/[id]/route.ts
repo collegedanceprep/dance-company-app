@@ -2,11 +2,13 @@ import { NextResponse } from "next/server"
 import { headers } from "next/headers"
 import { revalidateTag } from "next/cache"
 import { auth } from "@/lib/auth"
-import { getPrepMasterByEmail, TABLES, appBase, getMostRecentInactivePlanForUser, setPlanStatus, refundBookingCredit, type BookingFields, type ClientFields } from "@/lib/airtable"
+import { getPrepMasterByEmail, TABLES, appBase, getMostRecentInactivePlanForUser, setPlanStatus, refundBookingCredit, getBookedSlots, type BookingFields, type ClientFields } from "@/lib/airtable"
+import { getAvailabilityForEmail } from "@/app/actions/availability"
+import { slotsForDate } from "@/lib/availability"
 import { createNotification } from "@/app/actions/notifications"
 import { sendEmail, bookingUpdatedEmail, bookingCancelledEmail, bookingConfirmedByPmEmail, bookingDeclinedByPmEmail } from "@/lib/email"
 import { isWithin24Hours, fmtDate, fmtTime, etToUtcIso, fmtTimeForNotif, fmtEmailTime, COMPANY_TZ } from "@/lib/utils"
-import { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent } from "@/lib/google-calendar"
+import { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent, getCalendarBusySlots } from "@/lib/google-calendar"
 import { db } from "@/lib/db"
 import { user as userTable, calendarEventLink } from "@/lib/db/schema"
 import { eq, and } from "drizzle-orm"
@@ -376,7 +378,7 @@ export async function PATCH(
   if (body.time) update.Time = body.time
   if (body.prepMasterNotes !== undefined) update["Prep Master Notes"] = body.prepMasterNotes
   if (body.date || body.time) {
-    const [pmTzRow] = await db.select({ timezone: userTable.timezone }).from(userTable).where(eq(userTable.email, session.user.email)).limit(1)
+    const [pmTzRow] = await db.select({ id: userTable.id, timezone: userTable.timezone }).from(userTable).where(eq(userTable.email, session.user.email)).limit(1)
     const pmTz = pmTzRow?.timezone ?? COMPANY_TZ
     const utc = etToUtcIso(
       body.date ?? booking.fields.Date ?? "",
@@ -384,6 +386,32 @@ export async function PATCH(
       pmTz,
     )
     if (utc) update["UTC Datetime"] = utc
+
+    // Validate the new slot when the PM is actually moving it (mirrors the
+    // member reschedule route and new-booking checks — this path previously
+    // had none at all).
+    const targetDate = body.date ?? booking.fields.Date ?? ""
+    const targetTime = body.time ?? booking.fields.Time ?? ""
+    const keepingSameSlot = booking.fields.Date === targetDate && booking.fields.Time === targetTime
+    if (!keepingSameSlot) {
+      const takenSlots = await getBookedSlots(pm.name, targetDate)
+      if (takenSlots.includes(targetTime)) {
+        return NextResponse.json({ ok: false, error: "That time was just booked. Please choose another slot." }, { status: 409 })
+      }
+      if (pm.email) {
+        const week = await getAvailabilityForEmail(pm.email)
+        const openSlots = slotsForDate(targetDate, week)
+        if (!openSlots.includes(targetTime)) {
+          return NextResponse.json({ ok: false, error: "That time is outside your availability." }, { status: 422 })
+        }
+      }
+      if (pmTzRow?.id) {
+        const busySlots = await getCalendarBusySlots(pmTzRow.id, targetDate, 60, pmTz)
+        if (busySlots.includes(targetTime)) {
+          return NextResponse.json({ ok: false, error: "That time is no longer available. Please choose another slot." }, { status: 409 })
+        }
+      }
+    }
   }
   await appBase.update<BookingFields>(TABLES.bookings, id, update)
   revalidateTag(`portal-${session.user.email}`)
