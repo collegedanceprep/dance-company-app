@@ -316,6 +316,28 @@ export async function addPrepMaster(input: {
 }
 
 
+export async function adminSetSingleCredits(
+  memberId: string,
+  userId: string,
+  min: "30" | "45" | "60" | "90",
+  newCount: number,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await assertAdmin()
+    if (newCount < 0 || newCount > 9999) return { ok: false, error: "Invalid count." }
+    const fieldMap = { "30": "Single Credits 30", "45": "Single Credits 45", "60": "Single Credits 60", "90": "Single Credits 90" } as const
+    await appBase.update<ClientFields>(TABLES.clients, memberId, {
+      [fieldMap[min]]: newCount,
+    } as Partial<ClientFields>)
+    revalidatePath("/admin")
+    revalidatePath("/dashboard")
+    revalidateTag(`member-${userId}`, "max")
+    return { ok: true }
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Failed to set credits." }
+  }
+}
+
 export async function adminSetCredits(
   memberId: string,
   newCredits: number,

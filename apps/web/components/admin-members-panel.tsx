@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useRef } from "react"
 import { toast } from "sonner"
-import { addComplimentaryCredits, adminAssignPlan, createMember, adminRemovePlan, adminSetCredits } from "@/app/actions/admin"
+import { addComplimentaryCredits, adminAssignPlan, createMember, adminRemovePlan, adminSetCredits, adminSetSingleCredits } from "@/app/actions/admin"
 import type { AdminMember, AdminBooking, MemberPlan } from "@/lib/airtable"
 import { SESSION_TYPE_LABELS } from "@/lib/session-types"
 import { planDisplayStatus } from "@/lib/plan-utils"
@@ -413,6 +413,35 @@ export function AdminMembersPanel({ members, bookings, plans, packages, query = 
                     Assigning a plan adds its sessions as credits to the member's account.
   </p>
                 </div>
+
+                {/* Credit reconciliation warnings */}
+                {(["30", "45", "60", "90"] as const).map((min) => {
+                  const stored = member.singleCredits?.[min] ?? 0
+                  const expected = memberPlanList.filter(
+                    (p) => planDisplayStatus(p) === "Active" && p.sessions === 1 && p.planName.toLowerCase().includes(min)
+                  ).length
+                  if (stored === expected) return null
+                  return (
+                    <div key={min} className="flex items-center justify-between gap-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-300">
+                      <span>
+                        ⚠️ Credit mismatch: <strong>{min}-min single</strong> shows <strong>{stored}</strong> in Airtable but <strong>{expected}</strong> Active plan{expected !== 1 ? "s" : ""} exist.
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="shrink-0 border-amber-400 text-amber-800 hover:bg-amber-100 dark:text-amber-300"
+                        disabled={isPending}
+                        onClick={async () => {
+                          const result = await adminSetSingleCredits(member.id, member.userId, min, expected)
+                          if (result.ok) toast.success(`Fixed: Single Credits ${min} set to ${expected}`)
+                          else toast.error(result.error)
+                        }}
+                      >
+                        Fix ({stored} → {expected})
+                      </Button>
+                    </div>
+                  )
+                })}
 
                 {/* Plan history + single sessions */}
                 {memberPlanList.length > 0 && (
