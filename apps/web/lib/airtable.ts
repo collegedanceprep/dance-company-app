@@ -704,7 +704,7 @@ export async function adminCreateWorker(fields: {
     "Full Name": fields.name,
     Email: fields.email,
     Phone: fields.phone ?? "",
-    Region: fields.region ?? "",
+    ...(fields.region ? { Region: fields.region } : {}),
     Address: fields.address ?? "",
     "Hourly Rate": fields.hourlyRate ?? 0,
     Active: true,
