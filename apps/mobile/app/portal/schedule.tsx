@@ -1,11 +1,11 @@
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, useMemo } from "react"
 import { API_BASE } from "@/lib/config"
 import {
   View, Text, StyleSheet, ScrollView, Switch, TouchableOpacity,
   ActivityIndicator, Alert, RefreshControl,
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
-import { Check, ChevronDown, CalendarPlus } from "lucide-react-native"
+import { Check, ChevronDown, ChevronLeft, ChevronRight, CalendarPlus } from "lucide-react-native"
 import { authClient } from "@/lib/auth-client"
 import { SPACING, RADIUS } from "@/constants/theme"
 import { useColors } from "@/lib/theme-context"
@@ -83,6 +83,25 @@ export default function PortalScheduleScreen() {
   const [bookNotes, setBookNotes] = useState("")
   const [booking, setBooking] = useState(false)
   const [calBusy, setCalBusy] = useState<Record<string, string[]>>({})
+  const [weekOffset, setWeekOffset] = useState(0)
+
+  const weekDays = useMemo(() => {
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(); d.setDate(d.getDate() + weekOffset * 7 + i); return d
+    })
+  }, [weekOffset])
+
+  const weekLabel = useMemo(() => {
+    const start = weekDays[0]; const end = weekDays[6]
+    const sameMonth = start.getMonth() === end.getMonth()
+    if (sameMonth) return `${start.toLocaleDateString("en-US", { month: "long" })} ${start.getDate()}–${end.getDate()}`
+    return `${start.toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ${end.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`
+  }, [weekDays])
+
+  useEffect(() => {
+    const visible = new Set(weekDays.map(toIso))
+    if (!visible.has(selectedDate)) { setSelectedDate(toIso(weekDays[0])); setSelectedTime("") }
+  }, [weekOffset])
 
   const load = useCallback(async () => {
     try {
@@ -210,13 +229,22 @@ export default function PortalScheduleScreen() {
               </View>
             )}
             <Text style={styles.fieldLabel}>Date</Text>
+            <View style={styles.weekNav}>
+              <TouchableOpacity style={[styles.weekNavBtn, weekOffset === 0 && { opacity: 0.3 }]} onPress={() => setWeekOffset((w) => w - 1)} disabled={weekOffset === 0} activeOpacity={0.7}>
+                <ChevronLeft size={16} color={COLORS.text} />
+              </TouchableOpacity>
+              <Text style={styles.weekLabel}>{weekLabel}</Text>
+              <TouchableOpacity style={styles.weekNavBtn} onPress={() => setWeekOffset((w) => w + 1)} activeOpacity={0.7}>
+                <ChevronRight size={16} color={COLORS.text} />
+              </TouchableOpacity>
+            </View>
             <View style={styles.dateRow}>
-              {Array.from({ length: 7 }, (_, i) => {
-                const d = new Date(); d.setDate(d.getDate() + i)
+              {weekDays.map((d) => {
                 const iso = toIso(d)
                 const isSelected = selectedDate === iso
+                const isPast = d < new Date(new Date().toDateString())
                 return (
-                  <TouchableOpacity key={iso} style={[styles.dateChip, isSelected && styles.dateChipSelected]} onPress={() => { setSelectedDate(iso); setSelectedTime("") }} activeOpacity={0.7}>
+                  <TouchableOpacity key={iso} style={[styles.dateChip, isSelected && styles.dateChipSelected, isPast && { opacity: 0.35 }]} onPress={() => { if (!isPast) { setSelectedDate(iso); setSelectedTime("") } }} disabled={isPast} activeOpacity={0.7}>
                     <Text style={[styles.dateChipDay, isSelected && { color: COLORS.primary }]}>{d.toLocaleDateString("en-US", { weekday: "short" })}</Text>
                     <Text style={[styles.dateChipNum, isSelected && { color: COLORS.primary }]}>{d.getDate()}</Text>
                   </TouchableOpacity>
@@ -334,6 +362,9 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: RADIUS.full, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.background },
     chipSelected: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryLight },
     chipText: { fontSize: 13, fontWeight: "600", color: COLORS.text },
+    weekNav: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 },
+    weekNavBtn: { padding: 6 },
+    weekLabel: { fontSize: 13, fontWeight: "600", color: COLORS.text },
     dateRow: { flexDirection: "row", gap: 6 },
     dateChip: { flex: 1, alignItems: "center", paddingVertical: 8, borderRadius: RADIUS.sm, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.background },
     dateChipSelected: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryLight },
