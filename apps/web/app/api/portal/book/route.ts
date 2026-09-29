@@ -12,7 +12,7 @@ import { createNotification } from "@/app/actions/notifications"
 import { sendEmail, portalBookedEmail } from "@/lib/email"
 import { etToUtcIso, fmtEmailTime, fmtTimeForNotif, fmtDate } from "@/lib/utils"
 import { db } from "@/lib/db"
-import { user as userTable, calendarEventLink } from "@/lib/db/schema"
+import { user as userTable, calendarEventLink, bookingAttemptLock } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 import { createCalendarEvent } from "@/lib/google-calendar"
 
@@ -88,54 +88,113 @@ export async function POST(req: Request) {
   ])
   const pmTimezone = pmRow?.timezone ?? "America/New_York"
 
-  // Credit deduction for PM-scheduled sessions
+  // Credit deduction for PM-scheduled sessions — checks the type-specific
+  // single-session credit first, then falls back to pack credits, matching
+  // /api/booking/create (the member-initiated booking route). Without this,
+  // a member with a single-session credit but no pack credits would get
+  // wrongly blocked with NO_CREDITS when their PM books for them.
   const CREDIT_COST: Record<string, number> = { "pack-hour": 1, "private-30": 0.5, "private-45": 0.75, "private-60": 1, "private-90": 1.5 }
+  const SINGLE_CREDIT_FIELDS: Record<string, keyof ClientFields> = {
+    "private-30": "Single Credits 30",
+    "private-45": "Single Credits 45",
+    "private-60": "Single Credits 60",
+    "private-90": "Single Credits 90",
+  }
   const creditCost = CREDIT_COST[sessionType ?? "private-60"] ?? 1
   let dancerDisplayName: string = dancer?.name ?? dancerEmail
-  if (dancer?.id) {
-    const safeId = dancer.id.replace(/'/g, "\\'")
-    const clientRecords = await appBase.list<{ "Credits Remaining": number; Name: string }>(
-      TABLES.clients, { filterByFormula: `{User ID} = '${safeId}'`, maxRecords: 1, revalidate: 0 }
-    )
-    const clientRecord = clientRecords[0]
-    if (clientRecord) {
-      if (clientRecord.fields.Name) dancerDisplayName = clientRecord.fields.Name
-      const current = (clientRecord.fields["Credits Remaining"] ?? 0) as number
-      if (current < creditCost) {
-        return NextResponse.json({ ok: false, error: "NO_CREDITS" }, { status: 422 })
-      }
-      const newCredits = Math.round((current - creditCost) * 100) / 100
-      await appBase.update(TABLES.clients, clientRecord.id, {
-        "Credits Remaining": newCredits,
+  let useSingleCredit = false
+  let clientRecordId: string | null = null
+  let creditFieldUsed: keyof ClientFields = "Credits Remaining"
+  let creditValueBeforeDeduction = 0
+
+  if (!dancer?.id) {
+    return NextResponse.json({ ok: false, error: "Member not found." }, { status: 404 })
+  }
+
+  // Serialize concurrent booking attempts for this member+slot so two rapid
+  // requests can't both pass the credit check and double-deduct.
+  const lockId = crypto.randomUUID()
+  try {
+    await db.insert(bookingAttemptLock).values({ id: lockId, userId: dancer.id, date, time })
+  } catch {
+    return NextResponse.json({ ok: false, error: "A booking for that time is already in progress. Please try again." }, { status: 409 })
+  }
+
+  const safeId = dancer.id.replace(/'/g, "\\'")
+  const clientRecords = await appBase.list<ClientFields>(
+    TABLES.clients, { filterByFormula: `{User ID} = '${safeId}'`, maxRecords: 1, revalidate: 0 }
+  )
+  const clientRecord = clientRecords[0]
+  if (!clientRecord) {
+    await db.delete(bookingAttemptLock).where(eq(bookingAttemptLock.id, lockId)).catch(() => {})
+    return NextResponse.json({ ok: false, error: "NO_CREDITS" }, { status: 422 })
+  }
+
+  if (clientRecord.fields.Name) dancerDisplayName = clientRecord.fields.Name
+  const singleField = SINGLE_CREDIT_FIELDS[sessionType ?? ""]
+  const singleCreditsForType = singleField ? ((clientRecord.fields[singleField] as number | undefined) ?? 0) : 0
+  useSingleCredit = singleCreditsForType >= 1
+  const effectiveCreditCost = useSingleCredit ? 1 : creditCost
+  const availableCredits = useSingleCredit ? singleCreditsForType : ((clientRecord.fields["Credits Remaining"] ?? 0) as number)
+
+  if (availableCredits < effectiveCreditCost) {
+    await db.delete(bookingAttemptLock).where(eq(bookingAttemptLock.id, lockId)).catch(() => {})
+    return NextResponse.json({ ok: false, error: "NO_CREDITS" }, { status: 422 })
+  }
+
+  clientRecordId = clientRecord.id
+  creditValueBeforeDeduction = availableCredits
+  if (useSingleCredit && singleField) {
+    creditFieldUsed = singleField
+    const newVal = Math.round((availableCredits - 1) * 100) / 100
+    await appBase.update<ClientFields>(TABLES.clients, clientRecord.id, { [singleField]: newVal } as Partial<ClientFields>)
+  } else {
+    const newCredits = Math.round((availableCredits - creditCost) * 100) / 100
+    await appBase.update(TABLES.clients, clientRecord.id, {
+      "Credits Remaining": newCredits,
+    })
+    if (newCredits <= 0) {
+      const planToMark = await getMostRecentInactivePlanForUser(dancer.id).catch(() => null)
+      // If they still have an Active plan, mark it Used; otherwise mark the most recent active-status plan
+      const safeIdPlan = dancer.id.replace(/'/g, "\\'")
+      const activePlanRecs = await appBase.list(TABLES.plans, {
+        filterByFormula: `AND({User ID} = '${safeIdPlan}', {Status} = 'Active')`,
+        maxRecords: 1,
+        revalidate: 0,
       })
-      if (newCredits <= 0 && dancer?.id) {
-        const planToMark = await getMostRecentInactivePlanForUser(dancer.id).catch(() => null)
-        // If they still have an Active plan, mark it Used; otherwise mark the most recent active-status plan
-        const safeIdPlan = dancer.id.replace(/'/g, "\\'")
-        const activePlanRecs = await appBase.list(TABLES.plans, {
-          filterByFormula: `AND({User ID} = '${safeIdPlan}', {Status} = 'Active')`,
-          maxRecords: 1,
-          revalidate: 0,
-        })
-        const activePlan = activePlanRecs[0]
-        if (activePlan) await setPlanStatus(activePlan.id, "Used").catch(() => {})
-        else if (planToMark) await setPlanStatus(planToMark.id, "Used").catch(() => {})
-      }
+      const activePlan = activePlanRecs[0]
+      if (activePlan) await setPlanStatus(activePlan.id, "Used").catch(() => {})
+      else if (planToMark) await setPlanStatus(planToMark.id, "Used").catch(() => {})
     }
   }
 
   const utcDatetime = etToUtcIso(date, time, pmTimezone)
-  const newRecord = await appBase.create<BookingFields>(TABLES.bookings, {
-    "Client Email": dancerEmail,
-    "User ID": dancer?.id ?? "",
-    "Prep Master Name": prepMaster.name,
-    Date: date,
-    Time: time,
-    ...(utcDatetime ? { "UTC Datetime": utcDatetime } : {}),
-    Status: "Confirmed",
-    Notes: notes ?? "",
-    "Session Type": sessionType ?? "private-60",
-  })
+  let newRecord: Awaited<ReturnType<typeof appBase.create<BookingFields>>>
+  try {
+    newRecord = await appBase.create<BookingFields>(TABLES.bookings, {
+      "Client Email": dancerEmail,
+      "User ID": dancer.id,
+      "Prep Master Name": prepMaster.name,
+      Date: date,
+      Time: time,
+      ...(utcDatetime ? { "UTC Datetime": utcDatetime } : {}),
+      Status: "Confirmed",
+      Notes: notes ?? "",
+      "Session Type": sessionType ?? "private-60",
+      ...(useSingleCredit ? { "Single Credit Used": true } : {}),
+    })
+  } catch (err) {
+    // Booking creation failed — refund the credit so the member isn't charged
+    if (clientRecordId) {
+      await appBase.update<ClientFields>(TABLES.clients, clientRecordId, {
+        [creditFieldUsed]: creditValueBeforeDeduction,
+      } as Partial<ClientFields>).catch(() => {})
+    }
+    await db.delete(bookingAttemptLock).where(eq(bookingAttemptLock.id, lockId)).catch(() => {})
+    return NextResponse.json({ ok: false, error: "Failed to create booking. The credit has been refunded." })
+  }
+
+  await db.delete(bookingAttemptLock).where(eq(bookingAttemptLock.id, lockId)).catch(() => {})
 
   if (dancer?.id) {
     createNotification({
