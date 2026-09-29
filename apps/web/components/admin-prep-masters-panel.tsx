@@ -177,10 +177,10 @@ export function AdminPrepMastersPanel({ workers, bookings, query }: Props) {
             onClick={() => setSelected(worker)}
           >
             <CardHeader className="pb-3">
-              <div className="flex items-center justify-between gap-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="min-w-0">
                   <CardTitle className="text-base">{worker.name}</CardTitle>
-                  <CardDescription>{worker.email}</CardDescription>
+                  <CardDescription className="truncate">{worker.email}</CardDescription>
                   {worker.university ? (() => {
                     const { bg, text } = getUniversityColor(worker.university)
                     return (
@@ -190,7 +190,7 @@ export function AdminPrepMastersPanel({ workers, bookings, query }: Props) {
                     )
                   })() : null}
                 </div>
-                <div className="flex shrink-0 items-center gap-3">
+                <div className="flex flex-wrap shrink-0 items-center justify-end gap-3">
                   <div className="text-right">
                     <p className="text-sm font-semibold">${worker.hourlyRate.toFixed(2)}/session</p>
                     <p className="text-xs text-muted-foreground">{sessionCount} session{sessionCount === 1 ? "" : "s"}</p>

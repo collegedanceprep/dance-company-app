@@ -315,7 +315,7 @@ export function AdminMembersPanel({ members, bookings, plans, packages, query = 
         return (
           <Card key={member.id}>
             <CardHeader className="cursor-pointer pb-3" onClick={() => setExpanded(isCardOpen ? null : member.id)}>
-              <div className="flex items-center justify-between gap-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-3">
                   <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-semibold">
                     {(member.name || member.email)[0]?.toUpperCase() ?? "?"}
@@ -325,7 +325,7 @@ export function AdminMembersPanel({ members, bookings, plans, packages, query = 
                     <CardDescription className="truncate">{member.email}</CardDescription>
                   </div>
                 </div>
-                <div className="flex shrink-0 items-center gap-2">
+                <div className="flex flex-wrap shrink-0 items-center justify-end gap-2">
                   <Badge
                     variant="outline"
                     className={
