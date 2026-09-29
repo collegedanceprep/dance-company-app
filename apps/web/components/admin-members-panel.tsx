@@ -321,23 +321,28 @@ export function AdminMembersPanel({ members, bookings, plans, packages, query = 
                     {(member.name || member.email)[0]?.toUpperCase() ?? "?"}
                   </div>
                   <div className="min-w-0">
-                    <CardTitle className="text-base">{member.name || "—"}</CardTitle>
+                    <CardTitle className="flex items-center gap-1.5 text-base">
+                      <span className="truncate">{member.name || "—"}</span>
+                      {status === "active" && (
+                        <span className="inline-block size-2 shrink-0 rounded-full bg-green-500" title="Active" />
+                      )}
+                    </CardTitle>
                     <CardDescription className="truncate">{member.email}</CardDescription>
                   </div>
                 </div>
                 <div className="flex flex-wrap shrink-0 items-center justify-end gap-2">
-                  <Badge
-                    variant="outline"
-                    className={
-                      status === "active"
-                        ? "border-green-300 bg-green-100 text-green-700"
-                        : status === "lead"
+                  {status !== "active" && (
+                    <Badge
+                      variant="outline"
+                      className={
+                        status === "lead"
                           ? "border-blue-300 bg-blue-100 text-blue-700"
                           : "border-gray-200 bg-gray-100 text-gray-500"
-                    }
-                  >
-                    {status === "active" ? "Active" : status === "lead" ? "Lead" : "Inactive"}
-                  </Badge>
+                      }
+                    >
+                      {status === "lead" ? "Lead" : "Inactive"}
+                    </Badge>
+                  )}
 
                   <Badge variant="secondary" className="gap-1" title="Pack credits (fractional)">
                     <Ticket className="size-3" />

@@ -179,7 +179,12 @@ export function AdminPrepMastersPanel({ workers, bookings, query }: Props) {
             <CardHeader className="pb-3">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <CardTitle className="text-base">{worker.name}</CardTitle>
+                  <CardTitle className="flex items-center gap-1.5 text-base">
+                    <span className="truncate">{worker.name}</span>
+                    {worker.active && (
+                      <span className="inline-block size-2 shrink-0 rounded-full bg-green-500" title="Active" />
+                    )}
+                  </CardTitle>
                   <CardDescription className="truncate">{worker.email}</CardDescription>
                   {worker.university ? (() => {
                     const { bg, text } = getUniversityColor(worker.university)
@@ -195,9 +200,11 @@ export function AdminPrepMastersPanel({ workers, bookings, query }: Props) {
                     <p className="text-sm font-semibold">${worker.hourlyRate.toFixed(2)}/session</p>
                     <p className="text-xs text-muted-foreground">{sessionCount} session{sessionCount === 1 ? "" : "s"}</p>
                   </div>
-                  <Badge variant="outline" className={worker.active ? "border-green-300 bg-green-100 text-green-700" : "border-gray-200 bg-gray-100 text-gray-500"}>
-                    {worker.active ? "Active" : "Inactive"}
-                  </Badge>
+                  {!worker.active && (
+                    <Badge variant="outline" className="border-gray-200 bg-gray-100 text-gray-500">
+                      Inactive
+                    </Badge>
+                  )}
                   <Badge variant="outline" className={
                     worker.inviteStatus === "accepted"
                       ? "border-blue-300 bg-blue-100 text-blue-700"
