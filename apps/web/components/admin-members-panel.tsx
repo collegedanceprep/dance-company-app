@@ -327,7 +327,6 @@ export function AdminMembersPanel({ members, bookings, plans, packages, query = 
                         <span className="inline-block size-2 shrink-0 rounded-full bg-green-500" title="Active" />
                       )}
                     </CardTitle>
-                    <CardDescription className="truncate">{member.email}</CardDescription>
                   </div>
                 </div>
                 <div className="flex flex-wrap shrink-0 items-center justify-end gap-2">
@@ -383,6 +382,10 @@ export function AdminMembersPanel({ members, bookings, plans, packages, query = 
 
                 {/* Profile info */}
                 <div className="grid gap-2 text-sm sm:grid-cols-2">
+                  <div className="sm:col-span-2">
+                    <span className="text-muted-foreground">Email </span>
+                    <span className="font-medium">{member.email}</span>
+                  </div>
                   {member.phone && (
                     <div>
                       <span className="text-muted-foreground">Phone </span>

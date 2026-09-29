@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useTransition, useRef, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import { updatePrepMaster, addPrepMaster, deletePrepMaster } from "@/app/actions/admin"
 import type { AdminWorker, AdminBooking } from "@/lib/airtable"
@@ -53,11 +54,27 @@ type Props = {
 }
 
 export function AdminPrepMastersPanel({ workers, bookings, query }: Props) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const [selected, setSelected] = useState<AdminWorker | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
   const [localWorkers, setLocalWorkers] = useState<AdminWorker[]>(workers)
   const [isBulkInviting, setIsBulkInviting] = useState(false)
   const [statusFilter, setStatusFilter] = useState<"all" | "joined" | "pending">("all")
+
+  // Deep link from elsewhere in admin (e.g. tapping a name in the Revenue
+  // sheet) — jump straight into that PrepMaster's profile.
+  useEffect(() => {
+    const workerId = searchParams.get("worker")
+    if (!workerId) return
+    const match = localWorkers.find((w) => w.id === workerId)
+    if (!match) return
+    setSelected(match)
+    const params = new URLSearchParams(searchParams.toString())
+    params.delete("worker")
+    router.replace(`?${params.toString()}`, { scroll: false })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
 
   const uninvited = localWorkers.filter((w) => w.inviteStatus !== "accepted" && w.email)
 

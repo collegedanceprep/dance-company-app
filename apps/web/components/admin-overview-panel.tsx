@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState } from "react"
+import { useRouter } from "next/navigation"
 import type { AdminMember, AdminBooking, AdminWorker, MemberPlan } from "@/lib/airtable"
 import { SINGLE_HOUR_PRICE } from "@/lib/packages"
 
@@ -52,6 +53,8 @@ function monthLabel(key: string) {
 }
 
 export function AdminOverviewPanel({ members, bookings, workers }: Props) {
+  const router = useRouter()
+  const workerIdByName = new Map(workers.map((w) => [w.name, w.id]))
   const [sheetOpen, setSheetOpen] = useState(false)
   const [revenueSheetOpen, setRevenueSheetOpen] = useState(false)
   const [sheetSort, setSheetSort] = useState<SortDir>("desc")
@@ -257,8 +260,13 @@ export function AdminOverviewPanel({ members, bookings, workers }: Props) {
                     const amt = sessionRevenue(b)
                     const isLateCancelled = b.status.toLowerCase() === "cancelled (late)"
                     const sessionLabel = b.sessionType === "private-30" ? "30 min" : b.sessionType === "private-45" ? "45 min" : b.sessionType === "private-90" ? "90 min" : b.sessionType === "pack-hour" ? "Pack (60 min)" : "60 min"
+                    const workerId = workerIdByName.get(b.prepMasterName)
                     return (
-                      <li key={b.id} className="flex items-center justify-between gap-3 rounded-md border px-3 py-2.5 text-sm">
+                      <li
+                        key={b.id}
+                        className={`flex items-center justify-between gap-3 rounded-md border px-3 py-2.5 text-sm ${workerId ? "cursor-pointer transition-colors hover:border-primary/40 hover:bg-muted/40" : ""}`}
+                        onClick={workerId ? () => { setRevenueSheetOpen(false); router.push(`/admin?tab=prep-masters&worker=${workerId}`) } : undefined}
+                      >
                         <div className="min-w-0">
                           <p className="font-medium truncate">{b.dancerName || b.clientEmail || "Client"}</p>
                           <p className="text-xs text-muted-foreground">
