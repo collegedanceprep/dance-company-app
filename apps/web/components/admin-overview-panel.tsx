@@ -247,7 +247,7 @@ export function AdminOverviewPanel({ members, bookings, workers }: Props) {
               Revenue — {monthLabel(monthKey)}
             </SheetTitle>
           </SheetHeader>
-          <div className="flex-1 overflow-y-auto flex flex-col gap-3">
+          <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-3">
             {completed.length === 0 ? (
               <p className="text-sm text-muted-foreground">No billable sessions this month.</p>
             ) : (
@@ -313,7 +313,7 @@ export function AdminOverviewPanel({ members, bookings, workers }: Props) {
               onSortChange={setSheetSort}
             />
           </div>
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 min-h-0 overflow-y-auto">
             {(() => {
               const q = sheetSearch.trim().toLowerCase()
               const filtered = applyFilters(bookings, sheetMonth, sheetSort).filter((b) =>
