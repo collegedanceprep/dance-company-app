@@ -18,7 +18,7 @@ type Props = {
   allRDs: string[]
   initialRdName: string
   title?: string
-  subtitle?: (count: number) => string
+  subtitleSuffix?: string
   apiEndpoint?: string
 }
 
@@ -72,7 +72,7 @@ export function MyPrepMastersView({
   allRDs,
   initialRdName,
   title = "My PrepMasters",
-  subtitle = (count) => `${count} PrepMaster${count !== 1 ? "s" : ""} on your team`,
+  subtitleSuffix = "on your team",
   apiEndpoint = "/api/portal/my-prep-masters",
 }: Props) {
   const [team, setTeam] = useState<TeamEntry[]>(initialTeam)
@@ -148,7 +148,9 @@ export function MyPrepMastersView({
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="font-heading text-3xl font-bold tracking-tight">{title}</h1>
-        <p className="mt-1 text-muted-foreground">{subtitle(team.length)}</p>
+        <p className="mt-1 text-muted-foreground">
+          {team.length} PrepMaster{team.length !== 1 ? "s" : ""} {subtitleSuffix}
+        </p>
       </div>
 
       {/* Admin RD selector */}

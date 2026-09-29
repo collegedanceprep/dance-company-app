@@ -48,7 +48,7 @@ export default async function OpsManagementPage() {
       allRDs={[]}
       initialRdName=""
       title="Ops Management"
-      subtitle={(count) => `${count} PrepMaster${count !== 1 ? "s" : ""} company-wide`}
+      subtitleSuffix="company-wide"
       apiEndpoint="/api/portal/ops-management"
     />
   )
