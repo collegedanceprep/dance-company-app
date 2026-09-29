@@ -3,8 +3,8 @@ import { API_BASE } from "@/lib/config"
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, FlatList } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { useRouter } from "expo-router"
-import { Users, ChevronRight, LogOut } from "lucide-react-native"
-import { authClient, signOut } from "@/lib/auth-client"
+import { Users, ChevronRight, LogOut, AlertTriangle } from "lucide-react-native"
+import { authClient, signOut, useSession } from "@/lib/auth-client"
 import { useColors } from "@/lib/theme-context"
 import { SPACING, RADIUS } from "@/constants/theme"
 
@@ -20,6 +20,7 @@ export default function ChildPickerScreen() {
   const COLORS = useColors()
   const router = useRouter()
   const styles = makeStyles(COLORS)
+  const { data: session } = useSession()
   const [children, setChildren] = useState<Child[]>([])
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -55,6 +56,31 @@ export default function ChildPickerScreen() {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.center}><ActivityIndicator color={COLORS.primary} size="large" /></View>
+      </SafeAreaView>
+    )
+  }
+
+  if (children.length === 0) {
+    const parentEmail = session?.user?.email ?? ""
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.container}>
+          <View style={styles.iconWrap}>
+            <AlertTriangle size={32} color={COLORS.primary} />
+          </View>
+          <Text style={styles.title}>No dancer linked to your account yet</Text>
+          <Text style={styles.subtitle}>
+            Ask your dancer to sign up and enter{" "}
+            <Text style={{ fontWeight: "700", color: COLORS.text }}>{parentEmail}</Text> in the
+            "Parent email" field during their signup. Once they do, their sessions and credits
+            will show up here automatically.
+          </Text>
+
+          <TouchableOpacity style={styles.signOutBtn} onPress={handleSignOut} activeOpacity={0.7}>
+            <LogOut size={15} color={COLORS.textMuted} />
+            <Text style={styles.signOutText}>Sign out</Text>
+          </TouchableOpacity>
+        </View>
       </SafeAreaView>
     )
   }
