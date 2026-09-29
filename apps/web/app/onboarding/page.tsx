@@ -11,6 +11,10 @@ const APP_STORE_URL = "https://apps.apple.com/app/cdp-booking/id6784838378"
 
 export default async function OnboardingPage() {
   const profile = await getOrCreateProfile()
+  // Parent accounts have no dancer profile to fill in — skip straight to the dashboard
+  if (profile.isParentView) {
+    redirect("/dashboard")
+  }
   // If they've already filled in any profile detail, skip onboarding
   if (!profile.isNewProfile && (profile.phone || profile.goals || profile.parentEmail)) {
     redirect("/dashboard")

@@ -34,7 +34,7 @@ export function ParentSelfSignUpForm() {
         name: name.trim() || email.split("@")[0],
       })
       if (error) throw new Error(error.message ?? "Could not create account")
-      await authClient.$fetch("/api/auth/mark-parent", { method: "POST" })
+      await fetch("/api/auth/mark-parent", { method: "POST", credentials: "include" })
       window.location.href = "/dashboard"
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong")

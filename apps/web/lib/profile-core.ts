@@ -138,23 +138,22 @@ export async function resolveClientProfile(
           isNewProfile: false,
         }
       }
-      // isParentAccount=true but no child linked yet — return empty so booking fails gracefully
-      if (noCreate) {
-        return {
-          recordId: "",
-          name: user.name,
-          email: user.email,
-          phone: "",
-          goals: "",
-          creditsRemaining: 0,
-          singleCredits: { "30": 0, "45": 0, "60": 0, "90": 0 },
-          parentEmail: user.email,
-          effectiveUserId: "",
-          isParentView: true,
-          isNewProfile: false,
-        }
+      // isParentAccount=true but no child linked yet — return empty so the
+      // dashboard shows the "no dancer linked" state and booking fails
+      // gracefully, instead of ever creating a dancer Airtable record.
+      return {
+        recordId: "",
+        name: user.name,
+        email: user.email,
+        phone: "",
+        goals: "",
+        creditsRemaining: 0,
+        singleCredits: { "30": 0, "45": 0, "60": 0, "90": 0 },
+        parentEmail: user.email,
+        effectiveUserId: "",
+        isParentView: true,
+        isNewProfile: false,
       }
-      // noCreate=false (dashboard): fall through to create a placeholder dancer record
     }
   }
 
