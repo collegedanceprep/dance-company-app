@@ -38,17 +38,32 @@ type Props = {
   plans: MemberPlan[]
   packages: DancePackage[]
   query?: string
+  onlyMismatches?: boolean
 }
 
-export function AdminMembersPanel({ members, bookings, plans, packages, query = "" }: Props) {
+export function AdminMembersPanel({ members, bookings, plans, packages, query = "", onlyMismatches = false }: Props) {
   const [expanded, setExpanded] = useState<string | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
   const [localMembers, setLocalMembers] = useState<AdminMember[]>(members)
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({ active: true, leads: false, inactive: false })
   function toggleSection(key: string) { setOpenSections((prev) => ({ ...prev, [key]: !prev[key] })) }
 
-  const filtered = query.trim()
+  const queryFiltered = query.trim()
     ? localMembers.filter((m) => m.name.toLowerCase().includes(query.toLowerCase()) || m.email.toLowerCase().includes(query.toLowerCase()))
+    : localMembers
+
+  const filtered = onlyMismatches
+    ? queryFiltered.filter((m) => {
+        const memberPlanList = localPlans.filter((p) => p.userId === m.userId)
+        return (["30", "45", "60", "90"] as const).some((min) => {
+          const stored = m.singleCredits?.[min] ?? 0
+          const expected = memberPlanList.filter(
+            (p) => planDisplayStatus(p) === "Active" && p.sessions === 1 && p.planName.toLowerCase().includes(min)
+          ).length
+          return stored !== expected
+        })
+      })
+    : queryFiltered
     : localMembers
   const [selectedPackage, setSelectedPackage] = useState<Record<string, string>>({})
   const [localCredits, setLocalCredits] = useState<Record<string, number>>({})
