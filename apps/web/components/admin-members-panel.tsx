@@ -48,6 +48,14 @@ export function AdminMembersPanel({ members, bookings, plans, packages, query = 
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({ active: true, leads: false, inactive: false })
   function toggleSection(key: string) { setOpenSections((prev) => ({ ...prev, [key]: !prev[key] })) }
 
+  const [selectedPackage, setSelectedPackage] = useState<Record<string, string>>({})
+  const [localCredits, setLocalCredits] = useState<Record<string, number>>({})
+  const [parentEmailEditing, setParentEmailEditing] = useState<Record<string, string>>({})
+  const [parentEmailSaving, setParentEmailSaving] = useState<Record<string, boolean>>({})
+  const [editingCredits, setEditingCredits] = useState<Record<string, string>>({})
+  const [localPlans, setLocalPlans] = useState<MemberPlan[]>(plans)
+  const [isPending, startTransition] = useTransition()
+
   const queryFiltered = query.trim()
     ? localMembers.filter((m) => m.name.toLowerCase().includes(query.toLowerCase()) || m.email.toLowerCase().includes(query.toLowerCase()))
     : localMembers
@@ -60,18 +68,11 @@ export function AdminMembersPanel({ members, bookings, plans, packages, query = 
           const expected = memberPlanList.filter(
             (p) => planDisplayStatus(p) === "Active" && p.sessions === 1 && p.planName.toLowerCase().includes(min)
           ).length
-          return stored !== expected
+          // Only flag when stored is less than expected AND pack credits can't cover the gap
+          return stored < expected && (stored + creditsFor(m)) < expected
         })
       })
     : queryFiltered
-    : localMembers
-  const [selectedPackage, setSelectedPackage] = useState<Record<string, string>>({})
-  const [localCredits, setLocalCredits] = useState<Record<string, number>>({})
-  const [parentEmailEditing, setParentEmailEditing] = useState<Record<string, string>>({})
-  const [parentEmailSaving, setParentEmailSaving] = useState<Record<string, boolean>>({})
-  const [editingCredits, setEditingCredits] = useState<Record<string, string>>({})
-  const [localPlans, setLocalPlans] = useState<MemberPlan[]>(plans)
-  const [isPending, startTransition] = useTransition()
   const [mergeModal, setMergeModal] = useState<{ member: AdminMember } | null>(null)
   const [mergeTargetId, setMergeTargetId] = useState("")
   const [mergeLoading, setMergeLoading] = useState(false)
@@ -435,7 +436,8 @@ export function AdminMembersPanel({ members, bookings, plans, packages, query = 
                   const expected = memberPlanList.filter(
                     (p) => planDisplayStatus(p) === "Active" && p.sessions === 1 && p.planName.toLowerCase().includes(min)
                   ).length
-                  if (stored === expected) return null
+                  // Only warn when credits are genuinely missing (pack credits can't cover the gap)
+                  if (stored >= expected || (stored + creditsFor(member)) >= expected) return null
                   return (
                     <div key={min} className="flex items-center justify-between gap-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-300">
                       <span>

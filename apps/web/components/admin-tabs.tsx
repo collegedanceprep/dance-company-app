@@ -30,12 +30,13 @@ type Props = {
 
 function hasCreditMismatch(member: AdminMember, plans: MemberPlan[]): boolean {
   const memberPlans = plans.filter((p) => p.userId === member.userId)
+  const packCredits = member.creditsRemaining ?? 0
   return (["30", "45", "60", "90"] as const).some((min) => {
     const stored = member.singleCredits?.[min] ?? 0
     const expected = memberPlans.filter(
       (p) => planDisplayStatus(p) === "Active" && p.sessions === 1 && p.planName.toLowerCase().includes(min)
     ).length
-    return stored !== expected
+    return stored < expected && (stored + packCredits) < expected
   })
 }
 
