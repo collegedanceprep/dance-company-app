@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { appBase, TABLES, type BookingFields, type ClientFields, type AirtableRecord, getMostRecentInactivePlanForUser, setPlanStatus, getPrepMasters } from "@/lib/airtable"
+import { appBase, TABLES, type BookingFields, type ClientFields, type AirtableRecord, getMostRecentInactivePlanForUser, setPlanStatus, getPrepMasters, refundBookingCredit } from "@/lib/airtable"
 import { sendEmail, bookingCancelledEmail, bookingConfirmedByPmEmail, bookingDeclinedByPmEmail } from "@/lib/email"
 import { db } from "@/lib/db"
 import { user as userTable, calendarEventLink } from "@/lib/db/schema"
@@ -145,12 +145,10 @@ export async function GET(req: NextRequest) {
         })
         const client = clients[0]
         if (client) {
-          const SESSION_CREDIT_COST: Record<string, number> = { "pack-hour": 1, "private-60": 1, "private-45": 0.75, "private-30": 0.5, "private-90": 1.5 }
-          const sessionType = booking.fields["Session Type"] as string | undefined
-          const creditRefund = SESSION_CREDIT_COST[sessionType ?? "pack-hour"] ?? 1
-          const current = client.fields["Credits Remaining"] ?? 0
-          await appBase.update<ClientFields>(TABLES.clients, client.id, { "Credits Remaining": Math.round((current + creditRefund) * 100) / 100 })
-          if (current === 0) {
+          const sessionType = booking.fields["Session Type"] ?? "pack-hour"
+          const usedSingleCredit = booking.fields["Single Credit Used"] === true
+          await refundBookingCredit(client.id, client.fields, sessionType, usedSingleCredit, userId)
+          if (!usedSingleCredit && (client.fields["Credits Remaining"] ?? 0) === 0) {
             const inactivePlan = await getMostRecentInactivePlanForUser(userId)
             if (inactivePlan) await setPlanStatus(inactivePlan.id, "Active")
           }
