@@ -19,6 +19,7 @@ export function CreditsCard({
 
   const hasActive = activePlans.length > 0
   const hasHistory = usedPlans.length > 0
+  const noStructuredCredits = activePlans.length === 0 && credits > 0
   const isEmpty = credits === 0 && plans.length === 0
 
   const [view, setView] = useState<"active" | "history">(hasActive ? "active" : "history")
@@ -54,11 +55,31 @@ export function CreditsCard({
       <CardContent className="flex flex-col gap-2">
         {isEmpty ? (
           <p className="text-sm text-muted-foreground">Purchase a package to start booking.</p>
-        ) : shownPlans.length === 0 ? (
+        ) : shownPlans.length === 0 && !noStructuredCredits ? (
           <p className="text-sm text-muted-foreground">
             {view === "active" ? "No active credits." : "No used credits yet."}
           </p>
         ) : null}
+
+        {noStructuredCredits && view === "active" && (
+          <div className="flex flex-col gap-1 rounded-md border px-3 py-2 text-sm">
+            <div className="flex items-center justify-between gap-2">
+              <span className="flex items-center gap-2 font-medium">
+                <Ticket className="size-3.5 shrink-0 text-primary" />
+                Session credits
+                <span className="font-normal text-muted-foreground">
+                  {credits} {credits === 1 ? "credit" : "credits"} remaining
+                </span>
+              </span>
+              <Badge
+                variant="outline"
+                className="capitalize text-xs border-green-300 bg-green-100 text-green-700"
+              >
+                Active
+              </Badge>
+            </div>
+          </div>
+        )}
 
         {shownPlans.map((plan) => {
           const status = planDisplayStatus(plan)
