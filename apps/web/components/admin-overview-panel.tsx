@@ -195,7 +195,11 @@ export function AdminOverviewPanel({ members, bookings, workers }: Props) {
                   const worker = workers.find((w) => w.name === name)
                   const pay = count * (worker?.hourlyRate ?? 0)
                   return (
-                    <li key={name} className="flex items-center justify-between gap-3 rounded-md border px-3 py-2.5 text-sm">
+                    <li
+                      key={name}
+                      className={`flex items-center justify-between gap-3 rounded-md border px-3 py-2.5 text-sm ${worker ? "cursor-pointer transition-colors hover:border-primary/40 hover:bg-muted/40" : ""}`}
+                      onClick={worker ? () => router.push(`/admin?tab=prep-masters&worker=${worker.id}`) : undefined}
+                    >
                       <div className="flex items-center gap-3">
                         <span className="flex size-6 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
                           {i + 1}
