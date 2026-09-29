@@ -50,7 +50,7 @@ function RootLayoutInner() {
   const router = useRouter()
   const listenerRef = useRef<{ remove: () => void } | null>(null)
   const [updateRequired, setUpdateRequired] = useState(false)
-  const [appStoreUrl, setAppStoreUrl] = useState("https://apps.apple.com/app/id6744042829")
+  const [appStoreUrl, setAppStoreUrl] = useState("https://apps.apple.com/app/college-dance-prep/id6784838378")
 
   useEffect(() => {
     const installedVersion: string = Constants.expoConfig?.version ?? "0.0.0"

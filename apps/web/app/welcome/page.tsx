@@ -4,7 +4,7 @@ import Link from "next/link"
 import { CheckCircle, Smartphone } from "lucide-react"
 import { useSearchParams } from "next/navigation"
 
-const APP_STORE_URL = "https://apps.apple.com/app/id6744042829"
+const APP_STORE_URL = "https://apps.apple.com/app/college-dance-prep/id6784838378"
 
 function WelcomeContent() {
   const searchParams = useSearchParams()

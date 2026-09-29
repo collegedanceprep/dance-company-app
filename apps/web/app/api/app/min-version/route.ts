@@ -7,7 +7,7 @@ export async function GET() {
   return NextResponse.json(
     {
       minVersion: process.env.MIN_APP_VERSION ?? "1.0.0",
-      appStoreUrl: "https://apps.apple.com/app/id6744042829",
+      appStoreUrl: "https://apps.apple.com/app/college-dance-prep/id6784838378",
     },
     {
       headers: {
