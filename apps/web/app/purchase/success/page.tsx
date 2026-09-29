@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import Link from "next/link"
-import { CheckCircle, Smartphone, Loader2, AlertTriangle } from "lucide-react"
+import { CheckCircle, Smartphone, Loader2, Clock } from "lucide-react"
 
 type State = "confirming" | "ready" | "delayed" | "error"
 
@@ -61,15 +61,13 @@ function PurchaseSuccessContent() {
   if (state === "delayed" || state === "error") {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-6 text-center px-4">
-        <div className="flex size-20 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30">
-          <AlertTriangle className="size-10 text-amber-600 dark:text-amber-400" />
+        <div className="flex size-20 items-center justify-center rounded-full bg-primary/10">
+          <Clock className="size-10 text-primary" />
         </div>
         <div>
-          <h1 className="font-heading text-3xl font-bold tracking-tight">Still confirming…</h1>
+          <h1 className="font-heading text-3xl font-bold tracking-tight">Almost there!</h1>
           <p className="mt-2 text-muted-foreground max-w-sm">
-            {state === "delayed"
-              ? "Your payment is still processing. Don't worry — you won't be charged again, and your credits will show up shortly."
-              : "We couldn't confirm this purchase automatically. If you were charged, your credits will still be added within a few minutes."}
+            Your purchase is finishing up on our end — your credits will show up in just a few minutes. No need to do anything else.
           </p>
         </div>
         <Link
