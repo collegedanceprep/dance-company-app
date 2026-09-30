@@ -164,11 +164,17 @@ export function BookingFlow({
         toast.success("Session booked!", {
           description: `Your request with ${prepMasterName} has been sent. 1 credit used.`,
         })
-        router.push("/dashboard")
-        router.refresh()
+        // Give the toast a moment to actually render before navigating away —
+        // an immediate push/refresh can unmount it before it's ever visible,
+        // especially on mobile web, making a successful booking look like it
+        // silently failed.
+        setTimeout(() => {
+          router.push("/dashboard")
+          router.refresh()
+        }, 1200)
       } else if (result.error === "NO_CREDITS") {
         toast.error("Out of credits", { description: "Purchase a package to book more sessions." })
-        router.push("/dashboard/packages")
+        setTimeout(() => router.push("/dashboard/packages"), 1200)
       } else {
         toast.error("Couldn't book session", { description: result.error })
         router.refresh()

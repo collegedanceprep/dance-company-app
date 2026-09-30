@@ -53,7 +53,7 @@ export function PortalBookForm({ clients, availability }: Props) {
       const result = await createBookingAsPrepMaster({ dancerEmail, date, time, notes })
       if (result.ok) {
         toast.success("Booking created successfully.")
-        router.push("/portal")
+        setTimeout(() => router.push("/portal"), 1200)
       } else {
         toast.error(result.error)
       }
