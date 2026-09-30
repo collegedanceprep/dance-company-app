@@ -38,7 +38,12 @@ export default async function DashboardPage() {
   // PrepMasters must never access the member dashboard — send them to their portal
   if (user?.role === "prep_master") redirect("/portal")
 
-  const profileCheck = await getOrCreateProfile()
+  // Admins previewing the member dashboard have no Clients record of their
+  // own and shouldn't get one auto-created — that used to send them into an
+  // onboarding loop every time they used "View as Member." (PrepMasters are
+  // already redirected to /portal above, so only "admin" is possible here.)
+  const noCreate = user?.role === "admin"
+  const profileCheck = await getOrCreateProfile({ noCreate })
   // New users fill in their details first, then hit the pending wall
   if (profileCheck.isNewProfile) redirect("/onboarding")
 
@@ -56,7 +61,6 @@ export default async function DashboardPage() {
   let calendarConnected = false
 
   const resolvedUser = user ? { id: user.id, email: user.email, name: user.name ?? "" } : undefined
-  const noCreate = user?.role === "admin" || user?.role === "prep_master"
   try {
     const profile = await getOrCreateProfile({ noCreate, resolvedUser })
     isParent = profile.isParentView
