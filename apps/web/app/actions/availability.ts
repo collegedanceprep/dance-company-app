@@ -19,14 +19,48 @@ function normalizeEmail(email: string) {
   return email.trim().toLowerCase()
 }
 
-/** Reads saved availability windows for an email (lower-level helper). */
+const DEFAULT_DAY = { enabled: true, startTime: "07:00", endTime: "23:00" } as const
+
+function defaultWeek(): DayAvailability[] {
+  return Array.from({ length: 7 }, (_, i) => ({ dayOfWeek: i, ...DEFAULT_DAY }))
+}
+
+/**
+ * Reads saved availability windows for an email (lower-level helper).
+ *
+ * If a PrepMaster has never opened their Availability settings page, they
+ * have zero rows here — and every booking-time lookup used to treat that as
+ * "unavailable every slot, every day," silently blocking 100% of bookings
+ * with no error explaining why. Seeding sane defaults (7 AM - 11 PM, all
+ * week) on first read closes that gap for every caller, not just the
+ * PrepMaster's own settings page.
+ */
 export async function getAvailabilityForEmail(
   email: string,
 ): Promise<DayAvailability[]> {
+  const normalized = normalizeEmail(email)
   const rows = await db
     .select()
     .from(prepMasterAvailability)
-    .where(eq(prepMasterAvailability.email, normalizeEmail(email)))
+    .where(eq(prepMasterAvailability.email, normalized))
+
+  if (rows.length === 0) {
+    const defaults = defaultWeek()
+    await Promise.all(
+      defaults.map((d) =>
+        db.insert(prepMasterAvailability).values({
+          id: randomUUID(),
+          email: normalized,
+          dayOfWeek: d.dayOfWeek,
+          enabled: d.enabled,
+          startTime: d.startTime,
+          endTime: d.endTime,
+        }).onConflictDoNothing(),
+      ),
+    )
+    return defaults
+  }
+
   // normalizeEmail keeps reads consistent with the lowercased rows we write.
   return rows.map((r) => ({
     dayOfWeek: r.dayOfWeek,
@@ -37,36 +71,10 @@ export async function getAvailabilityForEmail(
 }
 
 /** Returns the logged-in prep master's full 7-day availability template.
- *  Seeds 6 AM – 11 PM Mon–Sun on first use if no rows exist yet. */
+ *  Seeds 7 AM – 11 PM Mon–Sun on first use if no rows exist yet. */
 export async function getMyAvailability(): Promise<DayAvailability[]> {
   const user = await getSessionUser()
   const saved = await getAvailabilityForEmail(user.email)
-
-  if (saved.length === 0) {
-    // Seed defaults: all 7 days, 06:00 – 23:00
-    const email = normalizeEmail(user.email)
-    await Promise.all(
-      Array.from({ length: 7 }, (_, i) =>
-        db.insert(prepMasterAvailability).values({
-          id: randomUUID(),
-          email,
-          dayOfWeek: i,
-          enabled: true,
-          startTime: "07:00",
-          endTime: "23:00",
-        }).onConflictDoNothing(),
-      ),
-    )
-    return buildWeekTemplate(
-      Array.from({ length: 7 }, (_, i) => ({
-        dayOfWeek: i,
-        enabled: true,
-        startTime: "07:00",
-        endTime: "23:00",
-      })),
-    )
-  }
-
   return buildWeekTemplate(saved)
 }
 
