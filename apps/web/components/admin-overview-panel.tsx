@@ -127,7 +127,7 @@ export function AdminOverviewPanel({ members, bookings, workers }: Props) {
   }
   const topPMs = Array.from(pmCounts.entries())
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
+    .slice(0, 10)
 
   // Active members (have at least 1 credit or have booked)
   const activeMembers = members.length

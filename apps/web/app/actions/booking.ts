@@ -103,6 +103,9 @@ export async function cancelBooking(
   bookingId: string,
   cancellationReason?: string,
 ): Promise<{ ok: true; creditRefunded: boolean } | { ok: false; error: string }> {
+  if (!cancellationReason?.trim()) {
+    return { ok: false, error: "A cancellation reason is required." }
+  }
   try {
     const user = await getSessionUser()
     const profile = await resolveClientProfile({ id: user.id, email: user.email, name: user.name ?? "" }, true)
@@ -135,7 +138,7 @@ export async function cancelBooking(
 
     await appBase.update<BookingFields>(TABLES.bookings, bookingId, {
       Status: within24 ? "Cancelled (Late)" : "Cancelled",
-      ...(cancellationReason ? { "Cancellation Reason": cancellationReason } : {}),
+      "Cancellation Reason": cancellationReason.trim(),
       ...(within24 ? { "Payable to PrepMaster": true } : {}),
     })
 

@@ -213,11 +213,15 @@ export async function PATCH(
       return NextResponse.json({ ok: true, rescheduleReverted: true, origDate, origTime, origUtc: origUtc || null })
     }
 
+    if (!body.declineReason?.trim()) {
+      return NextResponse.json({ ok: false, error: "A decline reason is required." }, { status: 400 })
+    }
+
     // Full booking decline (no prior reschedule) — refund credit
     await appBase.update<BookingFields>(TABLES.bookings, id, {
       Status: "Declined",
       "Is Reschedule": false,
-      ...(body.declineReason ? { "Decline Reason": body.declineReason } : {}),
+      "Decline Reason": body.declineReason.trim(),
     })
     revalidateTag(`portal-${session.user.email}`)
 

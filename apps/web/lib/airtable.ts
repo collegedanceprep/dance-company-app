@@ -605,6 +605,8 @@ export type AdminBooking = {
   notes: string
   sessionType: SessionType | null
   singleCreditUsed?: boolean
+  cancellationReason: string
+  declineReason: string
 }
 
 export async function adminGetAllMembers(): Promise<AdminMember[]> {
@@ -689,6 +691,8 @@ export async function adminGetAllBookings(): Promise<AdminBooking[]> {
       notes: r.fields.Notes ?? "",
       sessionType: (r.fields["Session Type"] as SessionType) ?? null,
       singleCreditUsed: r.fields["Single Credit Used"] === true,
+      cancellationReason: r.fields["Cancellation Reason"] ?? "",
+      declineReason: r.fields["Decline Reason"] ?? "",
     }
   })
 }

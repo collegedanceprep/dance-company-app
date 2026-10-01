@@ -281,6 +281,11 @@ export async function declineBooking(
   reason: string,
   rescheduleAction?: "revert" | "cancel",
 ): Promise<{ ok: true; rescheduleReverted?: boolean } | { ok: false; error: string }> {
+  // "revert" keeps the original booking alive (just denies the reschedule
+  // request), so it isn't a real cancellation and doesn't need a reason.
+  if (rescheduleAction !== "revert" && !reason?.trim()) {
+    return { ok: false, error: "A decline reason is required." }
+  }
   try {
     const user = await assertPrepMaster()
     const pm = await getPrepMasterByEmail(user.email)
@@ -432,6 +437,9 @@ export async function cancelBookingAsPrepMaster(
   bookingId: string,
   reason: string,
 ): Promise<{ ok: true; creditRefunded: boolean } | { ok: false; error: string }> {
+  if (!reason?.trim()) {
+    return { ok: false, error: "A cancellation reason is required." }
+  }
   try {
     const user = await assertPrepMaster()
     const pm = await getPrepMasterByEmail(user.email)
