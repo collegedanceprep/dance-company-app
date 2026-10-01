@@ -26,7 +26,7 @@ import {
   addNotificationResponseListener,
   handleNotificationResponse,
 } from "@/lib/push-notifications"
-import { useRouter } from "expo-router"
+import { useRouter, usePathname } from "expo-router"
 import { useSession, authClient } from "@/lib/auth-client"
 import { ThemeProvider, useTheme } from "@/lib/theme-context"
 
@@ -44,26 +44,34 @@ function semverLt(a: string, b: string): boolean {
   return false
 }
 
+const VERSION_CHECK_MIN_INTERVAL_MS = 15_000
+
 function RootLayoutInner() {
   const { data: session } = useSession()
   const { isDark } = useTheme()
   const router = useRouter()
+  const pathname = usePathname()
   const listenerRef = useRef<{ remove: () => void } | null>(null)
+  const lastCheckedRef = useRef(0)
   const [updateRequired, setUpdateRequired] = useState(false)
   const [appStoreUrl, setAppStoreUrl] = useState("https://apps.apple.com/app/college-dance-prep/id6784838378")
 
+  const checkVersion = useRef((force = false) => {
+    const now = Date.now()
+    if (!force && now - lastCheckedRef.current < VERSION_CHECK_MIN_INTERVAL_MS) return
+    lastCheckedRef.current = now
+    const installedVersion: string = Constants.expoConfig?.version ?? "0.0.0"
+    fetch(`${API_BASE}/api/app/min-version`)
+      .then((r) => r.json())
+      .then(({ minVersion, appStoreUrl: url }) => {
+        if (url) setAppStoreUrl(url)
+        if (semverLt(installedVersion, minVersion)) setUpdateRequired(true)
+      })
+      .catch(() => {})
+  }).current
+
   useEffect(() => {
-    const checkVersion = () => {
-      const installedVersion: string = Constants.expoConfig?.version ?? "0.0.0"
-      fetch(`${API_BASE}/api/app/min-version`)
-        .then((r) => r.json())
-        .then(({ minVersion, appStoreUrl: url }) => {
-          if (url) setAppStoreUrl(url)
-          if (semverLt(installedVersion, minVersion)) setUpdateRequired(true)
-        })
-        .catch(() => {})
-    }
-    checkVersion()
+    checkVersion(true)
     // Re-check whenever the app returns to the foreground — most people
     // background the app instead of fully quitting it, so a cold-start-only
     // check could leave them on a blocked version for a long time.
@@ -72,6 +80,14 @@ function RootLayoutInner() {
     })
     return () => sub.remove()
   }, [])
+
+  // Also re-check on every screen navigation, not just foreground/background
+  // transitions — someone who never backgrounds the app (just taps around)
+  // used to never get re-checked at all. Throttled so rapid navigation
+  // doesn't hammer the endpoint.
+  useEffect(() => {
+    checkVersion()
+  }, [pathname])
 
   useEffect(() => {
     registerNotificationCategories()

@@ -1,4 +1,5 @@
-import React, { useState, useCallback } from "react"
+import React, { useState, useCallback, useEffect } from "react"
+import { useLocalSearchParams, useRouter } from "expo-router"
 import { API_BASE } from "@/lib/config"
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
@@ -16,9 +17,10 @@ import { useAdmin } from "@/lib/admin-context"
 import { authClient } from "@/lib/auth-client"
 import { getUniversityColor } from "@/lib/university-colors"
 import type { AdminWorker, AdminBooking } from "@/lib/admin-types"
+import { PER_PRIVATE, sessionRevenue, SESSION_DURATION_FRACTION } from "@cdp/core"
+import { fallbackUtcMs } from "@/lib/time-utils"
 
 const API = "https://app.collegedanceprep.com"
-const PACK_SESSION_PRICE = 99
 
 const UNIVERSITIES = [
   "Alabama","Arizona","ASU","Boise","Cincinnati","Coastal Carolina","CSU","CU Boulder",
@@ -29,12 +31,14 @@ const UNIVERSITIES = [
   "UCLA","UCSB","UK","UNLV","Utah","Vanderbilt","Virginia Tech","Washington",
   "Western Michigan","Wisconsin","WVU","Wichita State",
 ]
-const PRICE_POINTS = [
-  { label: "Pack hour", revenue: 99 },
-  { label: "30 min per-private", revenue: 65 },
-  { label: "45 min per-private", revenue: 89 },
-  { label: "60 min per-private", revenue: 119 },
-]
+// Built directly from the real per-duration prices, plus Pack hour, so this
+// list can never drift out of sync with actual pricing or omit a duration.
+// Pack hour intentionally excluded — sessions are booked by duration now.
+const PRICE_POINTS = PER_PRIVATE.map((p) => ({
+  sessionType: p.id,
+  label: `${p.minutes} min per-private`,
+  revenue: p.price,
+}))
 
 function fmt(n: number) { return `$${n.toFixed(2)}` }
 
@@ -49,10 +53,33 @@ function formatSessionType(t: string): string {
   return map[t] ?? t
 }
 
+function isBookingPast(b: AdminBooking): boolean {
+  const t = b.utcDatetime
+    ? new Date(b.utcDatetime).getTime()
+    : b.date && b.time ? fallbackUtcMs(b.date, b.time) : b.date ? new Date(b.date).getTime() : 0
+  return t > 0 && t <= Date.now()
+}
+
+function effectiveBookingStatus(b: AdminBooking): string {
+  const s = b.status?.toLowerCase() ?? ""
+  if (s === "confirmed" && isBookingPast(b)) return "completed"
+  return s
+}
+
+const HISTORY_STATUS_GROUPS = [
+  { key: "pending", label: "Pending" },
+  { key: "confirmed", label: "Confirmed" },
+  { key: "completed", label: "Completed" },
+  { key: "cancelled", label: "Cancelled" },
+  { key: "other", label: "Other" },
+]
+
 export default function AdminPrepMastersScreen() {
   const { data, loading, refresh } = useAdmin()
   const COLORS = useColors()
   const styles = makeStyles(COLORS)
+  const router = useRouter()
+  const { worker: workerParam } = useLocalSearchParams<{ worker?: string }>()
   const [query, setQuery] = useState("")
   const [uniFilter, setUniFilter] = useState("")
   const [selected, setSelected] = useState<AdminWorker | null>(null)
@@ -61,6 +88,18 @@ export default function AdminPrepMastersScreen() {
   const [localWorkers, setLocalWorkers] = useState<AdminWorker[] | null>(null)
 
   const onRefresh = useCallback(async () => { setRefreshing(true); await refresh(); setLocalWorkers(null); setRefreshing(false) }, [refresh])
+
+  // Auto-select the PrepMaster passed via ?worker=<id> (e.g. tapping a name
+  // in "Top PrepMasters this month" on the Overview tab), then clear the
+  // param so it doesn't re-trigger on a later refresh.
+  useEffect(() => {
+    if (!workerParam || !data?.workers) return
+    const match = data.workers.find((w) => w.id === workerParam)
+    if (match) {
+      setSelected(match)
+      router.setParams({ worker: undefined })
+    }
+  }, [workerParam, data?.workers])
 
   if (loading) {
     return (
@@ -215,11 +254,22 @@ function PrepMasterProfile({ worker, bookings, onBack, onSaved, onDeleted }: {
 
   const completed = bookings.filter((b) => b.status.toLowerCase() !== "cancelled")
   const payPerSession = worker.hourlyRate
-  const totalPay = payPerSession * completed.length
-  const totalRevenue = PACK_SESSION_PRICE * completed.length
+  const totalPay = completed.reduce((sum, b) => sum + payPerSession * (SESSION_DURATION_FRACTION[b.sessionType ?? ""] ?? 1), 0)
+  const totalRevenue = completed.reduce((sum, b) => sum + sessionRevenue(b.sessionType), 0)
   const margin = totalRevenue - totalPay
   const months = Array.from(new Set(bookings.map((b) => b.date?.slice(0, 7)).filter(Boolean))).sort().reverse()
-  const filteredBookings = filterMonth ? bookings.filter((b) => b.date?.startsWith(filterMonth)) : bookings
+  const filteredBookings = (filterMonth ? bookings.filter((b) => b.date?.startsWith(filterMonth)) : bookings)
+    .slice()
+    .sort((a, b) => (a.date ?? "").localeCompare(b.date ?? ""))
+  const historyGroups = HISTORY_STATUS_GROUPS.map((g) => ({
+    ...g,
+    items: filteredBookings.filter((b) => {
+      const es = effectiveBookingStatus(b)
+      if (g.key === "cancelled") return es.startsWith("cancelled")
+      if (g.key === "other") return !HISTORY_STATUS_GROUPS.slice(0, -1).some((sg) => sg.key === "cancelled" ? es.startsWith("cancelled") : es === sg.key)
+      return es === g.key
+    }),
+  })).filter((g) => g.items.length > 0)
 
   function handleDelete() {
     Alert.alert(
@@ -310,13 +360,13 @@ function PrepMasterProfile({ worker, bookings, onBack, onSaved, onDeleted }: {
               <StatTile label="Pay rate / session" value={fmt(payPerSession)} />
               <StatTile label="Total sessions" value={String(completed.length)} />
               <StatTile label="Total pay owed" value={fmt(totalPay)} highlight />
-              <StatTile label="Revenue (pack)" value={fmt(totalRevenue)} sub={`Margin ${fmt(margin)}`} />
+              <StatTile label="Gross revenue" value={fmt(totalRevenue)} sub={`Margin ${fmt(margin)}`} />
             </View>
             <View style={styles.priceBreakdown}>
               <Text style={styles.breakdownTitle}>MARGIN BY SESSION TYPE</Text>
               <View style={styles.priceGrid}>
-                {PRICE_POINTS.map(({ label, revenue }) => {
-                  const m = revenue - payPerSession
+                {PRICE_POINTS.map(({ sessionType, label, revenue }) => {
+                  const m = revenue - payPerSession * (SESSION_DURATION_FRACTION[sessionType] ?? 1)
                   return (
                     <View key={label} style={styles.pricePoint}>
                       <Text style={styles.pricePointLabel}>{label}</Text>
@@ -349,36 +399,41 @@ function PrepMasterProfile({ worker, bookings, onBack, onSaved, onDeleted }: {
                   ))}
                 </ScrollView>
               )}
-              {filteredBookings.length === 0 ? <Text style={styles.empty}>No bookings match the selected filter.</Text> : filteredBookings.map((b) => {
-                const isOpen = expandedBooking === b.id
-                const sl = b.status.toLowerCase()
-                const bg = sl === "confirmed" ? COLORS.primaryLight : sl.startsWith("cancelled") ? COLORS.redLight : COLORS.grayLight
-                const fg = sl === "confirmed" ? COLORS.primary : sl.startsWith("cancelled") ? COLORS.red : COLORS.textMuted
-                return (
-                  <View key={b.id} style={styles.bookingCard}>
-                    <TouchableOpacity style={styles.bookingRow} onPress={() => setExpandedBooking(isOpen ? null : b.id)} activeOpacity={0.7}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.bookingName}>{b.dancerName || b.clientEmail || "Client"}</Text>
-                        <Text style={styles.bookingMeta}>{b.date}{b.time ? ` · ${formatTime(b.time)}` : ""}</Text>
-                        {b.sessionType ? <Text style={styles.bookingSessionType}>{formatSessionType(b.sessionType)}</Text> : null}
-                      </View>
-                      <View style={[styles.badge, { backgroundColor: bg }]}><Text style={[styles.badgeText, { color: fg }]}>{b.status}</Text></View>
-                      {isOpen ? <ChevronUp size={12} color={COLORS.textMuted} /> : <ChevronDown size={12} color={COLORS.textMuted} />}
-                    </TouchableOpacity>
-                    {isOpen && (
-                      <View style={styles.bookingDetail}>
-                        <DetailGrid b={b} />
-                        {b.notes ? (
-                          <View style={styles.notesBox}>
-                            <Text style={styles.notesLabel}>Notes</Text>
-                            <Text style={styles.notesText}>{b.notes}</Text>
+              {historyGroups.length === 0 ? <Text style={styles.empty}>No bookings match the selected filter.</Text> : historyGroups.map((g) => (
+                <View key={g.key} style={{ marginBottom: SPACING.sm }}>
+                  <Text style={styles.historyGroupLabel}>{g.label} ({g.items.length})</Text>
+                  {g.items.map((b) => {
+                    const isOpen = expandedBooking === b.id
+                    const es = effectiveBookingStatus(b)
+                    const bg = es === "confirmed" ? COLORS.primaryLight : es.startsWith("cancelled") ? COLORS.redLight : COLORS.grayLight
+                    const fg = es === "confirmed" ? COLORS.primary : es.startsWith("cancelled") ? COLORS.red : COLORS.textMuted
+                    return (
+                      <View key={b.id} style={styles.bookingCard}>
+                        <TouchableOpacity style={styles.bookingRow} onPress={() => setExpandedBooking(isOpen ? null : b.id)} activeOpacity={0.7}>
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.bookingName}>{b.dancerName || b.clientEmail || "Client"}</Text>
+                            <Text style={styles.bookingMeta}>{b.date}{b.time ? ` · ${formatTime(b.time)}` : ""}</Text>
+                            {b.sessionType ? <Text style={styles.bookingSessionType}>{formatSessionType(b.sessionType)}</Text> : null}
                           </View>
-                        ) : <Text style={styles.noNotes}>No notes on this booking.</Text>}
+                          <View style={[styles.badge, { backgroundColor: bg }]}><Text style={[styles.badgeText, { color: fg }]}>{es}</Text></View>
+                          {isOpen ? <ChevronUp size={12} color={COLORS.textMuted} /> : <ChevronDown size={12} color={COLORS.textMuted} />}
+                        </TouchableOpacity>
+                        {isOpen && (
+                          <View style={styles.bookingDetail}>
+                            <DetailGrid b={b} />
+                            {b.notes ? (
+                              <View style={styles.notesBox}>
+                                <Text style={styles.notesLabel}>Notes</Text>
+                                <Text style={styles.notesText}>{b.notes}</Text>
+                              </View>
+                            ) : <Text style={styles.noNotes}>No notes on this booking.</Text>}
+                          </View>
+                        )}
                       </View>
-                    )}
-                  </View>
-                )
-              })}
+                    )
+                  })}
+                </View>
+              ))}
             </>
           )}
         </View>
@@ -550,6 +605,7 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     profileName: { fontSize: 18, fontWeight: "700", color: COLORS.text, fontFamily: "Sora_600SemiBold" },
     sectionHeader: { flexDirection: "row", alignItems: "center", gap: 5 },
     sectionTitle: { fontSize: 14, fontWeight: "600", color: COLORS.text, flex: 1 },
+    historyGroupLabel: { fontSize: 10, fontWeight: "700", color: COLORS.textMuted, letterSpacing: 0.8, textTransform: "uppercase", marginBottom: 6 },
     collapseRow: { flexDirection: "row", alignItems: "center", gap: 5 },
     editFields: { gap: SPACING.sm, marginTop: SPACING.sm, borderTopWidth: 1, borderTopColor: COLORS.border, paddingTop: SPACING.sm },
     editField: { gap: 4 },
