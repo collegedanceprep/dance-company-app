@@ -3,20 +3,10 @@
 import React, { useState } from "react"
 import { useRouter } from "next/navigation"
 import type { AdminMember, AdminBooking, AdminWorker, MemberPlan } from "@/lib/airtable"
-import { SINGLE_HOUR_PRICE } from "@/lib/packages"
-
-// Revenue = $115/hr × duration fraction, regardless of pack or single
-const SESSION_REVENUE_FRACTION: Record<string, number> = {
-  "private-30": 0.5,
-  "private-45": 0.75,
-  "private-60": 1,
-  "pack-hour": 1,
-  "private-90": 1.5,
-}
+import { sessionRevenue as realSessionRevenue, SESSION_DURATION_FRACTION } from "@/lib/packages"
 
 function sessionRevenue(booking: AdminBooking) {
-  const fraction = SESSION_REVENUE_FRACTION[booking.sessionType ?? ""] ?? 1
-  return SINGLE_HOUR_PRICE * fraction
+  return realSessionRevenue(booking.sessionType)
 }
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -113,17 +103,10 @@ export function AdminOverviewPanel({ members, bookings, workers }: Props) {
   const revenue = completed.reduce((sum, b) => sum + sessionRevenue(b), 0)
 
   // Pay owed = PrepMaster's hourly rate × session duration fraction
-  const SESSION_DURATION: Record<string, number> = {
-    "private-30": 0.5,
-    "private-45": 0.75,
-    "private-60": 1,
-    "pack-hour": 1,
-    "private-90": 1.5,
-  }
   const workerRateMap = new Map(workers.map((w) => [w.name, w.hourlyRate]))
   const payOwed = completed.reduce((sum, b) => {
     const rate = workerRateMap.get(b.prepMasterName) ?? 0
-    const fraction = SESSION_DURATION[b.sessionType ?? ""] ?? 1
+    const fraction = SESSION_DURATION_FRACTION[b.sessionType ?? ""] ?? 1
     return sum + rate * fraction
   }, 0)
   const margin = revenue - payOwed
@@ -210,7 +193,7 @@ export function AdminOverviewPanel({ members, bookings, workers }: Props) {
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <Award className="size-4 text-primary" />
-              Top PrepMasters this month
+              Top PrepMasters this month*
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -245,6 +228,7 @@ export function AdminOverviewPanel({ members, bookings, workers }: Props) {
                 })}
               </ul>
             )}
+            <p className="mt-3 text-[11px] text-muted-foreground">*All sessions shown are completed sessions.</p>
           </CardContent>
         </Card>
 

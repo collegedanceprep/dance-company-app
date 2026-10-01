@@ -14,7 +14,7 @@ import { Separator } from "@/components/ui/separator"
 import { ArrowLeft, Users, DollarSign, Phone, Mail, Home, CalendarDays, ChevronDown, ChevronUp, PlusCircle, X, GraduationCap, Trash2, Send } from "lucide-react"
 import { getUniversityColor } from "@/lib/university-colors"
 import { BookingFilterBar, applyFilters, type SortDir } from "@/components/booking-filter-bar"
-import { SINGLE_HOUR_PRICE } from "@/lib/packages"
+import { PER_PRIVATE, PACKAGES, sessionRevenue, SESSION_DURATION_FRACTION } from "@/lib/packages"
 import { LocalTime } from "@/components/local-time"
 
 const UNIVERSITIES = [
@@ -32,17 +32,15 @@ function isSessionPast(b: { utcDatetime?: string | null; date?: string | null })
   return t > 0 && t <= Date.now()
 }
 
-const SESSION_REVENUE_FRACTION: Record<string, number> = {
-  "private-30": 0.5, "private-45": 0.75, "private-60": 1, "pack-hour": 1, "private-90": 1.5,
-}
-const SESSION_DURATION_FRACTION: Record<string, number> = {
-  "private-30": 0.5, "private-45": 0.75, "private-60": 1, "pack-hour": 1, "private-90": 1.5,
-}
+// Built directly from the real per-duration prices, plus Pack hour, so this
+// list can never drift out of sync with actual pricing or omit a duration.
 const PRICE_POINTS = [
-  { label: "30 min", revenue: SINGLE_HOUR_PRICE * 0.5 },
-  { label: "45 min", revenue: SINGLE_HOUR_PRICE * 0.75 },
-  { label: "60 min", revenue: SINGLE_HOUR_PRICE },
-  { label: "90 min", revenue: SINGLE_HOUR_PRICE * 1.5 },
+  { sessionType: "pack-hour", label: "Pack hour", revenue: PACKAGES[0].perSession },
+  ...PER_PRIVATE.map((p) => ({
+    sessionType: p.id,
+    label: `${p.minutes} min`,
+    revenue: p.price,
+  })),
 ]
 
 function formatMoney(n: number) { return `$${n.toFixed(2)}` }
@@ -524,10 +522,7 @@ function PrepMasterProfile({
           const fraction = SESSION_DURATION_FRACTION[b.sessionType ?? ""] ?? 1
           return sum + payRatePerHour * fraction
         }, 0)
-        const totalRevenue = completedBookings.reduce((sum, b) => {
-          const fraction = SESSION_REVENUE_FRACTION[b.sessionType ?? ""] ?? 1
-          return sum + SINGLE_HOUR_PRICE * fraction
-        }, 0)
+        const totalRevenue = completedBookings.reduce((sum, b) => sum + sessionRevenue(b.sessionType), 0)
         const margin = totalRevenue - totalPay
         return (
           <div className="flex flex-col gap-3">
@@ -544,8 +539,8 @@ function PrepMasterProfile({
             <div className="rounded-lg border p-3">
               <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Margin by session type</p>
               <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 sm:grid-cols-4">
-                {PRICE_POINTS.map(({ label, revenue }) => {
-                  const fraction = SESSION_REVENUE_FRACTION[label === "30 min" ? "private-30" : label === "45 min" ? "private-45" : label === "90 min" ? "private-90" : "private-60"] ?? 1
+                {PRICE_POINTS.map(({ sessionType, label, revenue }) => {
+                  const fraction = SESSION_DURATION_FRACTION[sessionType] ?? 1
                   const m = revenue - payRatePerHour * fraction
                   return (
                     <div key={label} className="flex flex-col">

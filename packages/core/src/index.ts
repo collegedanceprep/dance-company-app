@@ -126,6 +126,32 @@ export function formatPrice(amount: number) {
   return `$${amount.toLocaleString("en-US")}`
 }
 
+// How much of a full hourly rate a session of this type/length is worth,
+// used for PrepMaster pay (which scales with session duration).
+export const SESSION_DURATION_FRACTION: Record<string, number> = {
+  "private-30": 0.5,
+  "private-45": 0.75,
+  "private-60": 1,
+  "private-90": 1.5,
+  "pack-hour": 1,
+}
+
+/**
+ * The real dollar amount a session of this type bills at — the single
+ * source of truth for revenue/margin math everywhere (admin overview,
+ * PrepMaster payroll, web and mobile alike). Previously several places
+ * each derived their own approximation from SINGLE_HOUR_PRICE * a generic
+ * duration fraction (e.g. 30-min showing $57.50 instead of the real $65
+ * single-session price), or hardcoded a separate, stale price list that
+ * drifted out of sync and omitted 90-minute sessions entirely.
+ */
+export function sessionRevenue(sessionType: string | null | undefined): number {
+  if (sessionType === "pack-hour") return PACKAGES[0].perSession
+  const match = PER_PRIVATE.find((p) => p.id === sessionType)
+  if (match) return match.price
+  return SINGLE_HOUR_PRICE
+}
+
 // ---------------------------------------------------------------------------
 // Shared data types (mirrors Airtable shapes, safe to use on client/mobile)
 // ---------------------------------------------------------------------------
