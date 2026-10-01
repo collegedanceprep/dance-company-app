@@ -8,6 +8,26 @@ import { sessionRevenue as realSessionRevenue, SESSION_DURATION_FRACTION } from 
 function sessionRevenue(booking: AdminBooking) {
   return realSessionRevenue(booking.sessionType)
 }
+
+function fmtMoney(n: number): string {
+  return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+function MomChange({ current, previous }: { current: number; previous: number }) {
+  if (previous === 0) {
+    if (current === 0) return <span className="text-xs text-muted-foreground">—</span>
+    return <span className="text-xs font-medium text-green-700">New</span>
+  }
+  const pct = ((current - previous) / previous) * 100
+  const rounded = Math.round(pct)
+  if (rounded === 0) return <span className="text-xs text-muted-foreground">Flat</span>
+  const up = rounded > 0
+  return (
+    <span className={`text-xs font-medium ${up ? "text-green-700" : "text-red-600"}`}>
+      {up ? "+" : ""}{rounded}% {up ? "↑" : "↓"}
+    </span>
+  )
+}
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
@@ -79,6 +99,8 @@ export function AdminOverviewPanel({ members, bookings, workers }: Props) {
   const [sheetSearch, setSheetSearch] = useState("")
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [monthOffset, setMonthOffset] = useState(0)
+  const [marginSheetOpen, setMarginSheetOpen] = useState(false)
+  const [compareMonthKey, setCompareMonthKey] = useState<string | null>(null)
 
   const monthKey = monthKeyFromOffset(monthOffset)
   const [sheetMonth, setSheetMonth] = useState(monthKey)
@@ -89,6 +111,18 @@ export function AdminOverviewPanel({ members, bookings, workers }: Props) {
   // exclusive counts instead, so a late cancel isn't shown in both buckets.
   const completed = thisMonth.filter((b) => b.status.toLowerCase() !== "cancelled" && isSessionPast(b))
   const cancelled = thisMonth.filter((b) => b.status.toLowerCase().startsWith("cancelled"))
+
+  const defaultCompareKey = monthKeyFromOffset(monthOffset - 1)
+  const compareKey = compareMonthKey ?? defaultCompareKey
+  const compareMonth = bookings.filter((b) => b.date?.startsWith(compareKey))
+  const compareMonthCompleted = compareMonth.filter((b) => b.status.toLowerCase() !== "cancelled" && isSessionPast(b))
+  const compareMonthRevenue = compareMonthCompleted.reduce((sum, b) => sum + sessionRevenue(b), 0)
+
+  // Every distinct month that has at least one real booking, excluding the
+  // currently-viewed month, for the "compare to" dropdown — newest first.
+  const availableCompareMonths = Array.from(
+    new Set(bookings.map((b) => b.date?.slice(0, 7)).filter((k): k is string => !!k && k !== monthKey))
+  ).sort((a, b) => (a > b ? -1 : 1))
 
   // Mutually exclusive status counts for the "Bookings this month" breakdown —
   // each booking lands in exactly one bucket so the sub-counts always sum to
@@ -160,14 +194,14 @@ export function AdminOverviewPanel({ members, bookings, workers }: Props) {
       </div>
 
       {/* This month KPIs */}
-      <Card>
-        <CardContent className="pt-5">
+      <Card className="border-2 border-foreground/20">
+        <CardContent className="pt-2">
           <div className="mb-3 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 text-sm font-bold text-foreground">
-              <CalendarDays className="size-4 text-primary" />
+            <div className="flex items-center gap-2 text-base font-bold text-foreground">
+              <CalendarDays className="size-[17px] text-primary" />
               Bookings this month
             </div>
-            <span className="text-3xl font-bold">{thisMonth.length}</span>
+            <span className="text-5xl font-bold">{thisMonth.length}</span>
           </div>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {[
@@ -180,8 +214,8 @@ export function AdminOverviewPanel({ members, bookings, workers }: Props) {
                 key={t.key}
                 type="button"
                 onClick={() => { setSheetStatusFilter(t.key); setSheetOpen(true) }}
-                style={{ backgroundColor: `var(${t.bgVar})`, color: `var(${t.textVar})` }}
-                className="rounded-lg px-2 py-2.5 text-center transition-opacity hover:opacity-80"
+                style={{ backgroundColor: `var(${t.bgVar})`, color: `var(${t.textVar})`, borderColor: `var(${t.textVar})` }}
+                className="rounded-lg border px-2 py-2.5 text-center transition-opacity hover:opacity-80"
               >
                 <div className="text-lg font-bold">{t.value}</div>
                 <div className="text-[10px] font-semibold uppercase tracking-wide">{t.label}</div>
@@ -198,7 +232,7 @@ export function AdminOverviewPanel({ members, bookings, workers }: Props) {
         <KpiCard
           icon={<DollarSign className="size-4 text-green-600" />}
           label="Gross revenue this month"
-          value={`$${revenue.toLocaleString()}`}
+          value={`$${fmtMoney(revenue)}`}
           sub={`${completed.length} sessions · incl. late cancels`}
           highlight="green"
           onClick={() => setRevenueSheetOpen(true)}
@@ -206,15 +240,18 @@ export function AdminOverviewPanel({ members, bookings, workers }: Props) {
         <KpiCard
           icon={<TrendingUp className="size-4 text-primary" />}
           label="Margin this month"
-          value={`$${margin.toLocaleString()}`}
-          sub={`Pay owed: $${payOwed.toLocaleString()}`}
+          value={`$${fmtMoney(margin)}`}
+          sub={`Owed $${fmtMoney(payOwed)}`}
           highlight={margin >= 0 ? "green" : "red"}
+          onClick={() => setMarginSheetOpen(true)}
+          borderClass="border-primary/40"
         />
         <KpiCard
-          icon={<Activity className="size-4 text-muted-foreground" />}
+          icon={<Activity className="size-4 text-white" />}
           label="All-time gross revenue*"
-          value={`$${allRevenue.toLocaleString()}`}
+          value={`$${fmtMoney(allRevenue)}`}
           sub={`${allCompleted.length} completed sessions`}
+          borderClass="border-white"
         />
       </div>
       {firstBookingLabel && (
@@ -255,7 +292,7 @@ export function AdminOverviewPanel({ members, bookings, workers }: Props) {
                       </div>
                       <div className="text-right">
                         <p className="font-semibold">{count} session{count !== 1 ? "s" : ""}</p>
-                        <p className="text-xs text-muted-foreground">${pay.toLocaleString()} pay</p>
+                        <p className="text-xs text-muted-foreground">${fmtMoney(pay)} pay</p>
                       </div>
                     </li>
                   )
@@ -275,15 +312,67 @@ export function AdminOverviewPanel({ members, bookings, workers }: Props) {
             </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
-            <RosterRow label="Total members" value={activeMembers} />
-            <RosterRow label="Active PrepMasters" value={activePMs} />
-            <RosterRow label="Inactive PrepMasters" value={workers.filter((w) => !w.active).length} />
+            <RosterRow label="Total members" value={activeMembers} icon={<Users className="size-3.5" />} />
+            <RosterRow label="Active PrepMasters" value={activePMs} icon={<CheckCircle className="size-3.5" />} />
+            <RosterRow label="Inactive PrepMasters" value={workers.filter((w) => !w.active).length} icon={<XCircle className="size-3.5" />} />
             <div className="mt-2 border-t pt-3">
               <p className="mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">All-time bookings by status</p>
               <div className="flex flex-col gap-1.5">
-                <RosterRow label="Completed" value={allCompleted.length} />
-                <RosterRow label="Cancelled" value={bookings.filter((b) => b.status.toLowerCase().startsWith("cancelled")).length} />
-                <RosterRow label="Pending" value={bookings.filter((b) => b.status.toLowerCase() === "pending").length} />
+                <RosterRow label="Completed" value={allCompleted.length} icon={<CheckCircle className="size-3.5" />} />
+                <RosterRow label="Cancelled" value={bookings.filter((b) => b.status.toLowerCase().startsWith("cancelled")).length} icon={<XCircle className="size-3.5" />} />
+                <RosterRow label="Pending" value={bookings.filter((b) => b.status.toLowerCase() === "pending").length} icon={<AlertCircle className="size-3.5" />} />
+              </div>
+            </div>
+            <div className="mt-2 border-t pt-3">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Compare to</p>
+                <select
+                  value={compareKey}
+                  onChange={(e) => setCompareMonthKey(e.target.value)}
+                  className="rounded-md border bg-background px-2 py-1 text-xs font-medium"
+                >
+                  {!availableCompareMonths.includes(defaultCompareKey) && (
+                    <option value={defaultCompareKey}>{monthLabel(defaultCompareKey)}</option>
+                  )}
+                  {availableCompareMonths.map((k) => (
+                    <option key={k} value={k}>{monthLabel(k)}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="flex items-center gap-1.5 text-muted-foreground">
+                    <CalendarDays className="size-3.5" />
+                    Bookings
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold">{thisMonth.length}</span>
+                    <span className="text-xs text-muted-foreground">vs {compareMonth.length}</span>
+                    <MomChange current={thisMonth.length} previous={compareMonth.length} />
+                  </div>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="flex items-center gap-1.5 text-muted-foreground">
+                    <DollarSign className="size-3.5" />
+                    Revenue
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold">${fmtMoney(revenue)}</span>
+                    <span className="text-xs text-muted-foreground">vs ${fmtMoney(compareMonthRevenue)}</span>
+                    <MomChange current={revenue} previous={compareMonthRevenue} />
+                  </div>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="flex items-center gap-1.5 text-muted-foreground">
+                    <CheckCircle className="size-3.5" />
+                    Completed sessions
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold">{completed.length}</span>
+                    <span className="text-xs text-muted-foreground">vs {compareMonthCompleted.length}</span>
+                    <MomChange current={completed.length} previous={compareMonthCompleted.length} />
+                  </div>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -326,7 +415,7 @@ export function AdminOverviewPanel({ members, bookings, workers }: Props) {
                           {isLateCancelled && (
                             <Badge variant="outline" className="border-amber-300 bg-amber-100 text-amber-700 text-xs">Late cancel</Badge>
                           )}
-                          <span className="font-semibold text-green-700">${amt}</span>
+                          <span className="font-semibold text-green-700">${fmtMoney(amt)}</span>
                         </div>
                       </li>
                     )
@@ -334,7 +423,59 @@ export function AdminOverviewPanel({ members, bookings, workers }: Props) {
                 </ul>
                 <div className="border-t pt-3 flex items-center justify-between text-sm font-semibold">
                   <span>Total</span>
-                  <span className="text-green-700">${revenue.toLocaleString()}</span>
+                  <span className="text-green-700">${fmtMoney(revenue)}</span>
+                </div>
+              </>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={marginSheetOpen} onOpenChange={setMarginSheetOpen}>
+        <SheetContent className="w-full sm:max-w-lg flex flex-col overflow-hidden">
+          <SheetHeader className="mb-3 shrink-0">
+            <SheetTitle className="flex items-center gap-2">
+              <TrendingUp className="size-4 text-primary" />
+              Margin — {monthLabel(monthKey)}
+            </SheetTitle>
+          </SheetHeader>
+          <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-3">
+            {completed.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No billable sessions this month.</p>
+            ) : (
+              <>
+                <ul className="flex flex-col gap-1.5">
+                  {completed.sort((a, b) => (b.date > a.date ? 1 : -1)).map((b) => {
+                    const rate = workerRateMap.get(b.prepMasterName) ?? 0
+                    const owed = rate * (SESSION_DURATION_FRACTION[b.sessionType ?? ""] ?? 1)
+                    const isLateCancelled = b.status.toLowerCase() === "cancelled (late)"
+                    const sessionLabel = b.sessionType === "private-30" ? "30 min" : b.sessionType === "private-45" ? "45 min" : b.sessionType === "private-90" ? "90 min" : b.sessionType === "pack-hour" ? "Pack (60 min)" : "60 min"
+                    const workerId = workerIdByName.get(b.prepMasterName)
+                    return (
+                      <li
+                        key={b.id}
+                        className={`flex items-center justify-between gap-3 rounded-md border px-3 py-2.5 text-sm ${workerId ? "cursor-pointer transition-colors hover:border-primary/40 hover:bg-muted/40" : ""}`}
+                        onClick={workerId ? () => { setMarginSheetOpen(false); router.push(`/admin?tab=prep-masters&worker=${workerId}`) } : undefined}
+                      >
+                        <div className="min-w-0">
+                          <p className="font-medium truncate">{b.prepMasterName || "PrepMaster"}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {b.dancerName || b.clientEmail || "Client"}{b.date ? ` · ${b.date}` : ""}{b.time ? <> · <LocalTime slot={b.time} dateIso={b.date} utcDatetime={b.utcDatetime} /></> : ""} · {sessionLabel}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {isLateCancelled && (
+                            <Badge variant="outline" className="border-amber-300 bg-amber-100 text-amber-700 text-xs">Late cancel</Badge>
+                          )}
+                          <span className="font-semibold text-green-700">${fmtMoney(owed)}</span>
+                        </div>
+                      </li>
+                    )
+                  })}
+                </ul>
+                <div className="border-t pt-3 flex items-center justify-between text-sm font-semibold">
+                  <span>Total owed</span>
+                  <span className="text-green-700">${fmtMoney(payOwed)}</span>
                 </div>
               </>
             )}
@@ -482,7 +623,7 @@ export function AdminOverviewPanel({ members, bookings, workers }: Props) {
 }
 
 function KpiCard({
-  icon, label, value, sub, highlight, onClick,
+  icon, label, value, sub, highlight, onClick, borderClass,
 }: {
   icon: React.ReactNode
   label: string
@@ -490,8 +631,11 @@ function KpiCard({
   sub?: string
   highlight?: "green" | "red"
   onClick?: () => void
+  borderClass?: string
 }) {
-  const baseClass = highlight === "green" ? "border-green-500/30" : highlight === "red" ? "border-red-500/30" : ""
+  const baseClass = borderClass
+    ? `border-2 ${borderClass}`
+    : highlight === "green" ? "border-2 border-green-500/30" : highlight === "red" ? "border-2 border-red-500/30" : ""
   const inner = (
     <>
       <CardHeader className="pb-1">
@@ -541,10 +685,13 @@ function GroupSection({ label, count, icon, labelClass, children }: { label: str
   )
 }
 
-function RosterRow({ label, value }: { label: string; value: number }) {
+function RosterRow({ label, value, icon }: { label: string; value: number; icon?: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between text-sm">
-      <span className="text-muted-foreground">{label}</span>
+      <span className="flex items-center gap-1.5 text-muted-foreground">
+        {icon}
+        {label}
+      </span>
       <span className="font-semibold">{value}</span>
     </div>
   )
