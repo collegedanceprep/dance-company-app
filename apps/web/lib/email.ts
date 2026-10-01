@@ -286,7 +286,7 @@ export function bookingUpdatedEmail({
 export async function sendPasswordResetEmail({ name, email, url }: { name: string; email: string; url: string }) {
   const body = `
     <p style="font-size:15px;color:#374151;line-height:1.6;margin:0 0 16px">Hi ${firstName(name ?? email)},</p>
-    <p style="font-size:15px;color:#374151;line-height:1.6;margin:0 0 24px">We received a request to reset your password. Click the button below — this link expires in 1 hour.</p>
+    <p style="font-size:15px;color:#374151;line-height:1.6;margin:0 0 24px">We received a request to reset your password. Click the button below — this link expires in 4 hours.</p>
     <div style="text-align:center;margin:28px 0">
       <a href="${url}" style="display:inline-block;background:#e91e8c;color:#ffffff;text-decoration:none;padding:13px 32px;border-radius:6px;font-weight:600;font-size:15px">
         Reset password

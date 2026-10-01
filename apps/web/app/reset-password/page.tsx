@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { Suspense, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { authClient } from "@/lib/auth-client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,8 +9,10 @@ import { Label } from "@/components/ui/label"
 import { BrandLogo } from "@/components/brand-logo"
 import { Loader2 } from "lucide-react"
 
-export default function ResetPasswordPage() {
+function ResetPasswordForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const token = searchParams.get("token")
   const [password, setPassword] = useState("")
   const [confirm, setConfirm] = useState("")
   const [loading, setLoading] = useState(false)
@@ -18,12 +20,13 @@ export default function ResetPasswordPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (!token) { setError("This reset link is missing its token. Request a new one."); return }
     if (password !== confirm) { setError("Passwords don't match."); return }
     if (password.length < 8) { setError("Password must be at least 8 characters."); return }
     setError(null)
     setLoading(true)
     try {
-      const { error } = await authClient.resetPassword({ newPassword: password })
+      const { error } = await authClient.resetPassword({ newPassword: password, token })
       if (error) throw new Error(error.message ?? "Reset failed.")
       router.push("/?reset=1")
     } catch (err) {
@@ -82,5 +85,13 @@ export default function ResetPasswordPage() {
         </form>
       </div>
     </main>
+  )
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense>
+      <ResetPasswordForm />
+    </Suspense>
   )
 }
