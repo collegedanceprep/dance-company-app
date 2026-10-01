@@ -343,7 +343,7 @@ export function AdminMembersPanel({ members, bookings, plans, packages, query = 
                     </Badge>
                   )}
 
-                  <Badge variant="secondary" className="gap-1" title="Pack credits (fractional)">
+                  <Badge variant="outline" className="gap-1 border-transparent" style={{ backgroundColor: "var(--tile-confirmed-bg)", color: "var(--tile-confirmed-text)" }} title="Pack credits (fractional)">
                     <Ticket className="size-3" />
                     {credits}
                   </Badge>

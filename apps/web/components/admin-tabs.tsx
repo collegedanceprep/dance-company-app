@@ -8,10 +8,11 @@ import { AdminMembersPanel } from "@/components/admin-members-panel"
 import { AdminPrepMastersPanel } from "@/components/admin-prep-masters-panel"
 import { AdminOverviewPanel } from "@/components/admin-overview-panel"
 import { AdminApprovalsPanel } from "@/components/admin-approvals-panel"
+import { AdminBookSessionPanel } from "@/components/admin-book-session-panel"
 import { planDisplayStatus } from "@/lib/plan-utils"
 import { Search, AlertTriangle } from "lucide-react"
 
-type TabId = "overview" | "members" | "prep-masters" | "approvals"
+type TabId = "overview" | "members" | "prep-masters" | "book" | "approvals"
 
 const SEARCHABLE_TABS = new Set<TabId>(["members", "prep-masters"])
 
@@ -91,6 +92,7 @@ export function AdminTabs({ members, bookings, workers, plans, packages }: Props
       {active === "prep-masters" && (
         <AdminPrepMastersPanel workers={workers} bookings={bookings} query={query} />
       )}
+      {active === "book" && <AdminBookSessionPanel members={members} workers={workers} />}
       {active === "approvals" && <AdminApprovalsPanel />}
     </div>
   )

@@ -38,6 +38,7 @@ const SINGLE_SESSION_PLANS: Record<string, { name: string; price: number; sessio
   "30 min": { name: "30-Min Single", price: 65,  sessionType: "private-30" },
 }
 import { PACKAGES, type DancePackage } from "@/lib/packages"
+import type { SessionType } from "@/lib/session-types"
 
 async function assertAdmin() {
   const session = await auth.api.getSession({ headers: await headers() })
@@ -402,4 +403,51 @@ export async function adminRemovePlan(
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Failed to remove plan." }
   }
+}
+
+// --- Admin: book on behalf of any member -----------------------------------
+
+export async function createBookingAsAdmin(input: {
+  memberUserId: string
+  memberEmail: string
+  prepMasterId: string
+  date: string
+  time: string
+  sessionType: SessionType
+  notes?: string
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await assertAdmin()
+    const { createConfirmedBooking } = await import("@/lib/booking-create")
+    const result = await createConfirmedBooking(input)
+    if (!result.ok) {
+      const friendly = result.error === "NO_CREDITS"
+        ? "This member doesn't have enough credit for that session type."
+        : result.error
+      return { ok: false, error: friendly }
+    }
+    revalidatePath("/admin")
+    revalidateTag(`member-${input.memberUserId}`, "max")
+    return { ok: true }
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Failed to create booking." }
+  }
+}
+
+/** Open slots for a given PrepMaster + date, for the admin booking picker. */
+export async function getAdminAvailableSlots(prepMasterId: string, date: string): Promise<string[]> {
+  await assertAdmin()
+  const { getPrepMaster, getBookedSlots } = await import("@/lib/airtable")
+  const { getAvailabilityForEmail } = await import("@/app/actions/availability")
+  const { slotsForDate } = await import("@/lib/availability")
+
+  const prepMaster = await getPrepMaster(prepMasterId)
+  if (!prepMaster) return []
+
+  const week = await getAvailabilityForEmail(prepMaster.email)
+  const allSlots = slotsForDate(date, week)
+  if (allSlots.length === 0) return []
+
+  const bookedSlots = await getBookedSlots(prepMaster.name, date)
+  return allSlots.filter((s) => !bookedSlots.includes(s))
 }

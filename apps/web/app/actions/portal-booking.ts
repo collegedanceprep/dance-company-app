@@ -4,17 +4,10 @@ import { revalidatePath } from "next/cache"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import {
-  TABLES,
-  appBase,
   getPrepMasterByEmail,
   getBookingsForPrepMaster,
-  getBookedSlots,
-  type BookingFields,
 } from "@/lib/airtable"
-import { getAvailabilityForEmail } from "@/app/actions/availability"
-import { slotsForDate } from "@/lib/availability"
-import { createNotification } from "@/app/actions/notifications"
-import { fmtDate, fmtTime, etToUtcIso, fmtTimeForNotif, COMPANY_TZ } from "@/lib/utils"
+import { createConfirmedBooking } from "@/lib/booking-create"
 import { db } from "@/lib/db"
 import { user as userTable } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
@@ -71,69 +64,33 @@ export async function createBookingAsPrepMaster(input: {
       return { ok: false, error: "You can only book sessions for members you have previously worked with." }
     }
 
-    // Validate the slot is within the PrepMaster's availability
-    const week = await getAvailabilityForEmail(prepMaster.email)
-    const openSlots = slotsForDate(input.date, week)
-    if (openSlots.length > 0 && !openSlots.includes(input.time)) {
-      return { ok: false, error: "That time is outside your availability for that day." }
-    }
-
-    // Check the slot isn't already taken
-    const booked = await getBookedSlots(prepMaster.name, input.date)
-    if (booked.includes(input.time)) {
-      return { ok: false, error: "That time slot is already booked." }
-    }
-
-    // Look up the dancer's userId for the notification, and the PrepMaster's
-    // own timezone — the Time string the PM enters is in THEIR local time,
-    // not the company's, matching app/api/portal/book/route.ts's pmTimezone
-    // pattern.
-    const [dancerRows, pmRows] = await Promise.all([
-      db.select({ id: userTable.id, name: userTable.name, timezone: userTable.timezone })
-        .from(userTable).where(eq(userTable.email, input.dancerEmail.toLowerCase())).limit(1),
-      db.select({ timezone: userTable.timezone })
-        .from(userTable).where(eq(userTable.email, sessionUser.email.toLowerCase())).limit(1),
+    const [dancerRows] = await Promise.all([
+      db.select({ id: userTable.id }).from(userTable).where(eq(userTable.email, input.dancerEmail.toLowerCase())).limit(1),
     ])
     const dancer = dancerRows[0]
-    const pmTimezone = pmRows[0]?.timezone ?? COMPANY_TZ
+    if (!dancer?.id) {
+      return { ok: false, error: "Could not find this member's account." }
+    }
 
-    // Without this, the record has no exact UTC instant to compare against
-    // "now" — downstream status-derivation (past confirmed → completed) had
-    // to fall back to treating the bare date as midnight UTC, which could
-    // wrongly mark a session "completed" many hours before it actually
-    // happens. Compute it up front so it's saved on the record itself, not
-    // just used for the notification text afterward.
-    const utcPortalBook = etToUtcIso(input.date, input.time, pmTimezone)
-
-    await appBase.create<BookingFields>(TABLES.bookings, {
-      "Client Email": input.dancerEmail,
-      "User ID": dancer?.id ?? "",
-      "Prep Master Name": prepMaster.name,
-      Date: input.date,
-      Time: input.time,
-      Status: "Confirmed",
-      Notes: input.notes ?? "",
-      "Session Type": "private-60",
-      ...(utcPortalBook ? { "UTC Datetime": utcPortalBook } : {}),
+    const result = await createConfirmedBooking({
+      memberUserId: dancer.id,
+      memberEmail: input.dancerEmail,
+      prepMasterId: prepMaster.id,
+      date: input.date,
+      time: input.time,
+      sessionType: "private-60",
+      notes: input.notes,
     })
 
-    if (dancer?.id) {
-      const portalBookLabel = utcPortalBook ? fmtTimeForNotif(utcPortalBook, pmTimezone, dancer.timezone ?? null) : fmtTime(input.time)
-      createNotification({
-        userId: dancer.id,
-        type: "booking_confirmed",
-        title: "Session booked",
-        body: `${prepMaster.name} has booked a session with you on ${fmtDate(input.date)} at ${portalBookLabel}.`,
-        pushData: { route: "/member/bookings" },
-      }).catch(() => {})
+    if (!result.ok) {
+      const friendly = result.error === "NO_CREDITS" ? "This member doesn't have enough credit for a 60-minute session." : result.error
+      return { ok: false, error: friendly }
     }
 
     revalidatePath("/portal")
     revalidatePath("/portal/book")
-    if (dancer?.id) {
-      const { revalidateTag } = await import("next/cache")
-      revalidateTag(`member-${dancer.id}`)
-    }
+    const { revalidateTag } = await import("next/cache")
+    revalidateTag(`member-${dancer.id}`)
     return { ok: true }
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Failed to create booking." }
