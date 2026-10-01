@@ -1,7 +1,7 @@
 import { TABLES, appBase, getPlansForUser, type ClientFields } from "@/lib/airtable"
 import { db } from "@/lib/db"
 import { parentActiveChild, user as userTable } from "@/lib/db/schema"
-import { eq } from "drizzle-orm"
+import { eq, ilike } from "drizzle-orm"
 
 export type ClientProfile = {
   recordId: string
@@ -25,6 +25,35 @@ async function findClientRecord(userId: string) {
     revalidate: 0,
   })
   return records[0] ?? null
+}
+
+/**
+ * Timezone to use for a notification about a dancer's booking. Prefers a
+ * linked parent's own stored timezone over the dancer's — notifications
+ * were always using the dancer's row even when a parent manages the
+ * account from a different location (e.g. dancer's account timezone set to
+ * America/Denver while the managing parent is actually in Arizona/MST),
+ * which showed the wrong timezone label to the parent.
+ */
+export async function getRecipientTimezone(dancerUserId: string): Promise<string | null> {
+  const [dancerRow] = await db
+    .select({ timezone: userTable.timezone })
+    .from(userTable)
+    .where(eq(userTable.id, dancerUserId))
+    .limit(1)
+
+  const client = await findClientRecord(dancerUserId)
+  const parentEmail = client?.fields["Parent Email"]
+  if (parentEmail) {
+    const [parentRow] = await db
+      .select({ timezone: userTable.timezone })
+      .from(userTable)
+      .where(ilike(userTable.email, parentEmail.trim()))
+      .limit(1)
+    if (parentRow?.timezone) return parentRow.timezone
+  }
+
+  return dancerRow?.timezone ?? null
 }
 
 async function findClientByEmail(email: string) {

@@ -2,6 +2,7 @@ import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono, Sora } from 'next/font/google'
 import { VersionBadge } from '@/components/version-badge'
+import { TimezoneSync } from '@/components/timezone-sync'
 import './globals.css'
 
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] })
@@ -62,6 +63,7 @@ export default function RootLayout({
     >
       <body className="font-sans antialiased">
         {children}
+        <TimezoneSync />
         <VersionBadge />
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>

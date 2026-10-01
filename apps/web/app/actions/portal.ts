@@ -3,6 +3,7 @@
 import { revalidatePath, revalidateTag } from "next/cache"
 import { getSessionUserWithRole } from "@/lib/roles"
 import { TABLES, appBase, getPrepMasterByEmail, getBookedSlots, getMostRecentInactivePlanForUser, setPlanStatus, type BookingFields, type ClientFields } from "@/lib/airtable"
+import { getRecipientTimezone } from "@/lib/profile-core"
 import { sendEmail, bookingUpdatedEmail, bookingCancelledEmail, bookingConfirmedByPmEmail, bookingDeclinedByPmEmail } from "@/lib/email"
 import { createNotification } from "@/app/actions/notifications"
 import { fmtDate, fmtTime, etToUtcIso, fmtTimeForNotif, fmtEmailTime, COMPANY_TZ } from "@/lib/utils"
@@ -81,9 +82,9 @@ export async function confirmBooking(
     const confirmDate = records[0].fields.Date ?? ""
     const confirmTime = records[0].fields.Time ?? ""
     if (dancerUserId) {
-      const [memberRow] = await db.select({ timezone: userTable.timezone }).from(userTable).where(eq(userTable.id, dancerUserId)).limit(1)
+      const recipientTz = await getRecipientTimezone(dancerUserId)
       const utcConfirm = etToUtcIso(confirmDate, confirmTime, COMPANY_TZ)
-      const confirmLabel = utcConfirm ? fmtTimeForNotif(utcConfirm, COMPANY_TZ, memberRow?.timezone ?? null) : `${fmtTime(confirmTime)} ET`
+      const confirmLabel = utcConfirm ? fmtTimeForNotif(utcConfirm, COMPANY_TZ, recipientTz) : `${fmtTime(confirmTime)} ET`
       createNotification({
         userId: dancerUserId,
         type: "booking_confirmed",
@@ -198,8 +199,8 @@ export async function adjustBooking(
     // In-app notification → member
     const utcAdjust = etToUtcIso(newDate, newTime, pmAdjustTz)
     if (dancerUserId) {
-      const [memberRow] = await db.select({ timezone: userTable.timezone }).from(userTable).where(eq(userTable.id, dancerUserId)).limit(1)
-      const memberAdjustLabel = utcAdjust ? fmtTimeForNotif(utcAdjust, pmAdjustTz, memberRow?.timezone ?? null) : fmtTime(newTime)
+      const recipientTz = await getRecipientTimezone(dancerUserId)
+      const memberAdjustLabel = utcAdjust ? fmtTimeForNotif(utcAdjust, pmAdjustTz, recipientTz) : fmtTime(newTime)
       createNotification({
         userId: dancerUserId,
         type: "booking_updated",
@@ -318,9 +319,9 @@ export async function declineBooking(
       if (dancerUserId) {
         const [pmRevertTzRow] = await db.select({ timezone: userTable.timezone }).from(userTable).where(eq(userTable.id, user.id)).limit(1)
         const pmRevertTz = pmRevertTzRow?.timezone ?? COMPANY_TZ
-        const [memberRow] = await db.select({ timezone: userTable.timezone }).from(userTable).where(eq(userTable.id, dancerUserId)).limit(1)
+        const recipientTz = await getRecipientTimezone(dancerUserId)
         const utcForNotif = origUtc || etToUtcIso(origDate, origTime, pmRevertTz)
-        const timeLabel = utcForNotif ? fmtTimeForNotif(utcForNotif, pmRevertTz, memberRow?.timezone ?? null) : fmtTime(origTime)
+        const timeLabel = utcForNotif ? fmtTimeForNotif(utcForNotif, pmRevertTz, recipientTz) : fmtTime(origTime)
         createNotification({
           userId: dancerUserId,
           type: "booking_updated",
@@ -391,8 +392,8 @@ export async function declineBooking(
     const pmTzDecline = pmTzDeclineRow?.timezone ?? COMPANY_TZ
     const utcDecline = booking.fields["UTC Datetime"] ?? etToUtcIso(declineDate, declineTime, pmTzDecline)
     if (dancerUserId) {
-      const [memberRow] = await db.select({ timezone: userTable.timezone }).from(userTable).where(eq(userTable.id, dancerUserId)).limit(1)
-      const timeLabel = utcDecline ? fmtTimeForNotif(utcDecline, pmTzDecline, memberRow?.timezone ?? null) : `${fmtTime(declineTime)} ET`
+      const recipientTz = await getRecipientTimezone(dancerUserId)
+      const timeLabel = utcDecline ? fmtTimeForNotif(utcDecline, pmTzDecline, recipientTz) : `${fmtTime(declineTime)} ET`
       createNotification({
         userId: dancerUserId,
         type: "booking_cancelled",
@@ -409,12 +410,12 @@ export async function declineBooking(
         const declineMemberRecs = await appBase.list<ClientFields>(TABLES.clients, { filterByFormula: `{User ID} = '${safeDeclineId}'`, maxRecords: 1 })
         const declineDancerName = declineMemberRecs[0]?.fields.Name ?? declineDancerEmail
         const declineParentCC = declineMemberRecs[0]?.fields?.["Parent Email"] ?? undefined
-        const [declineMemberRow] = await db.select({ timezone: userTable.timezone }).from(userTable).where(eq(userTable.id, dancerUserId)).limit(1)
+        const declineRecipientTz = await getRecipientTimezone(dancerUserId)
         const { subject, html } = bookingDeclinedByPmEmail({
           dancerName: declineDancerName,
           prepMasterName: pm.name,
           date: declineDate,
-          time: fmtEmailTime(declineTime, pmTzDecline, utcDecline, declineMemberRow?.timezone ?? null),
+          time: fmtEmailTime(declineTime, pmTzDecline, utcDecline, declineRecipientTz),
         })
         sendEmail({ to: declineDancerEmail, cc: declineParentCC, subject, html }).catch(() => {})
       }
@@ -487,8 +488,8 @@ export async function cancelBookingAsPrepMaster(
 
     // Notify member
     if (dancerUserId) {
-      const [memberRow] = await db.select({ timezone: userTable.timezone }).from(userTable).where(eq(userTable.id, dancerUserId)).limit(1)
-      const memberCancelLabel = utcCancel ? fmtTimeForNotif(utcCancel, COMPANY_TZ, memberRow?.timezone ?? null) : `${fmtTime(timeStr)} ET`
+      const recipientTz = await getRecipientTimezone(dancerUserId)
+      const memberCancelLabel = utcCancel ? fmtTimeForNotif(utcCancel, COMPANY_TZ, recipientTz) : `${fmtTime(timeStr)} ET`
       createNotification({
         userId: dancerUserId,
         type: "booking_cancelled",

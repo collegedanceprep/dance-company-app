@@ -64,6 +64,7 @@ export type ClientFields = {
 export type { SessionType } from "@/lib/session-types"
 export { SESSION_TYPE_LABELS } from "@/lib/session-types"
 import type { SessionType } from "@/lib/session-types"
+import { etToUtcIso } from "@/lib/utils"
 
 export type BookingFields = {
   Name?: string
@@ -1008,9 +1009,17 @@ export async function getMonthBookingsForTeam(
     // date has already passed is what "completed" means everywhere else in
     // the app (see isSessionPast in admin-overview-panel.tsx). Without this,
     // past-dated confirmed sessions stay stuck showing "Confirmed" forever.
+    // A bare Date with no stored UTC Datetime must NOT be parsed as-is —
+    // `new Date("2026-10-01")` means midnight UTC, which is already hours
+    // in the past by US evening time even though the real session (e.g.
+    // 5:30 AM local) hasn't happened yet. Combine Date + Time properly
+    // instead of treating the date alone as a UTC instant.
+    const fallbackIso = !r.fields["UTC Datetime"] && r.fields.Date && r.fields.Time
+      ? etToUtcIso(r.fields.Date, r.fields.Time)
+      : null
     const sessionMs = r.fields["UTC Datetime"]
       ? new Date(r.fields["UTC Datetime"]).getTime()
-      : r.fields.Date ? new Date(r.fields.Date).getTime() : 0
+      : fallbackIso ? new Date(fallbackIso).getTime() : 0
     const isPast = sessionMs > 0 && sessionMs <= Date.now()
     const derivedStatus = statusLc.startsWith("cancel")
       ? "canceled"

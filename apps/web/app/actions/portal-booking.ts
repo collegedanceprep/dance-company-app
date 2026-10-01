@@ -92,6 +92,14 @@ export async function createBookingAsPrepMaster(input: {
       .limit(1)
     const dancer = dancerRows[0]
 
+    // Without this, the record has no exact UTC instant to compare against
+    // "now" — downstream status-derivation (past confirmed → completed) had
+    // to fall back to treating the bare date as midnight UTC, which could
+    // wrongly mark a session "completed" many hours before it actually
+    // happens. Compute it up front so it's saved on the record itself, not
+    // just used for the notification text afterward.
+    const utcPortalBook = etToUtcIso(input.date, input.time, COMPANY_TZ)
+
     await appBase.create<BookingFields>(TABLES.bookings, {
       "Client Email": input.dancerEmail,
       "User ID": dancer?.id ?? "",
@@ -100,10 +108,11 @@ export async function createBookingAsPrepMaster(input: {
       Time: input.time,
       Status: "Confirmed",
       Notes: input.notes ?? "",
+      "Session Type": "private-60",
+      ...(utcPortalBook ? { "UTC Datetime": utcPortalBook } : {}),
     })
 
     if (dancer?.id) {
-      const utcPortalBook = etToUtcIso(input.date, input.time, COMPANY_TZ)
       const portalBookLabel = utcPortalBook ? fmtTimeForNotif(utcPortalBook, COMPANY_TZ, dancer.timezone ?? null) : `${fmtTime(input.time)} ET`
       createNotification({
         userId: dancer.id,

@@ -32,8 +32,35 @@ type Props = {
   plans: MemberPlan[]
 }
 
-function isSessionPast(b: { utcDatetime?: string | null; date?: string | null }): boolean {
-  const t = b.utcDatetime ? new Date(b.utcDatetime).getTime() : b.date ? new Date(b.date).getTime() : 0
+const COMPANY_TZ = process.env.NEXT_PUBLIC_COMPANY_TIMEZONE ?? "America/New_York"
+
+// A bare Date with no stored UTC Datetime must NOT be parsed as-is —
+// `new Date("2026-10-01")` means midnight UTC, which is already hours in
+// the past by US evening time even though the real session (e.g. 5:30 AM
+// local) hasn't happened yet. Combine Date + Time in the company timezone
+// instead of treating the date alone as a UTC instant.
+function fallbackUtcMs(date: string, timeStr: string): number {
+  const match = timeStr.match(/(\d+)(?::(\d+))?\s*(AM|PM)/i)
+  if (!match) return 0
+  let h = parseInt(match[1])
+  const m = match[2] ? parseInt(match[2]) : 0
+  if (match[3].toUpperCase() === "PM" && h !== 12) h += 12
+  if (match[3].toUpperCase() === "AM" && h === 12) h = 0
+  const [year, mo, day] = date.split("-").map(Number)
+  const seed = new Date(Date.UTC(year, mo - 1, day, h + 5, m))
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: COMPANY_TZ, hour: "2-digit", minute: "2-digit", hour12: false,
+  }).formatToParts(seed)
+  const etH = parseInt(parts.find((p) => p.type === "hour")!.value)
+  const etM = parseInt(parts.find((p) => p.type === "minute")!.value)
+  const diffMs = ((etH * 60 + etM) - (h * 60 + m)) * 60_000
+  return seed.getTime() - diffMs
+}
+
+function isSessionPast(b: { utcDatetime?: string | null; date?: string | null; time?: string | null }): boolean {
+  const t = b.utcDatetime
+    ? new Date(b.utcDatetime).getTime()
+    : b.date && b.time ? fallbackUtcMs(b.date, b.time) : b.date ? new Date(b.date).getTime() : 0
   return t > 0 && t <= Date.now()
 }
 
@@ -57,7 +84,7 @@ export function AdminOverviewPanel({ members, bookings, workers }: Props) {
   const workerIdByName = new Map(workers.map((w) => [w.name, w.id]))
   const [sheetOpen, setSheetOpen] = useState(false)
   const [revenueSheetOpen, setRevenueSheetOpen] = useState(false)
-  const [sheetSort, setSheetSort] = useState<SortDir>("desc")
+  const [sheetSort, setSheetSort] = useState<SortDir>("asc")
   const [sheetSearch, setSheetSearch] = useState("")
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [monthOffset, setMonthOffset] = useState(0)
