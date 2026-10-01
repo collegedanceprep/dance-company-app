@@ -14,7 +14,7 @@ import { Separator } from "@/components/ui/separator"
 import { ArrowLeft, Users, DollarSign, Phone, Mail, Home, CalendarDays, ChevronDown, ChevronUp, PlusCircle, X, GraduationCap, Trash2, Send } from "lucide-react"
 import { getUniversityColor } from "@/lib/university-colors"
 import { BookingFilterBar, applyFilters, type SortDir } from "@/components/booking-filter-bar"
-import { PER_PRIVATE, PACKAGES, sessionRevenue, SESSION_DURATION_FRACTION } from "@/lib/packages"
+import { PER_PRIVATE, sessionRevenue, SESSION_DURATION_FRACTION } from "@/lib/packages"
 import { LocalTime } from "@/components/local-time"
 
 const UNIVERSITIES = [
@@ -34,14 +34,12 @@ function isSessionPast(b: { utcDatetime?: string | null; date?: string | null })
 
 // Built directly from the real per-duration prices, plus Pack hour, so this
 // list can never drift out of sync with actual pricing or omit a duration.
-const PRICE_POINTS = [
-  { sessionType: "pack-hour", label: "Pack hour", revenue: PACKAGES[0].perSession },
-  ...PER_PRIVATE.map((p) => ({
-    sessionType: p.id,
-    label: `${p.minutes} min`,
-    revenue: p.price,
-  })),
-]
+// Pack hour intentionally excluded — sessions are booked by duration now.
+const PRICE_POINTS = PER_PRIVATE.map((p) => ({
+  sessionType: p.id,
+  label: `${p.minutes} min`,
+  revenue: p.price,
+}))
 
 function formatMoney(n: number) { return `$${n.toFixed(2)}` }
 
@@ -587,15 +585,43 @@ function PrepMasterProfile({
   )
 }
 
+function isBookingPast(b: AdminBooking) {
+  const t = b.utcDatetime ? new Date(b.utcDatetime).getTime() : b.date ? new Date(b.date).getTime() : 0
+  return t > 0 && t <= Date.now()
+}
+
+function effectiveBookingStatus(b: AdminBooking) {
+  const s = b.status.toLowerCase()
+  if (s === "confirmed" && isBookingPast(b)) return "completed"
+  return s
+}
+
+const HISTORY_STATUS_GROUPS = [
+  { key: "pending", label: "Pending" },
+  { key: "confirmed", label: "Confirmed" },
+  { key: "completed", label: "Completed" },
+  { key: "cancelled", label: "Cancelled" },
+  { key: "other", label: "Other" },
+]
+
 function BookingHistoryList({ bookings }: { bookings: AdminBooking[] }) {
   const [expanded, setExpanded] = useState<string | null>(null)
   const [monthKey, setMonthKey] = useState("")
-  const [sort, setSort] = useState<SortDir>("desc")
+  const [sort, setSort] = useState<SortDir>("asc")
 
-  const visible = applyFilters(bookings, monthKey, sort)
+  const filtered = applyFilters(bookings, monthKey, sort)
+  const groups = HISTORY_STATUS_GROUPS.map((g) => ({
+    ...g,
+    items: filtered.filter((b) => {
+      const es = effectiveBookingStatus(b)
+      if (g.key === "cancelled") return es.startsWith("cancelled")
+      if (g.key === "other") return !HISTORY_STATUS_GROUPS.slice(0, -1).some((sg) => sg.key === "cancelled" ? es.startsWith("cancelled") : es === sg.key)
+      return es === g.key
+    }),
+  })).filter((g) => g.items.length > 0)
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-3">
       <BookingFilterBar
         bookings={bookings}
         monthKey={monthKey}
@@ -603,15 +629,19 @@ function BookingHistoryList({ bookings }: { bookings: AdminBooking[] }) {
         onMonthChange={setMonthKey}
         onSortChange={setSort}
       />
-      {visible.length === 0 && (
+      {groups.length === 0 && (
         <p className="py-4 text-center text-sm text-muted-foreground">No bookings match the selected filter.</p>
       )}
-    <ul className="flex flex-col gap-1.5">
-      {visible.map((b) => {
+      {groups.map((g) => (
+        <div key={g.key} className="flex flex-col gap-1.5">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{g.label} ({g.items.length})</p>
+          <ul className="flex flex-col gap-1.5">
+      {g.items.map((b) => {
         const isCancelled = b.status.toLowerCase().startsWith("cancelled")
         const isOpen = expanded === b.id
+        const es = effectiveBookingStatus(b)
         const statusVariant =
-          b.status.toLowerCase() === "confirmed"
+          es === "confirmed"
             ? "default"
             : isCancelled
               ? "destructive"
@@ -630,7 +660,7 @@ function BookingHistoryList({ bookings }: { bookings: AdminBooking[] }) {
                 </span>
               </div>
               <div className="flex shrink-0 items-center gap-2">
-                <Badge variant={statusVariant} className="capitalize">{b.status}</Badge>
+                <Badge variant={statusVariant} className="capitalize">{es}</Badge>
                 {isOpen ? <ChevronUp className="size-3.5 text-muted-foreground" /> : <ChevronDown className="size-3.5 text-muted-foreground" />}
               </div>
             </button>
@@ -656,7 +686,7 @@ function BookingHistoryList({ bookings }: { bookings: AdminBooking[] }) {
                   </div>
                   <div>
                     <span className="text-xs text-muted-foreground">Status</span>
-                    <p className="font-medium capitalize">{b.status}</p>
+                    <p className="font-medium capitalize">{es}</p>
                   </div>
                 </div>
                 {b.notes && (
@@ -673,7 +703,9 @@ function BookingHistoryList({ bookings }: { bookings: AdminBooking[] }) {
           </li>
         )
       })}
-    </ul>
+          </ul>
+        </div>
+      ))}
     </div>
   )
 }
