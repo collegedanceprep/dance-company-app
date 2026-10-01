@@ -84,13 +84,18 @@ export async function createBookingAsPrepMaster(input: {
       return { ok: false, error: "That time slot is already booked." }
     }
 
-    // Look up the dancer's userId for the notification
-    const dancerRows = await db
-      .select({ id: userTable.id, name: userTable.name, timezone: userTable.timezone })
-      .from(userTable)
-      .where(eq(userTable.email, input.dancerEmail.toLowerCase()))
-      .limit(1)
+    // Look up the dancer's userId for the notification, and the PrepMaster's
+    // own timezone — the Time string the PM enters is in THEIR local time,
+    // not the company's, matching app/api/portal/book/route.ts's pmTimezone
+    // pattern.
+    const [dancerRows, pmRows] = await Promise.all([
+      db.select({ id: userTable.id, name: userTable.name, timezone: userTable.timezone })
+        .from(userTable).where(eq(userTable.email, input.dancerEmail.toLowerCase())).limit(1),
+      db.select({ timezone: userTable.timezone })
+        .from(userTable).where(eq(userTable.email, sessionUser.email.toLowerCase())).limit(1),
+    ])
     const dancer = dancerRows[0]
+    const pmTimezone = pmRows[0]?.timezone ?? COMPANY_TZ
 
     // Without this, the record has no exact UTC instant to compare against
     // "now" — downstream status-derivation (past confirmed → completed) had
@@ -98,7 +103,7 @@ export async function createBookingAsPrepMaster(input: {
     // wrongly mark a session "completed" many hours before it actually
     // happens. Compute it up front so it's saved on the record itself, not
     // just used for the notification text afterward.
-    const utcPortalBook = etToUtcIso(input.date, input.time, COMPANY_TZ)
+    const utcPortalBook = etToUtcIso(input.date, input.time, pmTimezone)
 
     await appBase.create<BookingFields>(TABLES.bookings, {
       "Client Email": input.dancerEmail,
@@ -113,7 +118,7 @@ export async function createBookingAsPrepMaster(input: {
     })
 
     if (dancer?.id) {
-      const portalBookLabel = utcPortalBook ? fmtTimeForNotif(utcPortalBook, COMPANY_TZ, dancer.timezone ?? null) : `${fmtTime(input.time)} ET`
+      const portalBookLabel = utcPortalBook ? fmtTimeForNotif(utcPortalBook, pmTimezone, dancer.timezone ?? null) : fmtTime(input.time)
       createNotification({
         userId: dancer.id,
         type: "booking_confirmed",
