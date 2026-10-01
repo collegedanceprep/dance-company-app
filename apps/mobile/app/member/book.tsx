@@ -398,6 +398,7 @@ export default function BookScreen() {
   const [detailLoading, setDetailLoading] = useState(false)
   const [plans, setPlans] = useState<MemberPlan[]>([])
   const [credits, setCredits] = useState(0)
+  const [dashboardLoaded, setDashboardLoaded] = useState(false)
   const [confirming, setConfirming] = useState(false)
   const [isParentView, setIsParentView] = useState(false)
   const [childFirstName, setChildFirstName] = useState("")
@@ -421,11 +422,16 @@ export default function BookScreen() {
       setIsParentView(d.profile.isParentView ?? false)
       setChildFirstName((d.profile.isParentView && d.profile.name) ? d.profile.name.split(" ")[0] : "")
     } catch {}
+    finally { setDashboardLoaded(true) }
   }, [])
 
   useEffect(() => { loadCoaches(); loadDashboard() }, [loadCoaches, loadDashboard])
 
   const handleSelectCoach = useCallback(async (coach: Coach) => {
+    // Credits/plans start empty until loadDashboard() resolves — tapping a
+    // coach before then used to read those defaults and wrongly show "No
+    // credits" even for a dancer who has one. Wait for the real data.
+    if (!dashboardLoaded) return
     const activePlans = plans.filter((p) => planDisplayStatus(p) === "Active")
     if (activePlans.length === 0 && credits < 1) {
       Alert.alert("No credits", "You need at least 1 credit to book a session.", [
@@ -441,7 +447,7 @@ export default function BookScreen() {
       setDetail(data as CoachDetail); setStep("booking")
     } catch (e) { Alert.alert("Error", e instanceof Error ? e.message : "Could not load availability.") }
     finally { setDetailLoading(false) }
-  }, [plans, credits, router])
+  }, [plans, credits, router, dashboardLoaded])
 
   const CREDIT_COST: Record<string, number> = {
     "pack-hour": 1, "private-60": 1, "private-45": 0.75, "private-30": 0.5, "private-90": 1.5,

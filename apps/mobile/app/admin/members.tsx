@@ -11,6 +11,7 @@ import { useColors } from "@/lib/theme-context"
 import { useAdmin } from "@/lib/admin-context"
 import { authClient } from "@/lib/auth-client"
 import { formatTime } from "@/components/BookingDetailModal"
+import { fallbackUtcMs } from "@/lib/time-utils"
 import type { AdminMember, AdminBooking, MemberPlan, DancePackage } from "@/lib/admin-types"
 
 const API = "https://app.collegedanceprep.com"
@@ -361,7 +362,9 @@ function MemberCard({ member: m, credits, plans, bookings, packages, statusInfo,
             {bookingsExpanded && (
               bookings.length === 0 ? <Text style={styles.hint}>No bookings yet.</Text> : bookings.map((b) => {
                 const sl = (b.status ?? "").toLowerCase()
-                const isPastBooking = b.utcDatetime ? new Date(b.utcDatetime) <= new Date() : b.date ? new Date(b.date) <= new Date() : false
+                const isPastBooking = b.utcDatetime
+                  ? new Date(b.utcDatetime) <= new Date()
+                  : b.date && b.time ? fallbackUtcMs(b.date, b.time) <= Date.now() : b.date ? new Date(b.date) <= new Date() : false
                 const displayStatus = sl === "confirmed" && isPastBooking ? "Completed" : (b.status ?? sl)
                 const dsl = displayStatus.toLowerCase()
                 const bg = dsl === "confirmed" ? COLORS.primaryLight : dsl === "completed" ? COLORS.grayLight : dsl.startsWith("cancelled") ? COLORS.redLight : COLORS.grayLight

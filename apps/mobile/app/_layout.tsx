@@ -53,14 +53,24 @@ function RootLayoutInner() {
   const [appStoreUrl, setAppStoreUrl] = useState("https://apps.apple.com/app/college-dance-prep/id6784838378")
 
   useEffect(() => {
-    const installedVersion: string = Constants.expoConfig?.version ?? "0.0.0"
-    fetch(`${API_BASE}/api/app/min-version`)
-      .then((r) => r.json())
-      .then(({ minVersion, appStoreUrl: url }) => {
-        if (url) setAppStoreUrl(url)
-        if (semverLt(installedVersion, minVersion)) setUpdateRequired(true)
-      })
-      .catch(() => {})
+    const checkVersion = () => {
+      const installedVersion: string = Constants.expoConfig?.version ?? "0.0.0"
+      fetch(`${API_BASE}/api/app/min-version`)
+        .then((r) => r.json())
+        .then(({ minVersion, appStoreUrl: url }) => {
+          if (url) setAppStoreUrl(url)
+          if (semverLt(installedVersion, minVersion)) setUpdateRequired(true)
+        })
+        .catch(() => {})
+    }
+    checkVersion()
+    // Re-check whenever the app returns to the foreground — most people
+    // background the app instead of fully quitting it, so a cold-start-only
+    // check could leave them on a blocked version for a long time.
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") checkVersion()
+    })
+    return () => sub.remove()
   }, [])
 
   useEffect(() => {

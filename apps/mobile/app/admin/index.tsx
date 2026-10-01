@@ -8,6 +8,7 @@ import { useColors } from "@/lib/theme-context"
 import { useAdmin } from "@/lib/admin-context"
 import type { AdminBooking } from "@/lib/admin-types"
 import { formatTime } from "@/components/BookingDetailModal"
+import { fallbackUtcMs } from "@/lib/time-utils"
 
 const SINGLE_HOUR_PRICE = 115
 const SESSION_REVENUE_FRACTION: Record<string, number> = {
@@ -37,7 +38,9 @@ function BookingItem({ booking: b }: { booking: AdminBooking }) {
   const styles = makeStyles(COLORS)
   const [expanded, setExpanded] = useState(false)
   const s = b.status.toLowerCase()
-  const isPast = b.utcDatetime ? new Date(b.utcDatetime) <= new Date() : b.date ? new Date(b.date) <= new Date() : false
+  const isPast = b.utcDatetime
+    ? new Date(b.utcDatetime) <= new Date()
+    : b.date && b.time ? fallbackUtcMs(b.date, b.time) <= Date.now() : b.date ? new Date(b.date) <= new Date() : false
   const effectiveStatus = s === "confirmed" && isPast ? "Completed" : (b.status ?? s)
   const esl = effectiveStatus.toLowerCase()
   const bg =
@@ -116,7 +119,9 @@ function GroupedBookings({ bookings }: { bookings: AdminBooking[] }) {
   const COLORS = useColors()
 
   function isPast(b: AdminBooking): boolean {
-    const t = b.utcDatetime ? new Date(b.utcDatetime).getTime() : b.date ? new Date(b.date).getTime() : 0
+    const t = b.utcDatetime
+      ? new Date(b.utcDatetime).getTime()
+      : b.date && b.time ? fallbackUtcMs(b.date, b.time) : b.date ? new Date(b.date).getTime() : 0
     return t > 0 && t <= Date.now()
   }
 
@@ -143,7 +148,7 @@ function GroupedBookings({ bookings }: { bookings: AdminBooking[] }) {
       if (g.key === "cancelled") return esl.startsWith("cancelled")
       if (g.key === "other") return !STATUS_GROUPS.slice(0, -1).some((sg) => sg.key === "cancelled" ? esl.startsWith("cancelled") : esl === sg.key)
       return esl === g.key
-    }),
+    }).sort((a, b) => (a.date ?? "").localeCompare(b.date ?? "")),
   })).filter((g) => g.items.length > 0)
 
   if (groups.length === 0) return null
@@ -191,16 +196,21 @@ export default function AdminOverviewScreen() {
   const bookings = data?.bookings ?? []
   const workers = data?.workers ?? []
   const members = data?.members ?? []
-  function isSessionPast(b: { utcDatetime?: string | null; date?: string | null }): boolean {
-    const t = b.utcDatetime ? new Date(b.utcDatetime).getTime() : b.date ? new Date(b.date).getTime() : 0
+  function isSessionPast(b: { utcDatetime?: string | null; date?: string | null; time?: string | null }): boolean {
+    const t = b.utcDatetime
+      ? new Date(b.utcDatetime).getTime()
+      : b.date && b.time ? fallbackUtcMs(b.date, b.time) : b.date ? new Date(b.date).getTime() : 0
     return t > 0 && t <= Date.now()
   }
   const thisMonth = bookings.filter((b) => b.date?.startsWith(monthPrefix(monthOffset)))
+  const pending = thisMonth.filter((b) => b.status?.toLowerCase() === "pending")
   const confirmed = thisMonth.filter((b) => b.status?.toLowerCase() === "confirmed" && !isSessionPast(b))
-  const completed = thisMonth.filter((b) => { const s = b.status?.toLowerCase() ?? ""; return (s === "completed" || s === "confirmed") && isSessionPast(b) })
+  // Includes late cancels on purpose — they still bill, so revenue/payOwed
+  // below need them counted here. Matches apps/web/components/admin-overview-panel.tsx.
+  const completed = thisMonth.filter((b) => { const s = b.status?.toLowerCase() ?? ""; return s !== "cancelled" && isSessionPast(b) })
   const cancelled = thisMonth.filter((b) => b.status?.toLowerCase().startsWith("cancelled"))
   const revenue = completed.reduce((sum, b) => sum + sessionRevenue(b.sessionType), 0)
-  const allCompleted = bookings.filter((b) => { const s = b.status?.toLowerCase() ?? ""; return (s === "completed" || s === "confirmed") && isSessionPast(b) })
+  const allCompleted = bookings.filter((b) => { const s = b.status?.toLowerCase() ?? ""; return s !== "cancelled" && isSessionPast(b) })
   const allRevenue = allCompleted.reduce((sum, b) => sum + sessionRevenue(b.sessionType), 0)
   const workerRateMap = new Map(workers.map((w) => [w.name, w.hourlyRate]))
   const payOwedThisMonth = completed.reduce((sum, b) => {
@@ -236,7 +246,7 @@ export default function AdminOverviewScreen() {
           <TouchableOpacity style={[styles.kpiCard, styles.kpiCardClickable]} onPress={() => setBookingsModalOpen(true)} activeOpacity={0.7}>
             <View style={styles.kpiHeader}><CalendarDays size={14} color={COLORS.primary} /><Text style={styles.kpiLabel}>Bookings this month</Text></View>
             <Text style={styles.kpiValue}>{thisMonth.length}</Text>
-            <Text style={styles.kpiSub}>{confirmed.length} confirmed · {completed.length} completed · {cancelled.length} cancelled</Text>
+            <Text style={styles.kpiSub}>{pending.length} pending · {confirmed.length} confirmed · {completed.length} completed · {cancelled.length} cancelled</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.kpiCard, styles.kpiCardClickable, { borderColor: "#bbf7d0" }]} onPress={() => setRevenueModalOpen(true)} activeOpacity={0.7}>
             <View style={styles.kpiHeader}><DollarSign size={14} color={COLORS.green} /><Text style={styles.kpiLabel}>Revenue this month</Text></View>
@@ -297,13 +307,21 @@ export default function AdminOverviewScreen() {
               renderItem={({ item: b }) => {
                 const amt = sessionRevenue(b.sessionType)
                 const sessionLabel = b.sessionType === "private-30" ? "30 min" : b.sessionType === "private-45" ? "45 min" : "60 min"
+                const isLateCancelled = b.status?.toLowerCase() === "cancelled (late)"
                 return (
                   <View style={styles.revenueRow}>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.bookingName}>{b.dancerName || b.clientEmail || "Client"}</Text>
                       <Text style={styles.bookingSub}>{b.prepMasterName}{b.date ? ` · ${b.date}` : ""}{b.time ? ` · ${formatTime(b.time, b.utcDatetime)}` : ""} · {sessionLabel}</Text>
                     </View>
-                    <Text style={styles.revenueAmt}>${amt}</Text>
+                    <View style={styles.revenueRowRight}>
+                      {isLateCancelled && (
+                        <View style={styles.lateCancelBadge}>
+                          <Text style={styles.lateCancelBadgeText}>Late cancel</Text>
+                        </View>
+                      )}
+                      <Text style={styles.revenueAmt}>${amt}</Text>
+                    </View>
                   </View>
                 )
               }}
@@ -370,6 +388,9 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: RADIUS.full },
     badgeText: { fontSize: 11, fontWeight: "600", textTransform: "capitalize" },
     revenueRow: { flexDirection: "row", alignItems: "center", gap: SPACING.sm, backgroundColor: COLORS.surface, borderRadius: RADIUS.sm, borderWidth: 1, borderColor: COLORS.border, padding: SPACING.sm },
+    revenueRowRight: { flexDirection: "row", alignItems: "center", gap: SPACING.xs },
+    lateCancelBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: RADIUS.full, backgroundColor: "#fef3c7", borderWidth: 1, borderColor: "#fcd34d" },
+    lateCancelBadgeText: { fontSize: 11, fontWeight: "600", color: "#b45309" },
     revenueAmt: { fontSize: 15, fontWeight: "700", color: COLORS.green },
     revenueTotal: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", borderTopWidth: 1, borderTopColor: COLORS.border, paddingTop: SPACING.md, marginTop: SPACING.sm },
     revenueTotalLabel: { fontSize: 14, fontWeight: "600", color: COLORS.text },
