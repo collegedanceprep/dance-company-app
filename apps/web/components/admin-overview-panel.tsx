@@ -114,6 +114,10 @@ export function AdminOverviewPanel({ members, bookings, workers }: Props) {
   // All-time totals
   const allCompleted = bookings.filter((b) => b.status.toLowerCase() !== "cancelled" && isSessionPast(b))
   const allRevenue = allCompleted.reduce((sum, b) => sum + sessionRevenue(b), 0)
+  const firstBookingDate = bookings.reduce((min: string, b) => (b.date && (!min || b.date < min) ? b.date : min), "")
+  const firstBookingLabel = firstBookingDate
+    ? new Date(`${firstBookingDate}T00:00:00`).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+    : ""
 
   // Top PrepMasters this month by completed booking count
   const pmCounts = new Map<string, number>()
@@ -166,7 +170,7 @@ export function AdminOverviewPanel({ members, bookings, workers }: Props) {
         />
         <KpiCard
           icon={<DollarSign className="size-4 text-green-600" />}
-          label="Revenue this month"
+          label="Gross revenue this month"
           value={`$${revenue.toLocaleString()}`}
           sub={`${completed.length} sessions · incl. late cancels`}
           highlight="green"
@@ -181,11 +185,14 @@ export function AdminOverviewPanel({ members, bookings, workers }: Props) {
         />
         <KpiCard
           icon={<Activity className="size-4 text-muted-foreground" />}
-          label="All-time revenue"
+          label="All-time gross revenue*"
           value={`$${allRevenue.toLocaleString()}`}
-          sub={`${allCompleted.length} total sessions`}
+          sub={`${allCompleted.length} completed sessions`}
         />
       </div>
+      {firstBookingLabel && (
+        <p className="-mt-2 text-[11px] text-muted-foreground">*As of {firstBookingLabel}, the earliest booking on record.</p>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Top PrepMasters this month */}

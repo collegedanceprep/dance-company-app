@@ -534,7 +534,7 @@ function PrepMasterProfile({
               <StatTile label="Pay rate / hr" value={formatMoney(payRatePerHour)} />
               <StatTile label="Total sessions" value={String(completedBookings.length)} />
               <StatTile label="Total pay owed" value={formatMoney(totalPay)} highlight />
-              <StatTile label="Revenue" value={formatMoney(totalRevenue)} sub={`Margin ${formatMoney(margin)}`} />
+              <StatTile label="Gross revenue" value={formatMoney(totalRevenue)} sub={`Margin ${formatMoney(margin)}`} />
             </div>
             <div className="rounded-lg border p-3">
               <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">Margin by session type</p>
