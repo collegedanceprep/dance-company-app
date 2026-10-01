@@ -152,7 +152,7 @@ export function AdminMembersPanel({ members, bookings, plans, packages, query = 
     const val = parseInt(editingCredits[member.id] ?? "", 10)
     if (Number.isNaN(val) || val < 0) { toast.error("Enter a valid number."); return }
     startTransition(async () => {
-      const result = await adminSetCredits(member.id, val, member.userId)
+      const result = await adminSetCredits(member.id, val, member.userId, creditsFor(member), member.email)
       if (result.ok) {
         setLocalCredits((prev) => ({ ...prev, [member.id]: val }))
         setEditingCredits((prev) => ({ ...prev, [member.id]: "" }))

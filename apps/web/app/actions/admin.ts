@@ -342,10 +342,31 @@ export async function adminSetCredits(
   memberId: string,
   newCredits: number,
   userId?: string,
+  currentCredits?: number,
+  memberEmail?: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
     await assertAdmin()
     if (newCredits < 0 || newCredits > 9999) return { ok: false, error: "Invalid credit amount." }
+
+    // If this is a manual increase, log it as a Plan record (same pattern as
+    // adminAssignPlan) so it shows up in Plan history and correctly flips to
+    // "Used" once the booking flow drains the pool to 0 — instead of being an
+    // invisible, untraceable credit.
+    const delta = newCredits - (currentCredits ?? 0)
+    if (delta > 0 && userId && memberEmail) {
+      const existingActive = await getActivePlanForUser(userId)
+      if (existingActive) await setPlanStatus(existingActive.id, "Inactive")
+      await createMemberPlan({
+        userId,
+        memberEmail,
+        planName: "Admin-issued credit",
+        sessions: delta,
+        pricePaid: 0,
+        source: "admin",
+      })
+    }
+
     await appBase.update<ClientFields>(TABLES.clients, memberId, {
       "Credits Remaining": newCredits,
     })
