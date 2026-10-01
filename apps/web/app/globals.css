@@ -89,6 +89,14 @@
   --sidebar-accent-foreground: oklch(0.5 0.18 352);
   --sidebar-border: oklch(0.92 0.004 340);
   --sidebar-ring: oklch(0.64 0.22 352);
+  --tile-pending-bg: #fef3c7;
+  --tile-pending-text: #d97706;
+  --tile-confirmed-bg: #fce7f3;
+  --tile-confirmed-text: #e91e8c;
+  --tile-completed-bg: #dcfce7;
+  --tile-completed-text: #16a34a;
+  --tile-cancelled-bg: #fee2e2;
+  --tile-cancelled-text: #dc2626;
 }
 
 .dark {
@@ -124,6 +132,14 @@
   --sidebar-accent-foreground: oklch(0.92 0.04 350);
   --sidebar-border: oklch(1 0 0 / 12%);
   --sidebar-ring: oklch(0.7 0.2 352);
+  --tile-pending-bg: #1c1207;
+  --tile-pending-text: #fbbf24;
+  --tile-confirmed-bg: #3b1a2e;
+  --tile-confirmed-text: #f472b6;
+  --tile-completed-bg: #052e16;
+  --tile-completed-text: #4ade80;
+  --tile-cancelled-bg: #2d0a0a;
+  --tile-cancelled-text: #f87171;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -160,6 +176,14 @@
     --sidebar-accent-foreground: oklch(0.92 0.04 350);
     --sidebar-border: oklch(1 0 0 / 12%);
     --sidebar-ring: oklch(0.7 0.2 352);
+    --tile-pending-bg: #1c1207;
+    --tile-pending-text: #fbbf24;
+    --tile-confirmed-bg: #3b1a2e;
+    --tile-confirmed-text: #f472b6;
+    --tile-completed-bg: #052e16;
+    --tile-completed-text: #4ade80;
+    --tile-cancelled-bg: #2d0a0a;
+    --tile-cancelled-text: #f87171;
   }
 }
 

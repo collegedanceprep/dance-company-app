@@ -73,6 +73,7 @@ export function AdminOverviewPanel({ members, bookings, workers }: Props) {
   const router = useRouter()
   const workerIdByName = new Map(workers.map((w) => [w.name, w.id]))
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [sheetStatusFilter, setSheetStatusFilter] = useState<string | null>(null)
   const [revenueSheetOpen, setRevenueSheetOpen] = useState(false)
   const [sheetSort, setSheetSort] = useState<SortDir>("asc")
   const [sheetSearch, setSheetSearch] = useState("")
@@ -156,18 +157,44 @@ export function AdminOverviewPanel({ members, bookings, workers }: Props) {
           </div>
           <p className="text-sm text-muted-foreground">Company performance snapshot</p>
         </div>
-        <Badge variant="outline" className="border-green-300 bg-green-100 text-green-700">Live</Badge>
       </div>
 
       {/* This month KPIs */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard
-          icon={<CalendarDays className="size-4 text-primary" />}
-          label="Bookings this month"
-          value={String(thisMonth.length)}
-          sub={`${pendingCount} pending · ${confirmedCount} confirmed · ${completedCount} completed · ${cancelledCount} cancelled${declinedCount > 0 ? ` · ${declinedCount} declined` : ""}`}
-          onClick={() => setSheetOpen(true)}
-        />
+      <Card>
+        <CardContent className="pt-5">
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-sm font-bold text-foreground">
+              <CalendarDays className="size-4 text-primary" />
+              Bookings this month
+            </div>
+            <span className="text-3xl font-bold">{thisMonth.length}</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {[
+              { key: "pending", label: "Pending", value: pendingCount, bgVar: "--tile-pending-bg", textVar: "--tile-pending-text" },
+              { key: "confirmed", label: "Confirmed", value: confirmedCount, bgVar: "--tile-confirmed-bg", textVar: "--tile-confirmed-text" },
+              { key: "completed", label: "Completed", value: completedCount, bgVar: "--tile-completed-bg", textVar: "--tile-completed-text" },
+              { key: "cancelled", label: "Cancelled", value: cancelledCount, bgVar: "--tile-cancelled-bg", textVar: "--tile-cancelled-text" },
+            ].map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => { setSheetStatusFilter(t.key); setSheetOpen(true) }}
+                style={{ backgroundColor: `var(${t.bgVar})`, color: `var(${t.textVar})` }}
+                className="rounded-lg px-2 py-2.5 text-center transition-opacity hover:opacity-80"
+              >
+                <div className="text-lg font-bold">{t.value}</div>
+                <div className="text-[10px] font-semibold uppercase tracking-wide">{t.label}</div>
+              </button>
+            ))}
+          </div>
+          {declinedCount > 0 && (
+            <p className="mt-2 text-center text-xs text-muted-foreground">{declinedCount} declined</p>
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4 sm:grid-cols-3">
         <KpiCard
           icon={<DollarSign className="size-4 text-green-600" />}
           label="Gross revenue this month"
@@ -316,7 +343,7 @@ export function AdminOverviewPanel({ members, bookings, workers }: Props) {
       </Sheet>
 
       {/* Bookings sheet */}
-      <Sheet open={sheetOpen} onOpenChange={(v) => { setSheetOpen(v); if (!v) setSheetSearch("") }}>
+      <Sheet open={sheetOpen} onOpenChange={(v) => { setSheetOpen(v); if (!v) { setSheetSearch(""); setSheetStatusFilter(null) } }}>
         <SheetContent className="w-full sm:max-w-lg flex flex-col overflow-hidden">
           <SheetHeader className="mb-3 shrink-0">
             <SheetTitle className="flex items-center gap-2">
@@ -374,18 +401,32 @@ export function AdminOverviewPanel({ members, bookings, workers }: Props) {
                 { key: "other",      label: "Other",      icon: null,                                                                labelClass: "text-muted-foreground" },
               ]
 
-              const groups = STATUS_GROUPS.map((g) => ({
-                ...g,
-                items: filtered.filter((b) => {
-                  const es = effectiveStatus(b)
-                  if (g.key === "cancelled") return es.startsWith("cancelled")
-                  if (g.key === "other") return !STATUS_GROUPS.slice(0, -1).some((sg) => sg.key === "cancelled" ? es.startsWith("cancelled") : es === sg.key)
-                  return es === g.key
-                }),
-              })).filter((g) => g.items.length > 0)
+              const groups = STATUS_GROUPS
+                .map((g) => ({
+                  ...g,
+                  items: filtered.filter((b) => {
+                    const es = effectiveStatus(b)
+                    if (g.key === "cancelled") return es.startsWith("cancelled")
+                    if (g.key === "other") return !STATUS_GROUPS.slice(0, -1).some((sg) => sg.key === "cancelled" ? es.startsWith("cancelled") : es === sg.key)
+                    return es === g.key
+                  }),
+                }))
+                .filter((g) => g.items.length > 0)
+                .filter((g) => !sheetStatusFilter || g.key === sheetStatusFilter)
 
               return (
                 <div className="flex flex-col gap-3">
+                  {sheetStatusFilter && (
+                    <p className="text-xs text-muted-foreground">
+                      Showing only {sheetStatusFilter}.{" "}
+                      <button type="button" onClick={() => setSheetStatusFilter(null)} className="underline underline-offset-2 hover:text-foreground">
+                        Clear filter
+                      </button>
+                    </p>
+                  )}
+                  {groups.length === 0 && (
+                    <p className="text-sm text-muted-foreground">No {sheetStatusFilter ?? ""} bookings match the selected filter.</p>
+                  )}
                   {groups.map((g) => (
                     <GroupSection key={g.key} label={g.label} count={g.items.length} icon={g.icon} labelClass={g.labelClass}>
                       <ul className="flex flex-col gap-1.5">
