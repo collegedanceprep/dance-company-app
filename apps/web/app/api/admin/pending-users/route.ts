@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { getSessionUserWithRole } from "@/lib/roles"
 import { db } from "@/lib/db"
 import { user as userTable, prepMasterInvite } from "@/lib/db/schema"
-import { eq, inArray } from "drizzle-orm"
+import { inArray } from "drizzle-orm"
 import { adminGetAllWorkers } from "@/lib/airtable"
 
 export async function GET() {
@@ -12,7 +12,7 @@ export async function GET() {
   const rows = await db
     .select({ id: userTable.id, name: userTable.name, email: userTable.email, status: userTable.status, createdAt: userTable.createdAt })
     .from(userTable)
-    .where(eq(userTable.status, "pending"))
+    .where(inArray(userTable.status, ["pending", "denied"]))
     .orderBy(userTable.createdAt)
 
   if (rows.length === 0) return NextResponse.json([])
