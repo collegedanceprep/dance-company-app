@@ -90,18 +90,16 @@ export function CreditsCard({
             return acc
           }, [])
 
-          const activeSingleCount = activePlans.filter((p) => p.sessions === 1).length
-
           return groups.map(({ key, plans: groupPlans }) => {
             const rep = groupPlans[0]
             const status = planDisplayStatus(rep)
             const isActive = status === "Active"
             const qty = groupPlans.length
-            const displayCount = !isActive
-              ? rep.sessions * qty
-              : rep.sessions === 1
-                ? Math.max(0, credits)
-                : Math.max(0, credits - activeSingleCount)
+            // Pack credits ("Credits Remaining") and single-type credits
+            // ("Single Credits 30/45/60/90") are entirely separate Airtable
+            // fields — a pack plan's remaining count must never be reduced
+            // by how many single-type plans happen to also be active.
+            const displayCount = !isActive ? rep.sessions * qty : Math.max(0, credits)
             const expiryDate = rep.expiresAt
               ? new Date(rep.expiresAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
               : null

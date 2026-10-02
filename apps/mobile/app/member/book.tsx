@@ -251,8 +251,7 @@ function BookingStep({
             <View style={{ gap: SPACING.xs }}>
               {activePlans.map((plan) => {
                 const active = selectedPlanId === plan.id
-                const activeSingleCount = activePlans.filter((p) => p.sessions === 1).length
-                const displayCount = plan.sessions === 1 ? 1 : Math.max(0, credits - activeSingleCount)
+                const displayCount = plan.sessions === 1 ? 1 : Math.max(0, credits)
                 return (
                   <TouchableOpacity key={plan.id} style={[styles.planOption, active && styles.planOptionActive]} onPress={() => setSelectedPlanId(plan.id)} activeOpacity={0.7}>
                     <Text style={[styles.planOptionName, active && { color: COLORS.primary }]}>{plan.planName}</Text>

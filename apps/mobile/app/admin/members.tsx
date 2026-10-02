@@ -411,7 +411,6 @@ function GroupedPlanHistory({ plans, credits, saving, onRemove, COLORS, styles }
   COLORS: ReturnType<typeof useColors>; styles: ReturnType<typeof makeStyles>
 }) {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({ Used: true })
-  const activeSingleCount = plans.filter((p) => planDisplayStatus(p) === "Active" && p.sessions === 1).length
 
   return (
     <View style={styles.section}>
@@ -438,7 +437,7 @@ function GroupedPlanHistory({ plans, credits, saving, onRemove, COLORS, styles }
               const expiryDate = plan.expiresAt ? new Date(plan.expiresAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : null
               const planStatusBg = s === "Active" ? COLORS.greenLight : s === "Used" ? COLORS.amberLight : COLORS.grayLight
               const planStatusFg = s === "Active" ? COLORS.green : s === "Used" ? COLORS.amber : COLORS.textMuted
-              const displayCount = s !== "Active" ? plan.sessions : plan.sessions === 1 ? 1 : Math.max(0, credits - activeSingleCount)
+              const displayCount = s !== "Active" ? plan.sessions : plan.sessions === 1 ? 1 : Math.max(0, credits)
               return (
                 <View key={plan.id} style={[styles.planItem, { marginBottom: 6 }]}>
                   <View style={styles.planRow}>

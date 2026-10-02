@@ -692,7 +692,6 @@ function PlanHistory({ plans, credits, isPending, onRemove }: {
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({ Used: true })
   function toggleGroup(g: string) { setCollapsedGroups((prev) => ({ ...prev, [g]: !prev[g] })) }
 
-  const activeSingleCount = plans.filter((p) => planDisplayStatus(p) === "Active" && p.sessions === 1).length
   const grouped = Object.fromEntries(
     PLAN_STATUS_ORDER.map((s) => [s, plans.filter((p) => planDisplayStatus(p) === s)])
   ) as Record<PlanStatusGroup, MemberPlan[]>
@@ -728,7 +727,7 @@ function PlanHistory({ plans, credits, isPending, onRemove }: {
                     ? plan.sessions
                     : plan.sessions === 1
                       ? 1
-                      : Math.max(0, credits - activeSingleCount)
+                      : Math.max(0, credits)
                   return (
                     <li key={plan.id} className="flex flex-col gap-1 rounded-md border px-3 py-2 text-sm">
                       <div className="flex items-center justify-between gap-3">

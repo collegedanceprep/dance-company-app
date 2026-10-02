@@ -41,7 +41,6 @@ function CreditsCard({ plans, credits }: { plans: MemberPlan[]; credits: number 
     else if (activePlans.length > 0) setView("active")
   }, [activePlans.length, historyPlans.length])
   const shownPlans = view === "active" ? activePlans : historyPlans
-  const activeSingleCount = activePlans.filter((p) => p.sessions === 1).length
 
   return (
     <View style={[styles.card, { gap: SPACING.sm }]}>
@@ -81,7 +80,7 @@ function CreditsCard({ plans, credits }: { plans: MemberPlan[]; credits: number 
         shownPlans.map((plan) => {
           const status = planDisplayStatus(plan)
           const isActive = status === "Active"
-          const displayCount = !isActive ? plan.sessions : plan.sessions === 1 ? 1 : Math.max(0, credits - activeSingleCount)
+          const displayCount = !isActive ? plan.sessions : plan.sessions === 1 ? 1 : Math.max(0, credits)
           const expiryDate = plan.expiresAt ? new Date(plan.expiresAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : null
           const statusBg = isActive ? COLORS.greenLight : COLORS.amberLight
           const statusFg = isActive ? COLORS.green : COLORS.amber

@@ -199,10 +199,9 @@ export function BookingFlow({
               const expiryDate = opt.plan.expiresAt
                 ? new Date(opt.plan.expiresAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
                 : null
-              const activeSingleCount = creditOptions.filter((o) => o.plan.sessions === 1).length
               const displayCount = opt.plan.sessions === 1
                 ? 1
-                : Math.max(0, credits - activeSingleCount)
+                : Math.max(0, credits)
               return (
                 <button
                   key={opt.plan.id}
