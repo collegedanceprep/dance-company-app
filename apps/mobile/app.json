@@ -3,7 +3,7 @@
     "name": "College Dance Prep",
     "slug": "cdp",
     "scheme": ["cdp", "com.googleusercontent.apps.31400941000-8g9ud8c2pfgkb1590hb0606jg70jq152"],
-    "version": "2.1.11",
+    "version": "2.1.12",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
