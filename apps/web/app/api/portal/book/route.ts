@@ -182,6 +182,7 @@ export async function POST(req: Request) {
       Notes: notes ?? "",
       "Session Type": sessionType ?? "private-60",
       ...(useSingleCredit ? { "Single Credit Used": true } : {}),
+      "Booked By": "prep_master",
     })
   } catch (err) {
     // Booking creation failed — refund the credit so the member isn't charged

@@ -80,6 +80,7 @@ export async function createBookingAsPrepMaster(input: {
       time: input.time,
       sessionType: "private-60",
       notes: input.notes,
+      bookedBy: "prep_master",
     })
 
     if (!result.ok) {

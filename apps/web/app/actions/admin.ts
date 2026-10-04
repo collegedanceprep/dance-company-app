@@ -419,7 +419,7 @@ export async function createBookingAsAdmin(input: {
   try {
     await assertAdmin()
     const { createConfirmedBooking } = await import("@/lib/booking-create")
-    const result = await createConfirmedBooking(input)
+    const result = await createConfirmedBooking({ ...input, bookedBy: "admin" })
     if (!result.ok) {
       const friendly = result.error === "NO_CREDITS"
         ? "This member doesn't have enough credit for that session type."

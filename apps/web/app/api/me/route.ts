@@ -54,6 +54,15 @@ export async function GET() {
     }
   } catch { /* non-fatal */ }
 
+  // Self-healing: isParentAccount is only ever set by the explicit
+  // parent-signup flow, but a dancer can also link a parent later by
+  // entering their email — that never flips this flag. isParent above is
+  // the real, live signal (computed from Parent Email every time), so keep
+  // the stored flag in sync with it instead of letting it drift stale.
+  if (isParent && !isParentAccount) {
+    await db.update(userTable).set({ isParentAccount: true }).where(eq(userTable.id, user.id)).catch(() => {})
+  }
+
   return NextResponse.json({
     id: user.id,
     name: user.name,
@@ -61,6 +70,6 @@ export async function GET() {
     role: user.role,
     status: effectiveStatus,
     isParent,
-    isParentAccount,
+    isParentAccount: isParentAccount || isParent,
   })
 }

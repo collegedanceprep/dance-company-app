@@ -473,6 +473,7 @@ export async function createBooking(input: {
         "Session Type": input.sessionType ?? "private-60",
         ...(utcForCreate ? { "UTC Datetime": utcForCreate } : {}),
         ...(useSingleCredit ? { "Single Credit Used": true } : {}),
+        "Booked By": "member",
       })
     } catch (err) {
       const rollback = useSingleCredit && singleField

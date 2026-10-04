@@ -38,6 +38,7 @@ export type AdminBooking = {
   cancellationReason?: string | null
   sessionType: string | null
   singleCreditUsed?: boolean
+  bookedBy?: "member" | "prep_master" | "admin" | null
 }
 
 export type MemberPlan = {

@@ -86,6 +86,7 @@ export type BookingFields = {
   "Original UTC Datetime"?: string
   "Payable to PrepMaster"?: boolean
   "Single Credit Used"?: boolean
+  "Booked By"?: "member" | "prep_master" | "admin"
 }
 
 export type PlanFields = {
@@ -607,6 +608,7 @@ export type AdminBooking = {
   singleCreditUsed?: boolean
   cancellationReason: string
   declineReason: string
+  bookedBy: "member" | "prep_master" | "admin" | null
 }
 
 export async function adminGetAllMembers(): Promise<AdminMember[]> {
@@ -693,6 +695,7 @@ export async function adminGetAllBookings(): Promise<AdminBooking[]> {
       singleCreditUsed: r.fields["Single Credit Used"] === true,
       cancellationReason: r.fields["Cancellation Reason"] ?? "",
       declineReason: r.fields["Decline Reason"] ?? "",
+      bookedBy: r.fields["Booked By"] ?? null,
     }
   })
 }

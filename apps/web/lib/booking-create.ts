@@ -40,6 +40,7 @@ type CreateConfirmedBookingInput = {
   time: string
   sessionType?: SessionType
   notes?: string
+  bookedBy: "prep_master" | "admin"
 }
 
 type Result = { ok: true; id: string } | { ok: false; error: string }
@@ -54,7 +55,7 @@ type Result = { ok: true; id: string } | { ok: false; error: string }
  * booking themselves would go through.
  */
 export async function createConfirmedBooking(input: CreateConfirmedBookingInput): Promise<Result> {
-  const { memberUserId, memberEmail, prepMasterId, date, time, sessionType, notes } = input
+  const { memberUserId, memberEmail, prepMasterId, date, time, sessionType, notes, bookedBy } = input
 
   const safeId = memberUserId.replace(/'/g, "\\'")
   const clientRecs = await appBase.list<ClientFields>(TABLES.clients, {
@@ -135,6 +136,7 @@ export async function createConfirmedBooking(input: CreateConfirmedBookingInput)
       Notes: notes ?? "",
       "Session Type": sessionType ?? "private-60",
       ...(useSingleCredit ? { "Single Credit Used": true } : {}),
+      "Booked By": bookedBy,
     })
   } catch {
     if (useSingleCredit && singleField) {
