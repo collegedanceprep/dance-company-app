@@ -568,50 +568,75 @@ export function AdminOverviewPanel({ members, bookings, workers }: Props) {
                   {groups.length === 0 && (
                     <p className="text-sm text-muted-foreground">No {sheetStatusFilter ?? ""} bookings match the selected filter.</p>
                   )}
-                  {groups.map((g) => (
-                    <GroupSection key={g.key} label={g.label} count={g.items.length} icon={g.icon} labelClass={g.labelClass}>
-                      <ul className="flex flex-col gap-1.5">
-                        {g.items.map((b) => {
-                          const es = effectiveStatus(b)
-                          const isCancelled = es.startsWith("cancelled")
-                          const isExpanded = expandedId === b.id
-                          const badgeVariant = es === "confirmed" ? "default" : isCancelled || es === "declined" ? "destructive" : "secondary"
-                          return (
-                            <li key={b.id} className="rounded-md border text-sm overflow-hidden">
-                              <button
-                                onClick={() => setExpandedId(isExpanded ? null : b.id)}
-                                className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left hover:bg-muted/50 transition-colors"
-                              >
-                                <div className="min-w-0">
-                                  <p className="font-medium truncate">{b.dancerName || b.clientEmail || "Client"}</p>
-                                  <p className="text-xs text-muted-foreground">{b.prepMasterName}{b.date ? ` · ${b.date}` : ""}{b.time ? <> · <LocalTime slot={b.time} dateIso={b.date} utcDatetime={b.utcDatetime} /></> : ""}</p>
-                                </div>
-                                <div className="flex items-center gap-2 shrink-0">
-                                  <Badge variant={badgeVariant} className="capitalize">{es}</Badge>
-                                  {isExpanded ? <ChevronUp className="size-3.5 text-muted-foreground" /> : <ChevronDown className="size-3.5 text-muted-foreground" />}
-                                </div>
-                              </button>
-                              {isExpanded && (
-                                <div className="border-t bg-muted/30 px-3 py-2.5 flex flex-col gap-2">
-                                  {isCancelled ? (
-                                    <>
-                                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Cancellation Reason</p>
-                                      <p className="text-sm">{b.cancellationReason?.trim() || <span className="italic text-muted-foreground">No reason provided.</span>}</p>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Notes</p>
-                                      <p className="text-sm">{b.notes?.trim() || <span className="italic text-muted-foreground">No notes for this booking.</span>}</p>
-                                    </>
-                                  )}
-                                </div>
-                              )}
-                            </li>
-                          )
-                        })}
-                      </ul>
-                    </GroupSection>
-                  ))}
+                  {groups.map((g) => {
+                    const byDate = new Map<string, AdminBooking[]>()
+                    for (const b of g.items) {
+                      const key = b.date || "Unknown date"
+                      if (!byDate.has(key)) byDate.set(key, [])
+                      byDate.get(key)!.push(b)
+                    }
+                    const timeMs = (b: AdminBooking) => b.utcDatetime ? new Date(b.utcDatetime).getTime() : 0
+                    const dateGroups = Array.from(byDate.entries())
+                      .sort(([a], [b]) => a.localeCompare(b))
+                      .map(([date, items]) => [date, [...items].sort((a, b) => timeMs(a) - timeMs(b))] as [string, AdminBooking[]])
+
+                    return (
+                      <GroupSection key={g.key} label={g.label} count={g.items.length} icon={g.icon} labelClass={g.labelClass}>
+                        {dateGroups.map(([date, items]) => (
+                          <GroupSection
+                            key={date}
+                            label={date === "Unknown date" ? date : new Date(`${date}T00:00:00`).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+                            count={items.length}
+                            icon={null}
+                            labelClass=""
+                            defaultOpen={false}
+                            small
+                          >
+                            <ul className="flex flex-col gap-1.5">
+                              {items.map((b) => {
+                                const es = effectiveStatus(b)
+                                const isCancelled = es.startsWith("cancelled")
+                                const isExpanded = expandedId === b.id
+                                const badgeVariant = es === "confirmed" ? "default" : isCancelled || es === "declined" ? "destructive" : "secondary"
+                                return (
+                                  <li key={b.id} className="rounded-md border text-sm overflow-hidden">
+                                    <button
+                                      onClick={() => setExpandedId(isExpanded ? null : b.id)}
+                                      className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left hover:bg-muted/50 transition-colors"
+                                    >
+                                      <div className="min-w-0">
+                                        <p className="font-medium truncate">{b.dancerName || b.clientEmail || "Client"}</p>
+                                        <p className="text-xs text-muted-foreground">{b.prepMasterName}{b.date ? ` · ${b.date}` : ""}{b.time ? <> · <LocalTime slot={b.time} dateIso={b.date} utcDatetime={b.utcDatetime} /></> : ""}</p>
+                                      </div>
+                                      <div className="flex items-center gap-2 shrink-0">
+                                        <Badge variant={badgeVariant} className="capitalize">{es}</Badge>
+                                        {isExpanded ? <ChevronUp className="size-3.5 text-muted-foreground" /> : <ChevronDown className="size-3.5 text-muted-foreground" />}
+                                      </div>
+                                    </button>
+                                    {isExpanded && (
+                                      <div className="border-t bg-muted/30 px-3 py-2.5 flex flex-col gap-2">
+                                        {isCancelled ? (
+                                          <>
+                                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Cancellation Reason</p>
+                                            <p className="text-sm">{b.cancellationReason?.trim() || <span className="italic text-muted-foreground">No reason provided.</span>}</p>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Notes</p>
+                                            <p className="text-sm">{b.notes?.trim() || <span className="italic text-muted-foreground">No notes for this booking.</span>}</p>
+                                          </>
+                                        )}
+                                      </div>
+                                    )}
+                                  </li>
+                                )
+                              })}
+                            </ul>
+                          </GroupSection>
+                        ))}
+                      </GroupSection>
+                    )
+                  })}
                 </div>
               )
             })()}
@@ -664,17 +689,17 @@ function KpiCard({
   return <Card className={baseClass}>{inner}</Card>
 }
 
-function GroupSection({ label, count, icon, labelClass, children }: { label: string; count: number; icon: React.ReactNode; labelClass: string; children: React.ReactNode }) {
-  const [open, setOpen] = useState(true)
+function GroupSection({ label, count, icon, labelClass, children, defaultOpen = true, small = false }: { label: string; count: number; icon: React.ReactNode; labelClass: string; children: React.ReactNode; defaultOpen?: boolean; small?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen)
   return (
-    <div>
+    <div className={small ? "ml-2 mt-1.5 border-t pt-1.5" : ""}>
       <button
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center justify-between py-1.5 px-0.5 mb-1.5"
       >
         <div className="flex items-center gap-1.5">
           {icon}
-          <span className={`text-xs font-bold uppercase tracking-wide ${labelClass}`}>
+          <span className={small ? "text-sm font-bold text-foreground" : `text-xs font-bold uppercase tracking-wide ${labelClass}`}>
             {label} <span className="font-normal text-muted-foreground">({count})</span>
           </span>
         </div>
