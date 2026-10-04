@@ -95,21 +95,26 @@ function CollapsibleGroup({ label, count, color, icon, children, defaultOpen = t
   const COLORS = useColors()
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <View style={{ marginBottom: SPACING.sm }}>
+    <View style={{ marginBottom: small ? 2 : SPACING.sm }}>
       <TouchableOpacity
-        style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: small ? 6 : 8, paddingHorizontal: small ? 8 : 4, marginLeft: small ? SPACING.sm : 0 }}
+        style={{
+          flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+          paddingVertical: small ? 9 : 8, paddingHorizontal: small ? 10 : 4,
+          marginLeft: small ? SPACING.sm : 0, marginTop: small ? 6 : 0,
+          ...(small ? { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLORS.border } : {}),
+        }}
         onPress={() => setOpen((v) => !v)}
         activeOpacity={0.7}
       >
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
           {icon}
-          <Text style={{ fontSize: small ? 12 : 11, fontWeight: small ? "600" : "700", color, textTransform: small ? "none" : "uppercase", letterSpacing: small ? 0 : 0.6 }}>
+          <Text style={{ fontSize: small ? 13 : 11, fontWeight: small ? "700" : "700", color: small ? COLORS.text : color, textTransform: small ? "none" : "uppercase", letterSpacing: small ? 0 : 0.6 }}>
             {label} <Text style={{ fontWeight: "400", color: COLORS.textMuted }}>({count})</Text>
           </Text>
         </View>
         {open ? <ChevronUp size={14} color={COLORS.textMuted} /> : <ChevronDown size={14} color={COLORS.textMuted} />}
       </TouchableOpacity>
-      {open && <View style={{ gap: SPACING.sm }}>{children}</View>}
+      {open && <View style={{ gap: SPACING.sm, marginTop: small ? 4 : 0 }}>{children}</View>}
     </View>
   )
 }
