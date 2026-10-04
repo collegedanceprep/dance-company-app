@@ -170,7 +170,13 @@ function GroupedBookings({ bookings, statusFilter, onClearFilter }: { bookings: 
           if (!byDate.has(key)) byDate.set(key, [])
           byDate.get(key)!.push(b)
         }
-        const dateGroups = Array.from(byDate.entries()).sort(([a], [b]) => a.localeCompare(b))
+        const dateGroups = Array.from(byDate.entries())
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([date, items]) => [date, [...items].sort((a, b) => {
+            const ta = a.utcDatetime ? new Date(a.utcDatetime).getTime() : a.date && a.time ? fallbackUtcMs(a.date, a.time) : 0
+            const tb = b.utcDatetime ? new Date(b.utcDatetime).getTime() : b.date && b.time ? fallbackUtcMs(b.date, b.time) : 0
+            return ta - tb
+          })] as [string, AdminBooking[]])
         return (
           <CollapsibleGroup key={g.key} label={g.label} count={g.items.length} color={g.color} icon={g.icon}>
             {dateGroups.map(([date, items]) => (
