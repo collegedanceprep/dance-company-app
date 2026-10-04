@@ -894,18 +894,24 @@ export async function adminCreateMember(fields: {
   }
 }
 
+// Above this many ids, an OR(...) filterByFormula grows long enough to blow
+// past Airtable's request-URL length limit (seen in production as a 414
+// "Request-URI Too Large" once total booking volume grew — every booking's
+// User ID was going into the formula). Past the threshold, it's cheaper and
+// always safe to just pull the whole table and match in memory instead.
+const FILTER_ID_THRESHOLD = 50
+
 async function getClientsByUserIds(
   userIds: string[],
 ): Promise<Map<string, { name: string; email: string; phone: string }>> {
   const map = new Map<string, { name: string; email: string; phone: string }>()
   if (userIds.length === 0) return map
 
-  const clauses = userIds
-    .map((id) => `{User ID} = '${id.replace(/'/g, "\\'")}'`)
-    .join(", ")
-  const records = await list<ClientFields>(TABLES.clients, {
-    filterByFormula: `OR(${clauses})`,
-  })
+  const records = userIds.length > FILTER_ID_THRESHOLD
+    ? await list<ClientFields>(TABLES.clients, {})
+    : await list<ClientFields>(TABLES.clients, {
+        filterByFormula: `OR(${userIds.map((id) => `{User ID} = '${id.replace(/'/g, "\\'")}'`).join(", ")})`,
+      })
 
   for (const r of records) {
     const uid = r.fields["User ID"]
@@ -925,12 +931,11 @@ async function getClientsByEmails(
   const map = new Map<string, { name: string; email: string; phone: string }>()
   if (emails.length === 0) return map
 
-  const clauses = emails
-    .map((e) => `{Email} = '${e.replace(/'/g, "\\'")}'`)
-    .join(", ")
-  const records = await list<ClientFields>(TABLES.clients, {
-    filterByFormula: `OR(${clauses})`,
-  })
+  const records = emails.length > FILTER_ID_THRESHOLD
+    ? await list<ClientFields>(TABLES.clients, {})
+    : await list<ClientFields>(TABLES.clients, {
+        filterByFormula: `OR(${emails.map((e) => `{Email} = '${e.replace(/'/g, "\\'")}'`).join(", ")})`,
+      })
 
   for (const r of records) {
     const em = r.fields.Email
