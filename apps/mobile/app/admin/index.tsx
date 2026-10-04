@@ -91,19 +91,19 @@ function BookingItem({ booking: b }: { booking: AdminBooking }) {
 
 type StatusGroup = { key: string; label: string; color: string; icon: React.ReactNode }
 
-function CollapsibleGroup({ label, count, color, icon, children }: { label: string; count: number; color: string; icon: React.ReactNode; children: React.ReactNode }) {
+function CollapsibleGroup({ label, count, color, icon, children, defaultOpen = true, small = false }: { label: string; count: number; color: string; icon: React.ReactNode; children: React.ReactNode; defaultOpen?: boolean; small?: boolean }) {
   const COLORS = useColors()
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState(defaultOpen)
   return (
     <View style={{ marginBottom: SPACING.sm }}>
       <TouchableOpacity
-        style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 8, paddingHorizontal: 4 }}
+        style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: small ? 6 : 8, paddingHorizontal: small ? 8 : 4, marginLeft: small ? SPACING.sm : 0 }}
         onPress={() => setOpen((v) => !v)}
         activeOpacity={0.7}
       >
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
           {icon}
-          <Text style={{ fontSize: 11, fontWeight: "700", color, textTransform: "uppercase", letterSpacing: 0.6 }}>
+          <Text style={{ fontSize: small ? 12 : 11, fontWeight: small ? "600" : "700", color, textTransform: small ? "none" : "uppercase", letterSpacing: small ? 0 : 0.6 }}>
             {label} <Text style={{ fontWeight: "400", color: COLORS.textMuted }}>({count})</Text>
           </Text>
         </View>
@@ -163,11 +163,32 @@ function GroupedBookings({ bookings, statusFilter, onClearFilter }: { bookings: 
       )}
       {groups.length === 0 ? (
         <Text style={styles.empty}>No {statusFilter} bookings this month.</Text>
-      ) : groups.map((g) => (
-        <CollapsibleGroup key={g.key} label={g.label} count={g.items.length} color={g.color} icon={g.icon}>
-          {g.items.map((b) => <BookingItem key={b.id} booking={b} />)}
-        </CollapsibleGroup>
-      ))}
+      ) : groups.map((g) => {
+        const byDate = new Map<string, AdminBooking[]>()
+        for (const b of g.items) {
+          const key = b.date ?? "Unknown date"
+          if (!byDate.has(key)) byDate.set(key, [])
+          byDate.get(key)!.push(b)
+        }
+        const dateGroups = Array.from(byDate.entries()).sort(([a], [b]) => a.localeCompare(b))
+        return (
+          <CollapsibleGroup key={g.key} label={g.label} count={g.items.length} color={g.color} icon={g.icon}>
+            {dateGroups.map(([date, items]) => (
+              <CollapsibleGroup
+                key={date}
+                label={date === "Unknown date" ? date : new Date(`${date}T00:00:00`).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+                count={items.length}
+                color={COLORS.textMuted}
+                icon={null}
+                defaultOpen={false}
+                small
+              >
+                {items.map((b) => <BookingItem key={b.id} booking={b} />)}
+              </CollapsibleGroup>
+            ))}
+          </CollapsibleGroup>
+        )
+      })}
     </View>
   )
 }
