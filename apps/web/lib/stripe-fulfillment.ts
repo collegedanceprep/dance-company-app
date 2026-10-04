@@ -132,10 +132,15 @@ export async function fulfillCheckoutSession(
   await db.execute(sql`SELECT pg_advisory_lock(${lockKey}::bigint)`)
   try {
     if (client) {
-      // Re-fetch the record inside the lock to get the latest value
+      // Re-fetch the record inside the lock to get the latest value. Must
+      // bypass the fetch cache (revalidate: 0) — without it, rapid repeat
+      // purchases within the same cache window all read the same stale
+      // cached balance and stomp each other's increments instead of
+      // stacking, silently losing paid-for credits.
       const fresh = (await appBase.list<ClientFields>(TABLES.clients, {
         filterByFormula: `{User ID} = '${effectiveUserId.replace(/'/g, "\\'")}'`,
         maxRecords: 1,
+        revalidate: 0,
       }))[0] ?? client
 
       if (itemType !== "pack" && singleField) {
