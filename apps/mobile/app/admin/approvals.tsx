@@ -6,7 +6,7 @@ import {
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { useFocusEffect } from "expo-router"
-import { Check, X, Clock, UserX } from "lucide-react-native"
+import { Check, X, Clock, UserX, ChevronDown, ChevronUp } from "lucide-react-native"
 import { authClient } from "@/lib/auth-client"
 import { useColors } from "@/lib/theme-context"
 import { SPACING, RADIUS } from "@/constants/theme"
@@ -32,6 +32,7 @@ export default function ApprovalsScreen() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [acting, setActing] = useState<string | null>(null)
+  const [deniedOpen, setDeniedOpen] = useState(false)
 
   const load = useCallback(async () => {
     const { data, error } = await authClient.$fetch(`${API_BASE}/api/admin/pending-users`)
@@ -158,10 +159,16 @@ export default function ApprovalsScreen() {
             {/* Denied section */}
             {denied.length > 0 && (
               <>
-                <View style={[styles.sectionHeader, { marginTop: SPACING.lg }]}>
+                <TouchableOpacity
+                  style={[styles.sectionHeader, { marginTop: SPACING.lg }]}
+                  onPress={() => setDeniedOpen((v) => !v)}
+                  activeOpacity={0.7}
+                >
                   <UserX size={15} color={COLORS.red ?? "#ef4444"} />
                   <Text style={styles.sectionTitle}>Denied ({denied.length})</Text>
-                </View>
+                  {deniedOpen ? <ChevronUp size={15} color={COLORS.textMuted} /> : <ChevronDown size={15} color={COLORS.textMuted} />}
+                </TouchableOpacity>
+                {deniedOpen && (
                 <View style={styles.card}>
                   {denied.map((u, i) => (
                     <View key={u.id} style={[styles.row, i > 0 && styles.rowBorder]}>
@@ -190,6 +197,7 @@ export default function ApprovalsScreen() {
                     </View>
                   ))}
                 </View>
+                )}
               </>
             )}
           </>

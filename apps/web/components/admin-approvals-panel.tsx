@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Check, X, Clock, UserX } from "lucide-react"
+import { Check, X, Clock, UserX, ChevronDown, ChevronUp } from "lucide-react"
 
 type PendingUser = {
   id: string
@@ -16,6 +16,7 @@ export function AdminApprovalsPanel() {
   const [users, setUsers] = useState<PendingUser[]>([])
   const [loading, setLoading] = useState(true)
   const [acting, setActing] = useState<string | null>(null)
+  const [deniedOpen, setDeniedOpen] = useState(false)
 
   const load = useCallback(async () => {
     const res = await fetch("/api/admin/pending-users")
@@ -97,10 +98,16 @@ export function AdminApprovalsPanel() {
       {/* Denied */}
       {denied.length > 0 && (
         <section className="flex flex-col gap-4">
-          <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setDeniedOpen((v) => !v)}
+            className="flex items-center gap-2 text-left"
+          >
             <UserX className="w-4 h-4 text-destructive" />
             <h2 className="font-semibold text-foreground">Denied ({denied.length})</h2>
-          </div>
+            {deniedOpen ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+          </button>
+          {deniedOpen && (
           <div className="divide-y divide-border rounded-lg border bg-card overflow-hidden">
             {denied.map((u) => (
               <div key={u.id} className="flex items-center justify-between gap-4 p-4">
@@ -125,6 +132,7 @@ export function AdminApprovalsPanel() {
               </div>
             ))}
           </div>
+          )}
         </section>
       )}
     </div>
