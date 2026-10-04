@@ -49,6 +49,7 @@ export type MemberPlan = {
   purchasedAt: string
   expiresAt: string
   status: string
+  source?: "stripe" | "admin"
 }
 
 export type DancePackage = {

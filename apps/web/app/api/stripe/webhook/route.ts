@@ -23,7 +23,15 @@ export async function POST(req: NextRequest) {
       console.error("Webhook missing metadata", session.metadata)
       return NextResponse.json({ error: "Missing metadata" }, { status: 400 })
     }
-    await fulfillCheckoutSession(session)
+    try {
+      await fulfillCheckoutSession(session)
+    } catch (err) {
+      // A 2xx here tells Stripe delivery succeeded and it will never retry —
+      // a real failure must return non-2xx so Stripe's retry schedule can
+      // give this paid session another chance instead of silently dropping it.
+      console.error("[stripe/webhook] fulfillment failed for session", session.id, err)
+      return NextResponse.json({ error: "Fulfillment failed" }, { status: 500 })
+    }
   }
 
   return NextResponse.json({ received: true })

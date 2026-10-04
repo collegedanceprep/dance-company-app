@@ -1,5 +1,5 @@
 import { revalidateTag } from "next/cache"
-import { sql } from "drizzle-orm"
+import { sql, eq } from "drizzle-orm"
 import type Stripe from "stripe"
 import {
   TABLES,
@@ -47,6 +47,20 @@ export async function fulfillCheckoutSession(
   } catch {
     return { fulfilled: true, alreadyProcessed: true }
   }
+
+  // The claim row above only proves no one ELSE is fulfilling this session —
+  // it must not also mean "fulfillment is guaranteed to finish." If anything
+  // below throws (a transient Airtable error, etc.), the claim has to be
+  // released so a Stripe retry can actually redo the work, instead of seeing
+  // the claim, assuming success, and permanently skipping a paid purchase.
+  try {
+    return await doFulfill()
+  } catch (err) {
+    await db.delete(stripeWebhookProcessed).where(eq(stripeWebhookProcessed.stripeSessionId, stripeSessionId)).catch(() => {})
+    throw err
+  }
+
+  async function doFulfill(): Promise<{ fulfilled: boolean; alreadyProcessed: boolean }> {
 
   const SINGLE_CREDIT_FIELD_MAP: Record<string, keyof ClientFields> = {
     "private-30": "Single Credits 30",
@@ -206,4 +220,5 @@ export async function fulfillCheckoutSession(
   }
 
   return { fulfilled: true, alreadyProcessed: false }
+  }
 }

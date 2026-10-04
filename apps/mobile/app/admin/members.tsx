@@ -448,6 +448,12 @@ function GroupedPlanHistory({ plans, credits, saving, onRemove, COLORS, styles }
                       {expiryDate ? <Text style={styles.planMeta}>Expires {expiryDate}</Text> : null}
                     </View>
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                      {plan.source === "stripe" && (
+                        <View style={[styles.badge, { backgroundColor: COLORS.primaryLight }]}><Text style={[styles.badgeText, { color: COLORS.primary }]}>Stripe</Text></View>
+                      )}
+                      {plan.source === "admin" && (
+                        <View style={[styles.badge, { backgroundColor: COLORS.amberLight }]}><Text style={[styles.badgeText, { color: COLORS.amber }]}>Admin</Text></View>
+                      )}
                       <View style={[styles.badge, { backgroundColor: planStatusBg }]}><Text style={[styles.badgeText, { color: planStatusFg }]}>{s}</Text></View>
                       {s !== "Used" && <TouchableOpacity onPress={() => onRemove(plan)} disabled={saving} hitSlop={8}><Trash2 size={14} color={COLORS.textMuted} /></TouchableOpacity>}
                     </View>
