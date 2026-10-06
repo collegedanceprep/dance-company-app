@@ -174,6 +174,15 @@ export const stripeWebhookProcessed = pgTable("stripe_webhook_processed", {
   processedAt: timestamp("processedAt").notNull().defaultNow(),
 })
 
+// Idempotency guard for the 24-hour booking-reminder cron — the insert is
+// attempted before sending; a duplicate bookingId (Airtable record ID)
+// means a previous cron tick already handled it, so the conflict is the
+// dedupe signal itself.
+export const bookingReminderSent = pgTable("booking_reminder_sent", {
+  bookingId: text("bookingId").primaryKey(),
+  sentAt: timestamp("sentAt").notNull().defaultNow(),
+})
+
 // Booking attempt lock — prevents double-deduction when two requests race for the same slot.
 // A row is inserted before credits are deducted; duplicate (userId, date, time) is rejected.
 // Row is deleted after the booking is fully committed (or on rollback).

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { Check, X, Clock, UserX, ChevronDown, ChevronUp } from "lucide-react"
+import { Check, X, Clock, UserX, ChevronDown, ChevronUp, Trash2 } from "lucide-react"
 
 type PendingUser = {
   id: string
@@ -35,6 +35,18 @@ export function AdminApprovalsPanel() {
       body: JSON.stringify({ status }),
     })
     setUsers((prev) => prev.filter((u) => u.id !== id))
+    setActing(null)
+  }
+
+  async function handleDelete(u: PendingUser) {
+    if (!window.confirm(`Permanently delete ${u.name}'s (${u.email}) denied signup? This can't be undone.`)) return
+    setActing(u.id)
+    await fetch("/api/admin/delete-user", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: u.email }),
+    })
+    setUsers((prev) => prev.filter((x) => x.id !== u.id))
     setActing(null)
   }
 
@@ -122,13 +134,23 @@ export function AdminApprovalsPanel() {
                   </div>
                   <p className="text-sm text-muted-foreground truncate">{u.email}</p>
                 </div>
-                <button
-                  onClick={() => handleAction(u.id, "active")}
-                  disabled={acting === u.id}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-sm font-medium hover:bg-muted disabled:opacity-50"
-                >
-                  <Check className="w-3.5 h-3.5" /> Approve
-                </button>
+                <div className="flex gap-2 shrink-0">
+                  <button
+                    onClick={() => handleAction(u.id, "active")}
+                    disabled={acting === u.id}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-sm font-medium hover:bg-muted disabled:opacity-50"
+                  >
+                    <Check className="w-3.5 h-3.5" /> Approve
+                  </button>
+                  <button
+                    onClick={() => handleDelete(u)}
+                    disabled={acting === u.id}
+                    title="Permanently remove this request"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-destructive/30 text-destructive text-sm font-medium hover:bg-destructive/5 disabled:opacity-50"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
