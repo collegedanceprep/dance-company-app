@@ -180,13 +180,24 @@ async function list<T>(table: string, options: ListOptions = {}): Promise<Airtab
   const all: AirtableRecord<T>[] = []
   let offset: string | undefined
 
+  // An unbounded list() (no maxRecords) may need to page through Airtable's
+  // 100-record-per-request limit using a pagination `offset` token. That
+  // token expires on Airtable's side well before Next's time-based fetch
+  // cache necessarily revalidates (stale-while-revalidate can serve a
+  // cached page far past its `revalidate` window on a low-traffic route),
+  // so a cached-but-aging page can carry an offset Airtable has already
+  // expired — causing a 422 LIST_RECORDS_ITERATOR_NOT_AVAILABLE on the next
+  // page fetch. Bounded (maxRecords) calls are always a single page and
+  // safe to cache normally.
+  const pageRevalidate = options.maxRecords ? (options.revalidate ?? 15) : 0
+
   do {
     const params = new URLSearchParams(baseParams)
     if (offset) params.set("offset", offset)
     const query = params.toString()
     const data = await airtableFetch(
       `${encodeURIComponent(table)}${query ? `?${query}` : ""}`,
-      { method: "GET", revalidate: options.revalidate ?? 15, ...(options.tags ? { tags: options.tags } : {}) },
+      { method: "GET", revalidate: pageRevalidate, ...(options.tags ? { tags: options.tags } : {}) },
     )
     all.push(...(data.records ?? []))
     offset = data.offset
