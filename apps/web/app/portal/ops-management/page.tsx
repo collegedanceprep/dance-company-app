@@ -50,6 +50,7 @@ export default async function OpsManagementPage() {
       title="Ops Management"
       subtitleSuffix="company-wide"
       apiEndpoint="/api/portal/ops-management"
+      enableDayView
     />
   )
 }
