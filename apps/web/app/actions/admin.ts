@@ -6,7 +6,7 @@ import { revalidatePath, revalidateTag } from "next/cache"
 import { auth } from "@/lib/auth"
 import { isAdminEmail } from "@/lib/roles"
 import { db } from "@/lib/db"
-import { prepMasterInvite, user as userTable } from "@/lib/db/schema"
+import { prepMasterInvite, user as userTable, creditAdjustment } from "@/lib/db/schema"
 import { eq, inArray } from "drizzle-orm"
 import {
   adminGetAllMembers,
@@ -45,6 +45,16 @@ async function assertAdmin() {
   if (!session?.user || !isAdminEmail(session.user.email)) {
     throw new Error("Unauthorized")
   }
+  return session.user.email
+}
+
+export type CreditAdjustmentRecord = {
+  id: string
+  memberRecordId: string
+  adminEmail: string
+  previousCredits: number
+  newCredits: number
+  createdAt: string
 }
 
 export async function getAdminData(): Promise<{
@@ -53,14 +63,24 @@ export async function getAdminData(): Promise<{
   workers: AdminWorker[]
   plans: MemberPlan[]
   packages: DancePackage[]
+  creditAdjustments: CreditAdjustmentRecord[]
 }> {
   await assertAdmin()
-  const [members, bookings, workers, plans] = await Promise.all([
+  const [members, bookings, workers, plans, creditAdjustmentRows] = await Promise.all([
     adminGetAllMembers(),
     adminGetAllBookings(),
     adminGetAllWorkers(),
     adminGetAllPlans(),
+    db.select().from(creditAdjustment).orderBy(creditAdjustment.createdAt),
   ])
+  const creditAdjustments: CreditAdjustmentRecord[] = creditAdjustmentRows.map((r) => ({
+    id: r.id,
+    memberRecordId: r.memberRecordId,
+    adminEmail: r.adminEmail,
+    previousCredits: r.previousCredits,
+    newCredits: r.newCredits,
+    createdAt: r.createdAt.toISOString(),
+  }))
 
   // Exclude PrepMasters — they're in the Workers table and have their own portal
   const workerEmails = new Set(workers.map((w) => w.email.trim().toLowerCase()).filter(Boolean))
@@ -126,7 +146,7 @@ export async function getAdminData(): Promise<{
     inviteStatus: (inviteMap[w.email.trim().toLowerCase()] ?? null) as AdminWorker["inviteStatus"],
   }))
 
-  return { members: approvedMembers, bookings, workers: workersWithStatus, plans, packages: PACKAGES }
+  return { members: approvedMembers, bookings, workers: workersWithStatus, plans, packages: PACKAGES, creditAdjustments }
 }
 
 export async function addComplimentaryCredits(
@@ -345,9 +365,9 @@ export async function adminSetCredits(
   userId?: string,
   currentCredits?: number,
   memberEmail?: string,
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<{ ok: true; adjustment: CreditAdjustmentRecord | null } | { ok: false; error: string }> {
   try {
-    await assertAdmin()
+    const adminEmail = await assertAdmin()
     if (newCredits < 0 || newCredits > 9999) return { ok: false, error: "Invalid credit amount." }
 
     // If this is a manual increase, log it as a Plan record (same pattern as
@@ -368,13 +388,40 @@ export async function adminSetCredits(
       })
     }
 
+    // Every manual change — increase or decrease — gets logged here with who
+    // did it and the before/after values. The Plan-record trail above only
+    // covers increases (and doesn't say who); this covers both directions.
+    let adjustment: CreditAdjustmentRecord | null = null
+    if (delta !== 0) {
+      const id = randomUUID()
+      const createdAt = new Date()
+      await db.insert(creditAdjustment).values({
+        id,
+        memberRecordId: memberId,
+        userId: userId ?? null,
+        memberEmail: memberEmail ?? null,
+        adminEmail,
+        previousCredits: currentCredits ?? 0,
+        newCredits,
+        createdAt,
+      })
+      adjustment = {
+        id,
+        memberRecordId: memberId,
+        adminEmail,
+        previousCredits: currentCredits ?? 0,
+        newCredits,
+        createdAt: createdAt.toISOString(),
+      }
+    }
+
     await appBase.update<ClientFields>(TABLES.clients, memberId, {
       "Credits Remaining": newCredits,
     })
     revalidatePath("/admin")
     revalidatePath("/dashboard")
     if (userId) revalidateTag(`member-${userId}`, "max")
-    return { ok: true }
+    return { ok: true, adjustment }
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Failed to set credits." }
   }

@@ -300,7 +300,7 @@ export async function getPrepMasterPhone(id: string): Promise<string | null> {
 export async function getPrepMasterByEmail(email: string): Promise<PrepMaster | null> {
   const safe = email.trim().toLowerCase().replace(/'/g, "\\'")
   const records = await list<WorkerFields>(TABLES.workers, {
-    filterByFormula: `LOWER({Email}) = '${safe}'`,
+    filterByFormula: `LOWER(TRIM({Email})) = '${safe}'`,
     maxRecords: 1,
     revalidate: 0,
   })
@@ -870,7 +870,7 @@ export async function adminCreateMember(fields: {
 }): Promise<AdminMember> {
   const safeEmail = fields.email.trim().toLowerCase().replace(/'/g, "\\'")
   const existing = await list<ClientFields>(TABLES.clients, {
-    filterByFormula: `LOWER({Email}) = '${safeEmail}'`,
+    filterByFormula: `LOWER(TRIM({Email})) = '${safeEmail}'`,
     maxRecords: 1,
     revalidate: 0,
   })

@@ -3,6 +3,7 @@
 import { useState, useTransition, useRef } from "react"
 import { toast } from "sonner"
 import { addComplimentaryCredits, adminAssignPlan, createMember, adminRemovePlan, adminSetCredits, adminSetSingleCredits } from "@/app/actions/admin"
+import type { CreditAdjustmentRecord } from "@/app/actions/admin"
 import type { AdminMember, AdminBooking, MemberPlan } from "@/lib/airtable"
 import { SESSION_TYPE_LABELS } from "@/lib/session-types"
 import { planDisplayStatus } from "@/lib/plan-utils"
@@ -39,9 +40,10 @@ type Props = {
   packages: DancePackage[]
   query?: string
   onlyMismatches?: boolean
+  creditAdjustments?: CreditAdjustmentRecord[]
 }
 
-export function AdminMembersPanel({ members, bookings, plans, packages, query = "", onlyMismatches = false }: Props) {
+export function AdminMembersPanel({ members, bookings, plans, packages, query = "", onlyMismatches = false, creditAdjustments = [] }: Props) {
   const [expanded, setExpanded] = useState<string | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
   const [localMembers, setLocalMembers] = useState<AdminMember[]>(members)
@@ -54,6 +56,7 @@ export function AdminMembersPanel({ members, bookings, plans, packages, query = 
   const [parentEmailSaving, setParentEmailSaving] = useState<Record<string, boolean>>({})
   const [editingCredits, setEditingCredits] = useState<Record<string, string>>({})
   const [localPlans, setLocalPlans] = useState<MemberPlan[]>(plans)
+  const [localCreditAdjustments, setLocalCreditAdjustments] = useState<CreditAdjustmentRecord[]>(creditAdjustments)
   const [isPending, startTransition] = useTransition()
 
   const queryFiltered = query.trim()
@@ -112,6 +115,12 @@ export function AdminMembersPanel({ members, bookings, plans, packages, query = 
     return localPlans.filter((p) => p.userId === member.userId)
   }
 
+  function memberCreditAdjustments(member: AdminMember) {
+    return localCreditAdjustments
+      .filter((a) => a.memberRecordId === member.id)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  }
+
   function creditsFor(member: AdminMember) {
     return localCredits[member.id] ?? member.creditsRemaining
   }
@@ -151,11 +160,15 @@ export function AdminMembersPanel({ members, bookings, plans, packages, query = 
   function handleSetCredits(member: AdminMember) {
     const val = parseInt(editingCredits[member.id] ?? "", 10)
     if (Number.isNaN(val) || val < 0) { toast.error("Enter a valid number."); return }
+    const previousCredits = creditsFor(member)
     startTransition(async () => {
-      const result = await adminSetCredits(member.id, val, member.userId, creditsFor(member), member.email)
+      const result = await adminSetCredits(member.id, val, member.userId, previousCredits, member.email)
       if (result.ok) {
         setLocalCredits((prev) => ({ ...prev, [member.id]: val }))
         setEditingCredits((prev) => ({ ...prev, [member.id]: "" }))
+        if (result.adjustment) {
+          setLocalCreditAdjustments((prev) => [result.adjustment!, ...prev])
+        }
         toast.success(`Credits updated to ${val}.`)
       } else {
         toast.error(result.error)
@@ -478,6 +491,40 @@ export function AdminMembersPanel({ members, bookings, plans, packages, query = 
                   />
                 )}
 
+                {/* Manual credit adjustments — audit trail for the "Set pack
+                    credit balance" tool below, both increases and decreases */}
+                {memberCreditAdjustments(member).length > 0 && (
+                  <div className="flex flex-col gap-2">
+                    <p className="text-sm font-medium">
+                      Manual credit adjustments ({memberCreditAdjustments(member).length})
+                    </p>
+                    <ul className="flex flex-col gap-1.5">
+                      {memberCreditAdjustments(member).map((a) => {
+                        const delta = a.newCredits - a.previousCredits
+                        return (
+                          <li
+                            key={a.id}
+                            className="flex items-center justify-between gap-3 rounded-md border px-3 py-2 text-sm"
+                          >
+                            <div className="min-w-0">
+                              <span className="font-medium">{a.adminEmail}</span>
+                              <span className="ml-2 text-muted-foreground">
+                                {new Date(a.createdAt).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}
+                              </span>
+                              <span className="ml-2 text-muted-foreground">
+                                {a.previousCredits} → {a.newCredits}
+                              </span>
+                            </div>
+                            <Badge variant={delta > 0 ? "default" : "destructive"} className="shrink-0 tabular-nums">
+                              {delta > 0 ? "+" : ""}{delta}
+                            </Badge>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  </div>
+                )}
+
                 {/* Add single session */}
                 <div className="flex flex-col gap-2">
                   <p className="text-sm font-medium">Add single session</p>
@@ -619,6 +666,11 @@ export function AdminMembersPanel({ members, bookings, plans, packages, query = 
                               <span className={`ml-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold leading-none ${b.singleCreditUsed ? "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300" : "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"}`}>
                                 {b.singleCreditUsed ? "Single" : "Pack"}
                               </span>
+                              {b.bookedBy === "admin" && (
+                                <span className="ml-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold leading-none bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300">
+                                  Admin-booked
+                                </span>
+                              )}
                             </div>
                             <Badge variant={statusVariant} className="capitalize shrink-0">
                               {b.status}

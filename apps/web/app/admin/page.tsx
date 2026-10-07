@@ -3,7 +3,7 @@ import { getAdminData } from "@/app/actions/admin"
 import { AdminTabs } from "@/components/admin-tabs"
 
 export default async function AdminPage() {
-  const { members, bookings, workers, plans, packages } = await getAdminData()
+  const { members, bookings, workers, plans, packages, creditAdjustments } = await getAdminData()
 
   return (
     <div className="flex flex-col gap-8">
@@ -20,6 +20,7 @@ export default async function AdminPage() {
           workers={workers}
           plans={plans}
           packages={packages}
+          creditAdjustments={creditAdjustments}
         />
       </Suspense>
     </div>

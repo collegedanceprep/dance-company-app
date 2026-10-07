@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react"
 import { useSearchParams } from "next/navigation"
 import type { AdminMember, AdminBooking, AdminWorker, MemberPlan } from "@/lib/airtable"
+import type { CreditAdjustmentRecord } from "@/app/actions/admin"
 import type { DancePackage } from "@/lib/packages"
 import { AdminMembersPanel } from "@/components/admin-members-panel"
 import { AdminPrepMastersPanel } from "@/components/admin-prep-masters-panel"
@@ -27,6 +28,7 @@ type Props = {
   workers: AdminWorker[]
   plans: MemberPlan[]
   packages: DancePackage[]
+  creditAdjustments: CreditAdjustmentRecord[]
 }
 
 function hasCreditMismatch(member: AdminMember, plans: MemberPlan[]): boolean {
@@ -41,7 +43,7 @@ function hasCreditMismatch(member: AdminMember, plans: MemberPlan[]): boolean {
   })
 }
 
-export function AdminTabs({ members, bookings, workers, plans, packages }: Props) {
+export function AdminTabs({ members, bookings, workers, plans, packages, creditAdjustments }: Props) {
   const searchParams = useSearchParams()
   const active = (searchParams.get("tab") as TabId) ?? "overview"
   const [queries, setQueries] = useState<Partial<Record<TabId, string>>>({})
@@ -87,7 +89,7 @@ export function AdminTabs({ members, bookings, workers, plans, packages }: Props
 
       {active === "overview" && <AdminOverviewPanel members={members} bookings={bookings} workers={workers} plans={plans} />}
       {active === "members" && (
-        <AdminMembersPanel members={members} bookings={bookings} plans={plans} packages={packages} query={query} onlyMismatches={onlyMismatches} />
+        <AdminMembersPanel members={members} bookings={bookings} plans={plans} packages={packages} query={query} onlyMismatches={onlyMismatches} creditAdjustments={creditAdjustments} />
       )}
       {active === "prep-masters" && (
         <AdminPrepMastersPanel workers={workers} bookings={bookings} query={query} />

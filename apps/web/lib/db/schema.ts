@@ -4,6 +4,7 @@ import {
   timestamp,
   boolean,
   integer,
+  doublePrecision,
   unique,
   index,
 } from "drizzle-orm/pg-core"
@@ -220,5 +221,26 @@ export const prepMasterAvailability = pgTable(
       t.email,
       t.dayOfWeek,
     ),
+  }),
+)
+
+// Audit trail for every admin-driven change to a member's Credits Remaining
+// (increases AND decreases) — the "Set pack credit balance" admin tool.
+// Airtable only stores the live number, so this is the only record of who
+// changed it, when, and what it was before/after.
+export const creditAdjustment = pgTable(
+  "credit_adjustment",
+  {
+    id: text("id").primaryKey(),
+    memberRecordId: text("memberRecordId").notNull(), // Airtable Members record id
+    userId: text("userId"),
+    memberEmail: text("memberEmail"),
+    adminEmail: text("adminEmail").notNull(),
+    previousCredits: doublePrecision("previousCredits").notNull(),
+    newCredits: doublePrecision("newCredits").notNull(),
+    createdAt: timestamp("createdAt").notNull().defaultNow(),
+  },
+  (t) => ({
+    memberIdx: index("credit_adjustment_member_idx").on(t.memberRecordId),
   }),
 )
