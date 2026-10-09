@@ -1,12 +1,12 @@
-import React, { useCallback, useState } from "react"
+import React, { useCallback, useRef, useState } from "react"
 import { API_BASE } from "@/lib/config"
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  ActivityIndicator, RefreshControl, Alert,
+  ActivityIndicator, RefreshControl, Alert, Animated, PanResponder,
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { useFocusEffect } from "expo-router"
-import { Check, X, Clock, UserX, ChevronDown, ChevronUp } from "lucide-react-native"
+import { Check, X, Clock, UserX, ChevronDown, ChevronUp, Trash2 } from "lucide-react-native"
 import { authClient } from "@/lib/auth-client"
 import { useColors } from "@/lib/theme-context"
 import { SPACING, RADIUS } from "@/constants/theme"
@@ -23,6 +23,97 @@ type PendingUser = {
 
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+}
+
+const SWIPE_THRESHOLD = 72
+
+function SwipeableDeniedRow({
+  user, acting, onApprove, onDelete, COLORS, styles,
+}: {
+  user: PendingUser
+  acting: boolean
+  onApprove: () => void
+  onDelete: () => void
+  COLORS: any
+  styles: ReturnType<typeof makeStyles>
+}) {
+  const translateX = useRef(new Animated.Value(0)).current
+  const isOpen = useRef(false)
+  const snapOpenRef = useRef<() => void>(() => {})
+  const snapClosedRef = useRef<() => void>(() => {})
+  const handleDeleteRef = useRef<() => void>(() => {})
+
+  snapOpenRef.current = () => {
+    isOpen.current = true
+    Animated.spring(translateX, { toValue: -90, useNativeDriver: true, bounciness: 4 }).start()
+  }
+  snapClosedRef.current = () => {
+    isOpen.current = false
+    Animated.spring(translateX, { toValue: 0, useNativeDriver: true, bounciness: 6 }).start()
+  }
+  handleDeleteRef.current = () => {
+    snapClosedRef.current()
+    onDelete()
+  }
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponderCapture: (_, g) =>
+        Math.abs(g.dx) > 8 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
+      onPanResponderMove: (_, g) => {
+        if (g.dx < 0) translateX.setValue(Math.max(g.dx, -110))
+        else if (isOpen.current) translateX.setValue(Math.min(0, -90 + g.dx))
+      },
+      onPanResponderRelease: (_, g) => {
+        if (isOpen.current) {
+          g.dx > 20 ? snapClosedRef.current() : snapOpenRef.current()
+        } else {
+          g.dx < -SWIPE_THRESHOLD ? snapOpenRef.current() : snapClosedRef.current()
+        }
+      },
+    })
+  ).current
+
+  return (
+    <View style={{ overflow: "hidden" }}>
+      <TouchableOpacity
+        style={styles.swipeDeleteAction}
+        onPress={() => handleDeleteRef.current()}
+        activeOpacity={0.8}
+      >
+        <Trash2 size={18} color="#fff" />
+        <Text style={styles.swipeDeleteText}>Delete</Text>
+      </TouchableOpacity>
+
+      <Animated.View
+        style={[styles.row, { backgroundColor: COLORS.surface, transform: [{ translateX }] }]}
+        {...panResponder.panHandlers}
+      >
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+            <Text style={styles.name} numberOfLines={1}>{user.name}</Text>
+            <View style={user.accountType === "prepmaster" ? styles.chipPrepmaster : styles.chipMember}>
+              <Text style={user.accountType === "prepmaster" ? styles.chipTextPrepmaster : styles.chipTextMember}>
+                {user.accountType === "prepmaster" ? "PrepMaster" : "Member"}
+              </Text>
+            </View>
+          </View>
+          <Text style={styles.email} numberOfLines={1}>{user.email}</Text>
+        </View>
+        <TouchableOpacity
+          style={[styles.btn, styles.btnOutline]}
+          onPress={onApprove}
+          disabled={acting}
+          activeOpacity={0.7}
+        >
+          {acting
+            ? <ActivityIndicator size="small" color={COLORS.text} />
+            : <><Check size={14} color={COLORS.text} /><Text style={[styles.btnText, { color: COLORS.text }]}>Approve</Text></>
+          }
+        </TouchableOpacity>
+      </Animated.View>
+    </View>
+  )
 }
 
 export default function ApprovalsScreen() {
@@ -69,6 +160,34 @@ export default function ApprovalsScreen() {
               setUsers((prev) => prev.filter((u) => u.id !== user.id))
             } catch {
               Alert.alert("Error", `Failed to ${label} member.`)
+            } finally {
+              setActing(null)
+            }
+          },
+        },
+      ]
+    )
+  }
+
+  function handleDelete(user: PendingUser) {
+    Alert.alert(
+      "Remove request?",
+      `This permanently deletes ${user.name}'s (${user.email}) denied signup. This can't be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            setActing(user.id)
+            try {
+              await authClient.$fetch(`${API_BASE}/api/admin/delete-user`, {
+                method: "DELETE",
+                body: JSON.stringify({ email: user.email }),
+              })
+              setUsers((prev) => prev.filter((u) => u.id !== user.id))
+            } catch {
+              Alert.alert("Error", "Failed to delete this request.")
             } finally {
               setActing(null)
             }
@@ -169,34 +288,23 @@ export default function ApprovalsScreen() {
                   {deniedOpen ? <ChevronUp size={15} color={COLORS.textMuted} /> : <ChevronDown size={15} color={COLORS.textMuted} />}
                 </TouchableOpacity>
                 {deniedOpen && (
+                <>
+                <Text style={styles.swipeHint}>Swipe left to permanently remove a request.</Text>
                 <View style={styles.card}>
                   {denied.map((u, i) => (
-                    <View key={u.id} style={[styles.row, i > 0 && styles.rowBorder]}>
-                      <View style={{ flex: 1, minWidth: 0 }}>
-                        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                          <Text style={styles.name} numberOfLines={1}>{u.name}</Text>
-                          <View style={u.accountType === "prepmaster" ? styles.chipPrepmaster : styles.chipMember}>
-                            <Text style={u.accountType === "prepmaster" ? styles.chipTextPrepmaster : styles.chipTextMember}>
-                              {u.accountType === "prepmaster" ? "PrepMaster" : "Member"}
-                            </Text>
-                          </View>
-                        </View>
-                        <Text style={styles.email} numberOfLines={1}>{u.email}</Text>
-                      </View>
-                      <TouchableOpacity
-                        style={[styles.btn, styles.btnOutline]}
-                        onPress={() => handleAction(u, "active")}
-                        disabled={acting === u.id}
-                        activeOpacity={0.7}
-                      >
-                        {acting === u.id
-                          ? <ActivityIndicator size="small" color={COLORS.text} />
-                          : <><Check size={14} color={COLORS.text} /><Text style={[styles.btnText, { color: COLORS.text }]}>Approve</Text></>
-                        }
-                      </TouchableOpacity>
+                    <View key={u.id} style={i > 0 && styles.rowBorder}>
+                      <SwipeableDeniedRow
+                        user={u}
+                        acting={acting === u.id}
+                        onApprove={() => handleAction(u, "active")}
+                        onDelete={() => handleDelete(u)}
+                        COLORS={COLORS}
+                        styles={styles}
+                      />
                     </View>
                   ))}
                 </View>
+                </>
                 )}
               </>
             )}
@@ -275,5 +383,17 @@ function makeStyles(COLORS: any) {
       paddingVertical: 2,
     },
     chipTextMember: { fontSize: 11, fontWeight: "700", color: COLORS.textMuted },
+    swipeHint: { fontSize: 11, color: COLORS.textMuted, marginBottom: SPACING.xs },
+    swipeDeleteAction: {
+      position: "absolute",
+      top: 0, bottom: 0, right: 0,
+      width: 90,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+      backgroundColor: COLORS.red ?? "#ef4444",
+    },
+    swipeDeleteText: { color: "#fff", fontSize: 13, fontWeight: "600" },
   })
 }

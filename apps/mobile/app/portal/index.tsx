@@ -878,6 +878,47 @@ function PreviousSessions({
   )
 }
 
+// Groups bookings by calendar date (ascending) with each day's sessions
+// sorted earliest-to-latest by real UTC time.
+function groupByDay(bookings: PrepMasterBooking[]): [string, PrepMasterBooking[]][] {
+  const byDate = new Map<string, PrepMasterBooking[]>()
+  for (const b of bookings) {
+    const key = b.date || "Unknown date"
+    if (!byDate.has(key)) byDate.set(key, [])
+    byDate.get(key)!.push(b)
+  }
+  const timeMs = (b: PrepMasterBooking) => b.utcDatetime ? new Date(b.utcDatetime).getTime() : 0
+  return Array.from(byDate.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, items]) => [date, [...items].sort((a, b) => timeMs(a) - timeMs(b))])
+}
+
+function formatDayHeading(dateStr: string): string {
+  if (!dateStr || dateStr === "Unknown date") return "Unknown date"
+  const d = new Date(`${dateStr}T00:00:00`)
+  return d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })
+}
+
+function DayGroup({ date, count, children, defaultOpen = true }: { date: string; count: number; children: React.ReactNode; defaultOpen?: boolean }) {
+  const COLORS = useColors()
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <View style={{ marginBottom: SPACING.sm }}>
+      <TouchableOpacity
+        style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: COLORS.border }}
+        onPress={() => setOpen((v) => !v)}
+        activeOpacity={0.7}
+      >
+        <Text style={{ fontSize: 14, fontWeight: "700", color: COLORS.text }}>
+          {formatDayHeading(date)} <Text style={{ fontWeight: "400", color: COLORS.textMuted }}>({count})</Text>
+        </Text>
+        {open ? <ChevronUp size={16} color={COLORS.textMuted} /> : <ChevronDown size={16} color={COLORS.textMuted} />}
+      </TouchableOpacity>
+      {open && <View style={{ gap: SPACING.sm, marginTop: 6 }}>{children}</View>}
+    </View>
+  )
+}
+
 // ─── Main Dashboard ──────────────────────────────────────────────────────────
 
 export default function PortalDashboard() {
@@ -899,13 +940,22 @@ export default function PortalDashboard() {
   // never on a timer — so any polling interval length is safe.
   const optimisticRef = useRef<Map<string, Partial<PrepMasterBooking>>>(new Map())
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (retrying = false): Promise<void> => {
     try {
       const [dashRes, calRes] = await Promise.all([
         authClient.$fetch(`${API_BASE}/api/portal/dashboard`),
         authClient.$fetch(`${API_BASE}/api/portal/calendar-events`),
       ])
-      if (dashRes.error || !dashRes.data) throw new Error((dashRes.error as any)?.statusText ?? "Failed to load")
+      if (dashRes.error || !dashRes.data) {
+        // See apps/mobile/app/member/index.tsx for the full explanation —
+        // the auth cookie can lag a beat behind this screen's mount right
+        // after switching views, producing a transient 401. Retry once.
+        if ((dashRes.error as any)?.status === 401 && !retrying) {
+          await new Promise((r) => setTimeout(r, 400))
+          return load(true)
+        }
+        throw new Error((dashRes.error as any)?.statusText ?? "Failed to load")
+      }
       const raw = dashRes.data as DashData
       const patches = optimisticRef.current
 
@@ -1077,7 +1127,11 @@ export default function PortalDashboard() {
             <Text style={styles.sectionTitle}>Upcoming sessions</Text>
             {(data?.upcoming ?? []).length === 0 ? (
               <View style={styles.emptyCard}><Text style={styles.emptyText}>No upcoming sessions booked yet.</Text></View>
-            ) : (data?.upcoming ?? []).map((b) => <BookingCard key={b.id} booking={b} onUpdate={handleUpdate} />)}
+            ) : groupByDay(data?.upcoming ?? []).map(([date, items]) => (
+              <DayGroup key={date} date={date} count={items.length}>
+                {items.map((b) => <BookingCard key={b.id} booking={b} onUpdate={handleUpdate} />)}
+              </DayGroup>
+            ))}
           </View>
           <PreviousSessions
             completed={data?.completed ?? []}

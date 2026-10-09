@@ -157,10 +157,21 @@ export default function MemberHomeScreen() {
   const firstName = (data?.profile.name ?? session?.user?.name)?.split(" ")[0] ?? "Dancer"
   const isParentView = data?.profile.isParentView ?? false
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (retrying = false) => {
     try {
       const { data: result, error: err } = await authClient.$fetch(`${API_BASE}/api/member/dashboard`)
-      if (err || !result) throw new Error((err as any)?.statusText ?? "Failed to load")
+      if (err || !result) {
+        // Right after switching views (e.g. admin → member preview via
+        // router.replace), the auth cookie can lag a beat behind this
+        // screen's mount, producing a transient 401 even though the user
+        // really is signed in. Retry once after a short delay before
+        // surfacing an error.
+        if ((err as any)?.status === 401 && !retrying) {
+          await new Promise((r) => setTimeout(r, 400))
+          return load(true)
+        }
+        throw new Error((err as any)?.statusText ?? "Failed to load")
+      }
       setData(result as DashboardData); setError(null)
     } catch (e) { setError(e instanceof Error ? e.message : "Something went wrong.") }
   }, [])

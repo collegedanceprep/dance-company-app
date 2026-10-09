@@ -5,7 +5,7 @@ import {
   ActivityIndicator, TextInput, Alert, KeyboardAvoidingView, Platform,
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
-import { useRouter } from "expo-router"
+import { useRouter, useFocusEffect } from "expo-router"
 import { ChevronLeft, ChevronRight, Check, Users, CalendarOff } from "lucide-react-native"
 import { authClient, useSession } from "@/lib/auth-client"
 import { SPACING, RADIUS } from "@/constants/theme"
@@ -425,6 +425,13 @@ export default function BookScreen() {
   }, [])
 
   useEffect(() => { loadCoaches(); loadDashboard() }, [loadCoaches, loadDashboard])
+
+  // Refetch credits/plans whenever this screen regains focus, so returning
+  // from an external Stripe checkout (plans.tsx) shows the just-purchased
+  // credit instead of the stale value captured at mount.
+  useFocusEffect(
+    useCallback(() => { loadDashboard() }, [loadDashboard])
+  )
 
   const handleSelectCoach = useCallback(async (coach: Coach) => {
     // Credits/plans start empty until loadDashboard() resolves — tapping a
