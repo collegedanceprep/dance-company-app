@@ -7,9 +7,49 @@ import { PreviousSessionsPanel } from "@/components/previous-sessions-panel"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
-import { ChevronLeft, ChevronRight, CalendarDays, List } from "lucide-react"
+import { ChevronLeft, ChevronRight, CalendarDays, List, ChevronDown, ChevronUp } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { LocalTime } from "@/components/local-time"
+
+// Groups bookings by calendar date (ascending) with each day's sessions
+// sorted earliest-to-latest by real UTC time.
+function groupByDay(bookings: PrepMasterBooking[]): [string, PrepMasterBooking[]][] {
+  const byDate = new Map<string, PrepMasterBooking[]>()
+  for (const b of bookings) {
+    const key = b.date || "Unknown date"
+    if (!byDate.has(key)) byDate.set(key, [])
+    byDate.get(key)!.push(b)
+  }
+  const timeMs = (b: PrepMasterBooking) => b.utcDatetime ? new Date(b.utcDatetime).getTime() : 0
+  return Array.from(byDate.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, items]) => [date, [...items].sort((a, b) => timeMs(a) - timeMs(b))])
+}
+
+function formatDayHeading(dateStr: string): string {
+  if (!dateStr || dateStr === "Unknown date") return "Unknown date"
+  const d = new Date(`${dateStr}T00:00:00`)
+  return d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })
+}
+
+function DayGroup({ date, count, children }: { date: string; count: number; children: React.ReactNode }) {
+  const [open, setOpen] = useState(true)
+  return (
+    <div className="flex flex-col gap-2 border-t pt-3 first:border-t-0 first:pt-0">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center justify-between gap-2 text-left"
+      >
+        <span className="text-sm font-bold">
+          {formatDayHeading(date)} <span className="font-normal text-muted-foreground">({count})</span>
+        </span>
+        {open ? <ChevronUp className="size-4 text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}
+      </button>
+      {open && <div className="flex flex-col gap-3">{children}</div>}
+    </div>
+  )
+}
 
 type CalEvent = {
   id: string; title: string; start: string | null; end: string | null
@@ -465,8 +505,12 @@ export function PortalTabView({
             {upcoming.length === 0 ? (
               <Card><CardContent className="p-6 text-center text-muted-foreground">No upcoming sessions booked yet.</CardContent></Card>
             ) : (
-              <div className="flex flex-col gap-3">
-                {upcoming.map((b) => <AppointmentCard key={b.id} booking={b} />)}
+              <div className="flex flex-col gap-4">
+                {groupByDay(upcoming).map(([date, items]) => (
+                  <DayGroup key={date} date={date} count={items.length}>
+                    {items.map((b) => <AppointmentCard key={b.id} booking={b} />)}
+                  </DayGroup>
+                ))}
               </div>
             )}
           </section>

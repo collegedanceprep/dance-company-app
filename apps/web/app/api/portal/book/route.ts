@@ -127,7 +127,7 @@ export async function POST(req: Request) {
   const clientRecord = clientRecords[0]
   if (!clientRecord) {
     await db.delete(bookingAttemptLock).where(eq(bookingAttemptLock.id, lockId)).catch(() => {})
-    return NextResponse.json({ ok: false, error: "NO_CREDITS" }, { status: 422 })
+    return NextResponse.json({ ok: false, error: `${dancerDisplayName} doesn't have enough credits for this session. Ask them to purchase more credits in the app before booking.` }, { status: 422 })
   }
 
   if (clientRecord.fields.Name) dancerDisplayName = clientRecord.fields.Name
@@ -139,7 +139,7 @@ export async function POST(req: Request) {
 
   if (availableCredits < effectiveCreditCost) {
     await db.delete(bookingAttemptLock).where(eq(bookingAttemptLock.id, lockId)).catch(() => {})
-    return NextResponse.json({ ok: false, error: "NO_CREDITS" }, { status: 422 })
+    return NextResponse.json({ ok: false, error: `${dancerDisplayName} doesn't have enough credits for this session. Ask them to purchase more credits in the app before booking.` }, { status: 422 })
   }
 
   clientRecordId = clientRecord.id
