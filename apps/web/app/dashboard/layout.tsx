@@ -59,7 +59,12 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
   return (
     <div className="min-h-screen">
-      <DashboardNav user={{ name: user.name, email: user.email, image: user.image }} notificationBell={bell} />
+      {/* Prefer the Airtable-derived profile name over the Postgres signup
+          name — a parent who signed up using their own name/email but the
+          account represents their dancer can rename just the Airtable
+          record (via Profile settings) and have it reflected here too,
+          instead of the nav staying stuck on their original signup name. */}
+      <DashboardNav user={{ name: profile?.name || user.name, email: user.email, image: user.image }} notificationBell={bell} />
       {linkedChildren.length >= 2 && (
         <ChildSwitcher children={linkedChildren} activeChildUserId={activeChildUserId} />
       )}
