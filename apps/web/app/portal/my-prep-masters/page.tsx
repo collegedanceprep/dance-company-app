@@ -58,6 +58,7 @@ export default async function MyPrepMastersPage() {
         isAdmin={true}
         allRDs={allRDs.map((rd) => rd.name)}
         initialRdName={firstRD?.name ?? ""}
+        canDeactivate
       />
     )
   }
@@ -79,6 +80,7 @@ export default async function MyPrepMastersPage() {
       isAdmin={false}
       allRDs={[]}
       initialRdName={worker!.name}
+      canDeactivate
     />
   )
 }

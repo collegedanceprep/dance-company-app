@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useRef } from "react"
 import { toast } from "sonner"
-import { addComplimentaryCredits, adminAssignPlan, createMember, adminRemovePlan, adminSetCredits, adminSetSingleCredits } from "@/app/actions/admin"
+import { addComplimentaryCredits, adminAssignPlan, createMember, adminRemovePlan, adminSetCredits } from "@/app/actions/admin"
 import type { CreditAdjustmentRecord } from "@/app/actions/admin"
 import type { AdminMember, AdminBooking, MemberPlan } from "@/lib/airtable"
 import { SESSION_TYPE_LABELS } from "@/lib/session-types"
@@ -32,6 +32,32 @@ import {
 } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { LocalTime } from "@/components/local-time"
+import { COMPANY_TZ } from "@/lib/utils"
+
+function fallbackUtcMs(date: string, timeStr: string): number {
+  const match = timeStr.match(/(\d+)(?::(\d+))?\s*(AM|PM)/i)
+  if (!match) return 0
+  let h = parseInt(match[1])
+  const m = match[2] ? parseInt(match[2]) : 0
+  if (match[3].toUpperCase() === "PM" && h !== 12) h += 12
+  if (match[3].toUpperCase() === "AM" && h === 12) h = 0
+  const [year, mo, day] = date.split("-").map(Number)
+  const seed = new Date(Date.UTC(year, mo - 1, day, h + 5, m))
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: COMPANY_TZ, hour: "2-digit", minute: "2-digit", hour12: false,
+  }).formatToParts(seed)
+  const etH = parseInt(parts.find((p) => p.type === "hour")!.value)
+  const etM = parseInt(parts.find((p) => p.type === "minute")!.value)
+  const diffMs = ((etH * 60 + etM) - (h * 60 + m)) * 60_000
+  return seed.getTime() - diffMs
+}
+
+function isSessionPast(b: { utcDatetime?: string | null; date?: string | null; time?: string | null }): boolean {
+  const t = b.utcDatetime
+    ? new Date(b.utcDatetime).getTime()
+    : b.date && b.time ? fallbackUtcMs(b.date, b.time) : b.date ? new Date(b.date).getTime() : 0
+  return t > 0 && t <= Date.now()
+}
 
 type Props = {
   members: AdminMember[]
@@ -39,11 +65,10 @@ type Props = {
   plans: MemberPlan[]
   packages: DancePackage[]
   query?: string
-  onlyMismatches?: boolean
   creditAdjustments?: CreditAdjustmentRecord[]
 }
 
-export function AdminMembersPanel({ members, bookings, plans, packages, query = "", onlyMismatches = false, creditAdjustments = [] }: Props) {
+export function AdminMembersPanel({ members, bookings, plans, packages, query = "", creditAdjustments = [] }: Props) {
   const [expanded, setExpanded] = useState<string | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
   const [localMembers, setLocalMembers] = useState<AdminMember[]>(members)
@@ -63,19 +88,7 @@ export function AdminMembersPanel({ members, bookings, plans, packages, query = 
     ? localMembers.filter((m) => m.name.toLowerCase().includes(query.toLowerCase()) || m.email.toLowerCase().includes(query.toLowerCase()))
     : localMembers
 
-  const filtered = onlyMismatches
-    ? queryFiltered.filter((m) => {
-        const memberPlanList = localPlans.filter((p) => p.userId === m.userId)
-        return (["30", "45", "60", "90"] as const).some((min) => {
-          const stored = m.singleCredits?.[min] ?? 0
-          const expected = memberPlanList.filter(
-            (p) => planDisplayStatus(p) === "Active" && p.sessions === 1 && p.planName.toLowerCase().includes(min)
-          ).length
-          // Only flag when stored is less than expected AND pack credits can't cover the gap
-          return stored < expected && (stored + creditsFor(m)) < expected
-        })
-      })
-    : queryFiltered
+  const filtered = queryFiltered
   const [mergeModal, setMergeModal] = useState<{ member: AdminMember } | null>(null)
   const [mergeTargetId, setMergeTargetId] = useState("")
   const [mergeLoading, setMergeLoading] = useState(false)
@@ -451,36 +464,6 @@ export function AdminMembersPanel({ members, bookings, plans, packages, query = 
   </p>
                 </div>
 
-                {/* Credit reconciliation warnings */}
-                {(["30", "45", "60", "90"] as const).map((min) => {
-                  const stored = member.singleCredits?.[min] ?? 0
-                  const expected = memberPlanList.filter(
-                    (p) => planDisplayStatus(p) === "Active" && p.sessions === 1 && p.planName.toLowerCase().includes(min)
-                  ).length
-                  // Only warn when credits are genuinely missing (pack credits can't cover the gap)
-                  if (stored >= expected || (stored + creditsFor(member)) >= expected) return null
-                  return (
-                    <div key={min} className="flex items-center justify-between gap-3 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-300">
-                      <span>
-                        ⚠️ Credit mismatch: <strong>{min}-min single</strong> shows <strong>{stored}</strong> in Airtable but <strong>{expected}</strong> Active plan{expected !== 1 ? "s" : ""} exist.
-                      </span>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="shrink-0 border-amber-400 text-amber-800 hover:bg-amber-100 dark:text-amber-300"
-                        disabled={isPending}
-                        onClick={async () => {
-                          const result = await adminSetSingleCredits(member.id, member.userId, min, expected)
-                          if (result.ok) toast.success(`Fixed: Single Credits ${min} set to ${expected}`)
-                          else toast.error(result.error)
-                        }}
-                      >
-                        Fix ({stored} → {expected})
-                      </Button>
-                    </div>
-                  )
-                })}
-
                 {/* Plan history + single sessions */}
                 {memberPlanList.length > 0 && (
                   <PlanHistory
@@ -642,12 +625,16 @@ export function AdminMembersPanel({ members, bookings, plans, packages, query = 
                   ) : (
                     <ul className="flex flex-col gap-1.5">
                       {history.map((b) => {
+                        const isCompleted = b.status.toLowerCase() === "confirmed" && isSessionPast(b)
+                        const displayStatus = isCompleted ? "Completed" : b.status
                         const statusVariant =
-                          b.status.toLowerCase() === "confirmed"
-                            ? "default"
-                            : b.status.toLowerCase().startsWith("cancelled")
-                              ? "destructive"
-                              : "secondary"
+                          isCompleted
+                            ? "secondary"
+                            : b.status.toLowerCase() === "confirmed"
+                              ? "default"
+                              : b.status.toLowerCase().startsWith("cancelled")
+                                ? "destructive"
+                                : "secondary"
                         return (
                           <li
                             key={b.id}
@@ -673,7 +660,7 @@ export function AdminMembersPanel({ members, bookings, plans, packages, query = 
                               )}
                             </div>
                             <Badge variant={statusVariant} className="capitalize shrink-0">
-                              {b.status}
+                              {displayStatus}
                             </Badge>
                           </li>
                         )

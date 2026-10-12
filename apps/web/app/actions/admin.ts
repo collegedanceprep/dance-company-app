@@ -6,7 +6,7 @@ import { revalidatePath, revalidateTag } from "next/cache"
 import { auth } from "@/lib/auth"
 import { isAdminEmail } from "@/lib/roles"
 import { db } from "@/lib/db"
-import { prepMasterInvite, user as userTable, creditAdjustment } from "@/lib/db/schema"
+import { prepMasterInvite, user as userTable, creditAdjustment, session as sessionTable } from "@/lib/db/schema"
 import { eq, inArray } from "drizzle-orm"
 import {
   adminGetAllMembers,
@@ -22,6 +22,8 @@ import {
   createMemberPlan,
   getActivePlanForUser,
   setPlanStatus,
+  getPrepMasterByEmail,
+  getWorkerById,
   TABLES,
   appBase,
   type ClientFields,
@@ -261,6 +263,55 @@ export async function deletePrepMaster(
     return { ok: true }
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Failed to delete PrepMaster." }
+  }
+}
+
+/**
+ * Allows an admin to act on any PrepMaster, or a Regional Director to act
+ * only on PrepMasters who report to them ({Reports to} === their own Full
+ * Name in the Workers table). Used for deactivate/reactivate, which admins
+ * explicitly want RDs to be able to do without full admin access.
+ */
+async function assertAdminOrOwningRD(workerId: string): Promise<string> {
+  const session = await auth.api.getSession({ headers: await headers() })
+  if (!session?.user) throw new Error("Unauthorized")
+  const email = session.user.email
+  if (isAdminEmail(email)) return email
+
+  const caller = await getPrepMasterByEmail(email)
+  if (!caller || caller.workerRole !== "Regional Director") throw new Error("Unauthorized")
+
+  const target = await getWorkerById(workerId)
+  if (!target || target.reportsTo !== caller.name) throw new Error("Unauthorized")
+  return email
+}
+
+export async function setPrepMasterActive(
+  workerId: string,
+  workerEmail: string,
+  active: boolean,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await assertAdminOrOwningRD(workerId)
+    await adminUpdateWorker(workerId, { active })
+    // Deactivating revokes access immediately — kill any live session for
+    // this person rather than just blocking their next login. Historical
+    // data (bookings, plans, payroll) is untouched; only Active flips.
+    if (!active) {
+      const [workerUser] = await db.select({ id: userTable.id }).from(userTable).where(eq(userTable.email, workerEmail.toLowerCase())).limit(1)
+      if (workerUser) {
+        await db.delete(sessionTable).where(eq(sessionTable.userId, workerUser.id))
+      }
+    }
+    revalidateTag("admin")
+    revalidatePath("/admin")
+    revalidatePath("/portal")
+    return { ok: true }
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : `Failed to ${active ? "reactivate" : "deactivate"} PrepMaster.`,
+    }
   }
 }
 

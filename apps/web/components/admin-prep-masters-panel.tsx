@@ -3,7 +3,7 @@
 import { useState, useTransition, useRef, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
-import { updatePrepMaster, addPrepMaster, deletePrepMaster } from "@/app/actions/admin"
+import { updatePrepMaster, addPrepMaster, deletePrepMaster, setPrepMasterActive } from "@/app/actions/admin"
 import type { AdminWorker, AdminBooking } from "@/lib/airtable"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -356,6 +356,7 @@ function PrepMasterProfile({
   const [active, setActive] = useState(worker.active)
   const [isPending, startTransition] = useTransition()
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isTogglingActive, setIsTogglingActive] = useState(false)
   const [isSendingInvite, setIsSendingInvite] = useState(false)
   const [infoOpen, setInfoOpen] = useState(true)
   const [historyOpen, setHistoryOpen] = useState(true)
@@ -382,6 +383,26 @@ function PrepMasterProfile({
     } finally {
       setIsSendingInvite(false)
     }
+  }
+
+  function handleToggleActive() {
+    const next = !active
+    const confirmMsg = next
+      ? `Reactivate ${worker.name}? They'll be able to log in and book sessions again.`
+      : `Deactivate ${worker.name}? They'll be immediately signed out and unable to log in. Their booking and payroll history will NOT be deleted.`
+    if (!window.confirm(confirmMsg)) return
+    setIsTogglingActive(true)
+    startTransition(async () => {
+      const result = await setPrepMasterActive(worker.id, worker.email, next)
+      setIsTogglingActive(false)
+      if (result.ok) {
+        setActive(next)
+        toast.success(next ? `${worker.name} reactivated.` : `${worker.name} deactivated and signed out.`)
+        onSaved({ ...worker, active: next })
+      } else {
+        toast.error(result.error)
+      }
+    })
   }
 
   function handleDelete() {
@@ -480,17 +501,21 @@ function PrepMasterProfile({
               </div>
             </div>
 
-            <div className="flex items-center gap-3 rounded-lg border p-3">
-              <input
-                id="active-toggle"
-                type="checkbox"
-                checked={active}
-                onChange={(e) => setActive(e.target.checked)}
-                className="size-4 rounded border-input accent-primary"
-              />
-              <label htmlFor="active-toggle" className="text-sm font-medium cursor-pointer">
-                Active — visible to dancers for booking
-              </label>
+            <div className="flex items-center justify-between gap-3 rounded-lg border p-3">
+              <div>
+                <p className="text-sm font-medium">{active ? "Active" : "Deactivated"}</p>
+                <p className="text-xs text-muted-foreground">
+                  {active ? "Visible to dancers for booking, can log in." : "Hidden from booking, cannot log in. History is preserved."}
+                </p>
+              </div>
+              <Button
+                variant={active ? "outline" : "default"}
+                size="sm"
+                onClick={handleToggleActive}
+                disabled={isPending || isDeleting || isTogglingActive}
+              >
+                {isTogglingActive ? "Working…" : active ? "Deactivate" : "Reactivate"}
+              </Button>
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-2">

@@ -63,7 +63,24 @@ export async function isInvitedPrepMaster(email: string): Promise<boolean> {
 export async function isWorkerEmail(email: string): Promise<boolean> {
   if (!isAirtableConfigured()) return false
   try {
-    return Boolean(await getPrepMasterByEmail(email))
+    const worker = await getPrepMasterByEmail(email)
+    return Boolean(worker && worker.active)
+  } catch {
+    return false
+  }
+}
+
+/**
+ * True if this email has a Workers record that's explicitly deactivated
+ * (Active = false) — distinct from no record at all. A deactivated worker
+ * is denied prep_master access even if they still have an accepted invite
+ * from before they were let go.
+ */
+async function isDeactivatedWorker(email: string): Promise<boolean> {
+  if (!isAirtableConfigured()) return false
+  try {
+    const worker = await getPrepMasterByEmail(email)
+    return Boolean(worker && !worker.active)
   } catch {
     return false
   }
@@ -73,12 +90,15 @@ export async function isWorkerEmail(email: string): Promise<boolean> {
 export async function resolveRole(email: string): Promise<Role> {
   if (isAdminEmail(email)) return "admin"
   // Prep masters are recognized either by an admin invite OR by being present
-  // in the Airtable Workers roster (the staff source of truth).
-  // Run both checks in parallel to avoid sequential round trips.
-  const [invited, worker] = await Promise.all([
+  // in the Airtable Workers roster (the staff source of truth) — unless
+  // they've been explicitly deactivated, which overrides a lingering invite.
+  // Run all checks in parallel to avoid sequential round trips.
+  const [invited, worker, deactivated] = await Promise.all([
     isInvitedPrepMaster(email),
     isWorkerEmail(email),
+    isDeactivatedWorker(email),
   ])
+  if (deactivated) return "dancer"
   if (invited || worker) return "prep_master"
   return "dancer"
 }

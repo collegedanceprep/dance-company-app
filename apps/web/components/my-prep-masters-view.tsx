@@ -7,6 +7,8 @@ import type { PrepMaster, PrepMasterBooking } from "@/lib/airtable"
 import { Badge } from "@/components/ui/badge"
 import { LocalTime } from "@/components/local-time"
 import { getUniversityColor } from "@/lib/university-colors"
+import { toast } from "sonner"
+import { setPrepMasterActive } from "@/app/actions/admin"
 
 type TeamEntry = { pm: PrepMaster; bookings: PrepMasterBooking[] }
 
@@ -21,6 +23,7 @@ type Props = {
   subtitleSuffix?: string
   apiEndpoint?: string
   enableDayView?: boolean
+  canDeactivate?: boolean
 }
 
 const MONTHS = [
@@ -76,6 +79,7 @@ export function MyPrepMastersView({
   subtitleSuffix = "on your team",
   apiEndpoint = "/api/portal/my-prep-masters",
   enableDayView = false,
+  canDeactivate = false,
 }: Props) {
   const [team, setTeam] = useState<TeamEntry[]>(initialTeam)
   const [year, setYear] = useState(initialYear)
@@ -130,6 +134,20 @@ export function MyPrepMastersView({
       else next.add(name)
       return next
     })
+  }
+
+  const [deactivatingId, setDeactivatingId] = useState<string | null>(null)
+  async function handleDeactivate(pm: PrepMaster) {
+    if (!window.confirm(`Deactivate ${pm.name}? They'll be immediately signed out and unable to log in. Their booking and payroll history will NOT be deleted.`)) return
+    setDeactivatingId(pm.id)
+    const result = await setPrepMasterActive(pm.id, pm.email, false)
+    setDeactivatingId(null)
+    if (result.ok) {
+      toast.success(`${pm.name} deactivated and signed out.`)
+      setTeam((prev) => prev.filter((entry) => entry.pm.id !== pm.id))
+    } else {
+      toast.error(result.error)
+    }
   }
 
   const stats = team.reduce(
@@ -638,6 +656,19 @@ export function MyPrepMastersView({
                     )}
                   />
                 </button>
+
+                {canDeactivate && isOpen && (
+                  <div className="flex justify-end border-t px-4 py-2">
+                    <button
+                      type="button"
+                      onClick={() => handleDeactivate(pm)}
+                      disabled={deactivatingId === pm.id}
+                      className="text-xs font-medium text-destructive hover:underline disabled:opacity-50"
+                    >
+                      {deactivatingId === pm.id ? "Deactivating…" : "Deactivate PrepMaster"}
+                    </button>
+                  </div>
+                )}
 
                 {isOpen && (
                   <div className="border-t">

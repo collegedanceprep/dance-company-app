@@ -255,6 +255,7 @@ export type PrepMaster = {
   address: string
   workerRole: string
   reportsTo: string
+  active: boolean
 }
 
 function toPrepMaster(r: AirtableRecord<WorkerFields>): PrepMaster {
@@ -268,6 +269,7 @@ function toPrepMaster(r: AirtableRecord<WorkerFields>): PrepMaster {
     address: r.fields.Address ?? "",
     workerRole: r.fields["Role"] ?? "PrepMaster",
     reportsTo: r.fields["Reports to"] ?? "",
+    active: r.fields.Active !== false,
     // Hourly Rate is intentionally NOT included here.
   }
 }
@@ -788,6 +790,14 @@ export async function adminDeleteWorker(workerId: string): Promise<void> {
   await destroy(TABLES.workers, workerId)
 }
 
+export async function getWorkerById(workerId: string): Promise<PrepMaster | null> {
+  try {
+    return toPrepMaster(await get<WorkerFields>(TABLES.workers, workerId))
+  } catch {
+    return null
+  }
+}
+
 export async function adminAddCredits(
   memberId: string,
   currentCredits: number,
@@ -1069,7 +1079,7 @@ export async function getMonthBookingsForTeam(
   }
 
   return pmNames.map((name) => ({
-    pm: { id: name, name, email: "", phone: "", region: "", university: "", address: "", workerRole: "PrepMaster", reportsTo: "" },
+    pm: { id: name, name, email: "", phone: "", region: "", university: "", address: "", workerRole: "PrepMaster", reportsTo: "", active: true },
     bookings: grouped.get(name) ?? [],
   }))
 }
