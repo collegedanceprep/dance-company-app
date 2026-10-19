@@ -336,14 +336,25 @@ export const auth = betterAuth({
                 .where(inArray(userTable.email, adminEmails))
             : []
 
-          // Re-fetch the user so we get the name as saved by the OAuth provider
-          // (Apple writes the name in a separate step after the hook fires).
-          const [freshUser] = await db
-            .select({ name: userTable.name })
-            .from(userTable)
-            .where(eq(userTable.id, newUser.id))
-            .limit(1)
-          const memberName = freshUser?.name || newUser.name
+          // Apple only sends the user's name on this first sign-in, as a
+          // one-time field the provider writes to the user row in a step
+          // that isn't guaranteed to finish before this hook's body runs —
+          // a single immediate re-fetch (the prior approach) still raced it
+          // often enough to show up as a blank name in this exact email.
+          // Poll briefly instead of reading once.
+          let memberName = newUser.name
+          for (let attempt = 0; attempt < 5; attempt++) {
+            const [freshUser] = await db
+              .select({ name: userTable.name })
+              .from(userTable)
+              .where(eq(userTable.id, newUser.id))
+              .limit(1)
+            if (freshUser?.name && freshUser.name.trim()) {
+              memberName = freshUser.name
+              break
+            }
+            await new Promise((resolve) => setTimeout(resolve, 300))
+          }
 
           const appUrl = process.env.BETTER_AUTH_URL
             ?? (process.env.VERCEL_PROJECT_PRODUCTION_URL
