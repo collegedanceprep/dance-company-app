@@ -59,6 +59,19 @@ function initials(name: string) {
   return name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()
 }
 
+const SESSION_DURATION_LABEL: Record<string, string> = {
+  "pack-hour": "60 min",
+  "private-30": "30 min",
+  "private-45": "45 min",
+  "private-60": "60 min",
+  "private-90": "90 min",
+}
+
+function durationLabel(sessionType: string | null | undefined): string | null {
+  if (!sessionType) return null
+  return SESSION_DURATION_LABEL[sessionType] ?? null
+}
+
 function formatDate(dateStr: string) {
   if (!dateStr) return { day: "—", mon: "" }
   const d = new Date(`${dateStr}T00:00:00`)
@@ -487,6 +500,9 @@ export function MyPrepMastersView({
                               utcDatetime={bk.utcDatetime}
                               className="text-xs text-muted-foreground"
                             />
+                            {durationLabel(bk.sessionType) && (
+                              <p className="text-[10px] text-muted-foreground">{durationLabel(bk.sessionType)}</p>
+                            )}
                           </div>
                           <Badge
                             variant={STATUS_BADGE[bk.status]?.variant}
@@ -554,6 +570,9 @@ export function MyPrepMastersView({
                               utcDatetime={bk.utcDatetime}
                               className="text-xs text-muted-foreground"
                             />
+                            {durationLabel(bk.sessionType) && (
+                              <p className="text-[10px] text-muted-foreground">{durationLabel(bk.sessionType)}</p>
+                            )}
                           </div>
                           <div className="flex flex-col items-end gap-1 shrink-0 w-28">
                             <Badge
@@ -691,12 +710,15 @@ export function MyPrepMastersView({
                             <div className="w-px h-8 bg-border shrink-0" />
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium truncate">{bk.dancerName || "Member"}</p>
-                              <LocalTime
-                                slot={bk.time}
-                                dateIso={bk.date}
-                                utcDatetime={bk.utcDatetime}
-                                className="text-xs text-muted-foreground"
-                              />
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <LocalTime
+                                  slot={bk.time}
+                                  dateIso={bk.date}
+                                  utcDatetime={bk.utcDatetime}
+                                  className="text-xs text-muted-foreground"
+                                />
+                                {durationLabel(bk.sessionType) && <span>· {durationLabel(bk.sessionType)}</span>}
+                              </div>
                             </div>
                             <div className="flex flex-col items-end gap-1 shrink-0">
                               <Badge
