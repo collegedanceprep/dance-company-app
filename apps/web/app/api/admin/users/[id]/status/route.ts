@@ -77,6 +77,15 @@ export async function PATCH(
         parentEmail = (created as { fields?: ClientFields })?.fields?.["Parent Email"] ?? null
       } else if (existing.length > 0) {
         parentEmail = (existing[0] as { fields?: ClientFields })?.fields?.["Parent Email"] ?? null
+        // A record can already exist with a blank Name — e.g. a dancer who
+        // signed in with Apple before their name finished saving, or whose
+        // record predates that fix. Backfill it now from the current
+        // Postgres name (fresh as of the top of this request) so every
+        // notification that reads Airtable's Name going forward is correct,
+        // instead of staying blank forever with nothing to reconcile it.
+        if (!existing[0].fields.Name?.trim() && target.name?.trim()) {
+          await appBase.update<ClientFields>(TABLES.clients, existing[0].id, { Name: target.name })
+        }
       }
     } catch {
       // Non-fatal — member will be created on first dashboard load

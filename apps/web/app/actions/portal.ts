@@ -14,6 +14,17 @@ import { createCalendarEvent, updateCalendarEvent, deleteCalendarEvent } from "@
 import { getAvailabilityForEmail } from "@/app/actions/availability"
 import { slotsForDate } from "@/lib/availability"
 
+// Airtable's Clients Name can be blank for a dancer who signed in with Apple
+// before their name finished saving to their Clients record (e.g. a record
+// created before that race condition was fixed, or whose approval predates
+// the backfill). Fall back to the Postgres name — which is reliably correct
+// now — before falling back to a raw email address in dancer-facing emails.
+async function resolveDancerName(airtableName: string | undefined, userId: string, fallbackEmail: string): Promise<string> {
+  if (airtableName?.trim()) return airtableName
+  const [row] = await db.select({ name: userTable.name }).from(userTable).where(eq(userTable.id, userId)).limit(1)
+  return row?.name?.trim() || fallbackEmail
+}
+
 async function assertPrepMaster() {
   const user = await getSessionUserWithRole()
   if (!user || (user.role !== "prep_master" && user.role !== "admin")) throw new Error("Unauthorized")
@@ -102,7 +113,7 @@ export async function confirmBooking(
       const confirmMemberRecs = dancerUserId
         ? await appBase.list<ClientFields>(TABLES.clients, { filterByFormula: `{User ID} = '${safeConfirmId}'`, maxRecords: 1 })
         : []
-      const confirmDancerName = confirmMemberRecs[0]?.fields.Name ?? confirmDancerEmail
+      const confirmDancerName = await resolveDancerName(confirmMemberRecs[0]?.fields.Name, dancerUserId ?? "", confirmDancerEmail)
       const confirmParentCC = confirmMemberRecs[0]?.fields?.["Parent Email"] ?? undefined
       const [pmTzConfirmRow] = await db.select({ timezone: userTable.timezone }).from(userTable).where(eq(userTable.id, user.id)).limit(1)
       const pmTzConfirm = pmTzConfirmRow?.timezone ?? COMPANY_TZ
@@ -128,7 +139,7 @@ export async function confirmBooking(
           appBase.list<ClientFields>(TABLES.clients, { filterByFormula: `{User ID} = '${safeId}'`, maxRecords: 1, revalidate: 0 }),
           db.select({ id: userTable.id }).from(userTable).where(eq(userTable.id, dancerUserId)).limit(1),
         ])
-        if (clientRec[0]?.fields.Name) calDancerName = clientRec[0].fields.Name
+        calDancerName = await resolveDancerName(clientRec[0]?.fields.Name, dancerUserId, calDancerName)
         dancerUserRow = dRow[0]
       }
       const eventArgs = { dancerName: calDancerName, prepMasterName: pm.name, date: confirmDate, time: confirmTime, sessionType: records[0].fields["Session Type"] as string | undefined, timezone: pmTzCal }
@@ -188,7 +199,7 @@ export async function adjustBooking(
         filterByFormula: `{User ID} = '${safeId}'`,
         maxRecords: 1,
       })
-      if (memberRecords[0]?.fields.Name) dancerName = memberRecords[0].fields.Name
+      dancerName = await resolveDancerName(memberRecords[0]?.fields.Name, dancerUserId, dancerName)
       adjustParentCC = memberRecords[0]?.fields?.["Parent Email"] ?? undefined
     }
 
@@ -341,7 +352,7 @@ export async function declineBooking(
         if (revertDancerEmail) {
           const safeId = dancerUserId.replace(/'/g, "\\'")
           const memberRecs = await appBase.list<ClientFields>(TABLES.clients, { filterByFormula: `{User ID} = '${safeId}'`, maxRecords: 1 })
-          const revertDancerName = memberRecs[0]?.fields.Name ?? revertDancerEmail
+          const revertDancerName = await resolveDancerName(memberRecs[0]?.fields.Name, dancerUserId, revertDancerEmail)
           const revertParentCC = memberRecs[0]?.fields?.["Parent Email"] ?? undefined
           const { subject, html } = bookingDeclinedByPmEmail({
             dancerName: revertDancerName,
@@ -413,7 +424,7 @@ export async function declineBooking(
       if (declineDancerEmail) {
         const safeDeclineId = dancerUserId.replace(/'/g, "\\'")
         const declineMemberRecs = await appBase.list<ClientFields>(TABLES.clients, { filterByFormula: `{User ID} = '${safeDeclineId}'`, maxRecords: 1 })
-        const declineDancerName = declineMemberRecs[0]?.fields.Name ?? declineDancerEmail
+        const declineDancerName = await resolveDancerName(declineMemberRecs[0]?.fields.Name, dancerUserId, declineDancerEmail)
         const declineParentCC = declineMemberRecs[0]?.fields?.["Parent Email"] ?? undefined
         const declineRecipientTz = await getRecipientTimezone(dancerUserId)
         const { subject, html } = bookingDeclinedByPmEmail({
@@ -529,7 +540,7 @@ export async function cancelBookingAsPrepMaster(
           filterByFormula: `{User ID} = '${dancerUserId.replace(/'/g, "\\'")}'`,
           maxRecords: 1,
         })
-        if (memberRecords[0]?.fields.Name) dancerName = memberRecords[0].fields.Name
+        dancerName = await resolveDancerName(memberRecords[0]?.fields.Name, dancerUserId, dancerName)
         cancelParentCC = memberRecords[0]?.fields?.["Parent Email"] ?? undefined
       }
       const pmCancelTz = pmRow?.timezone ?? COMPANY_TZ

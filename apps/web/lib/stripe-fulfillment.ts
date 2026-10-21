@@ -213,7 +213,15 @@ export async function fulfillCheckoutSession(
 
   // Purchase receipt email — dancer is `to:`, parent CC'd if one exists
   if (userEmail) {
-    const memberName = (client?.fields?.Name as string | undefined) ?? userEmail
+    // Airtable's Name can be blank for an Apple-relay sign-in whose name
+    // wasn't saved yet when their Clients record was created — fall back
+    // to the Postgres name (now reliably correct) before the raw email.
+    let memberName = (client?.fields?.Name as string | undefined)?.trim() || undefined
+    if (!memberName) {
+      const { user: userTable } = await import("@/lib/db/schema")
+      const [userRow] = await db.select({ name: userTable.name }).from(userTable).where(eq(userTable.id, userId)).limit(1)
+      memberName = userRow?.name?.trim() || userEmail
+    }
     const parentCC = (client?.fields?.["Parent Email"] as string | undefined) ?? undefined
     const { subject, html } = purchaseReceiptEmail({ memberName, planName, creditAmount, pricePaid, newBalance })
     sendEmail({ to: userEmail, cc: parentCC, subject, html }).catch(() => {})
