@@ -338,12 +338,13 @@ export const auth = betterAuth({
 
           // Apple only sends the user's name on this first sign-in, as a
           // one-time field the provider writes to the user row in a step
-          // that isn't guaranteed to finish before this hook's body runs —
-          // a single immediate re-fetch (the prior approach) still raced it
-          // often enough to show up as a blank name in this exact email.
-          // Poll briefly instead of reading once.
+          // that isn't guaranteed to finish before this hook's body runs.
+          // Measured in production: that write lands ~3-3.5s after this
+          // row is created, well past the original 1.5s retry budget here
+          // (5 attempts x 300ms) — which is why this email kept going out
+          // blank even after adding the retry. Poll for up to ~6s instead.
           let memberName = newUser.name
-          for (let attempt = 0; attempt < 5; attempt++) {
+          for (let attempt = 0; attempt < 15; attempt++) {
             const [freshUser] = await db
               .select({ name: userTable.name })
               .from(userTable)
@@ -353,7 +354,7 @@ export const auth = betterAuth({
               memberName = freshUser.name
               break
             }
-            await new Promise((resolve) => setTimeout(resolve, 300))
+            await new Promise((resolve) => setTimeout(resolve, 400))
           }
 
           const appUrl = process.env.BETTER_AUTH_URL
