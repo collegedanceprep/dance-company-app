@@ -93,6 +93,39 @@ export function AdminMembersPanel({ members, bookings, plans, packages, query = 
   const [mergeTargetId, setMergeTargetId] = useState("")
   const [mergeLoading, setMergeLoading] = useState(false)
 
+  const [convertModal, setConvertModal] = useState<{ member: AdminMember } | null>(null)
+  const [convertChildEmail, setConvertChildEmail] = useState("")
+  const [convertLoading, setConvertLoading] = useState(false)
+
+  async function handleConvertToParent() {
+    if (!convertModal || !convertChildEmail.trim()) return
+    const { member } = convertModal
+    if (!confirm(`Link ${member.email} as the parent of the dancer at "${convertChildEmail.trim()}"? ${member.name || member.email}'s bookings, plan history, and any credits will move to that dancer, and this account will no longer appear as its own dancer.`)) return
+    setConvertLoading(true)
+    try {
+      const res = await fetch("/api/admin/members/convert-to-parent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phantomMemberId: member.id,
+          phantomUserId: member.userId,
+          phantomEmail: member.email,
+          childEmail: convertChildEmail.trim(),
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? "Conversion failed.")
+      setLocalMembers((prev) => prev.filter((m) => m.id !== member.id))
+      setConvertModal(null)
+      setConvertChildEmail("")
+      toast.success(`Linked as parent of ${data.childName}. Moved ${data.bookingsMoved} booking(s) and ${data.plansMoved} plan(s).`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Conversion failed.")
+    } finally {
+      setConvertLoading(false)
+    }
+  }
+
   async function handleMerge() {
     if (!mergeModal || !mergeTargetId.trim()) return
     if (!confirm(`Merge ${mergeModal.member.email} INTO the account with user ID "${mergeTargetId.trim()}"? The selected account will be deleted.`)) return
@@ -597,6 +630,14 @@ export function AdminMembersPanel({ members, bookings, plans, packages, query = 
                         size="sm"
                         variant="outline"
                         disabled={isPending}
+                        onClick={() => { setConvertModal({ member }); setConvertChildEmail("") }}
+                      >
+                        Convert to parent account
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={isPending}
                         onClick={() => { setMergeModal({ member }); setMergeTargetId("") }}
                       >
                         Merge account
@@ -703,6 +744,39 @@ export function AdminMembersPanel({ members, bookings, plans, packages, query = 
             <Button variant="outline" onClick={() => setMergeModal(null)}>Cancel</Button>
             <Button variant="destructive" disabled={mergeLoading || !mergeTargetId.trim()} onClick={handleMerge}>
               {mergeLoading ? "Merging…" : "Merge & delete"}
+            </Button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {convertModal && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div className="w-full max-w-md rounded-lg border bg-background p-6 flex flex-col gap-4 shadow-xl">
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold text-base">Convert to parent account</h2>
+            <Button size="icon" variant="ghost" onClick={() => setConvertModal(null)}><X className="size-4" /></Button>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            For when a parent accidentally signed up as if they were the dancer. Enter the dancer&apos;s
+            real account email — <strong>{convertModal.member.email}</strong>&apos;s bookings, plan history,
+            and any credits will move onto that dancer, their login will be flagged as a parent account, and
+            this record will no longer appear as a separate dancer.
+          </p>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="convert-child-email">Dancer&apos;s email</Label>
+            <Input
+              id="convert-child-email"
+              type="email"
+              placeholder="dancer@example.com"
+              value={convertChildEmail}
+              onChange={(e) => setConvertChildEmail(e.target.value)}
+            />
+          </div>
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => setConvertModal(null)}>Cancel</Button>
+            <Button disabled={convertLoading || !convertChildEmail.trim()} onClick={handleConvertToParent}>
+              {convertLoading ? "Linking…" : "Link & convert"}
             </Button>
           </div>
         </div>
