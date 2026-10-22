@@ -603,6 +603,8 @@ export type AdminWorker = {
   address: string
   hourlyRate: number
   active: boolean
+  workerRole: string
+  reportsTo: string
   inviteStatus?: "pending" | "accepted" | "revoked" | null
 }
 
@@ -740,6 +742,8 @@ export async function adminCreateWorker(fields: {
     hourlyRate: record.fields["Hourly Rate"] ?? 0,
     active: record.fields.Active !== false,
     university: record.fields.University ?? "",
+    workerRole: record.fields["Role"] ?? "PrepMaster",
+    reportsTo: record.fields["Reports to"] ?? "",
   }
 }
 
@@ -758,6 +762,8 @@ export async function adminGetAllWorkers(): Promise<AdminWorker[]> {
     address: r.fields.Address ?? "",
     hourlyRate: r.fields["Hourly Rate"] ?? 0,
     active: r.fields.Active !== false,
+    workerRole: r.fields["Role"] ?? "PrepMaster",
+    reportsTo: r.fields["Reports to"] ?? "",
   }))
 }
 
@@ -772,6 +778,7 @@ export async function adminUpdateWorker(
     university?: string
     hourlyRate?: number
     active?: boolean
+    reportsTo?: string
   },
 ): Promise<void> {
   const patch: Partial<WorkerFields> = {}
@@ -783,6 +790,7 @@ export async function adminUpdateWorker(
   if (fields.university !== undefined) patch.University = fields.university
   if (fields.hourlyRate !== undefined) patch["Hourly Rate"] = fields.hourlyRate
   if (fields.active !== undefined) patch.Active = fields.active
+  if (fields.reportsTo !== undefined) patch["Reports to"] = fields.reportsTo
   await update<WorkerFields>(TABLES.workers, workerId, patch)
 }
 

@@ -227,6 +227,7 @@ export async function updatePrepMaster(
     university?: string
     hourlyRate?: number
     active?: boolean
+    reportsTo?: string
   },
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   try {

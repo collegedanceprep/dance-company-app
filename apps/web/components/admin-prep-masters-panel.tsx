@@ -119,9 +119,13 @@ export function AdminPrepMastersPanel({ workers, bookings, query }: Props) {
     return (
       <PrepMasterProfile
         worker={selected}
+        allWorkers={localWorkers}
         bookings={bookings.filter((b) => b.prepMasterName === selected.name)}
         onBack={() => setSelected(null)}
-        onSaved={(updated) => setSelected(updated)}
+        onSaved={(updated) => {
+          setSelected(updated)
+          setLocalWorkers((prev) => prev.map((w) => (w.id === updated.id ? updated : w)))
+        }}
         onDeleted={(id) => { setLocalWorkers((prev) => prev.filter((w) => w.id !== id)); setSelected(null) }}
       />
     )
@@ -336,12 +340,14 @@ function Field({
 
 function PrepMasterProfile({
   worker,
+  allWorkers,
   bookings,
   onBack,
   onSaved,
   onDeleted,
 }: {
   worker: AdminWorker
+  allWorkers: AdminWorker[]
   bookings: AdminBooking[]
   onBack: () => void
   onSaved: (w: AdminWorker) => void
@@ -354,6 +360,9 @@ function PrepMasterProfile({
   const [address, setAddress] = useState(worker.address)
   const [hourlyRate, setHourlyRate] = useState(String(worker.hourlyRate))
   const [active, setActive] = useState(worker.active)
+  const [reportsTo, setReportsTo] = useState(worker.reportsTo)
+
+  const regionalDirectors = allWorkers.filter((w) => w.workerRole === "Regional Director" && w.id !== worker.id)
   const [isPending, startTransition] = useTransition()
   const [isDeleting, setIsDeleting] = useState(false)
   const [isTogglingActive, setIsTogglingActive] = useState(false)
@@ -431,10 +440,11 @@ function PrepMasterProfile({
         university: university.trim(),
         hourlyRate: rate,
         active,
+        reportsTo,
       })
       if (result.ok) {
         toast.success("PrepMaster updated.")
-        onSaved({ ...worker, name: name.trim(), email: email.trim(), phone: phone.trim(), address: address.trim(), university: university.trim(), hourlyRate: rate, active })
+        onSaved({ ...worker, name: name.trim(), email: email.trim(), phone: phone.trim(), address: address.trim(), university: university.trim(), hourlyRate: rate, active, reportsTo })
       } else {
         toast.error(result.error)
       }
@@ -498,6 +508,22 @@ function PrepMasterProfile({
                   onChange={(e) => setHourlyRate(e.target.value)}
                   className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                  <Users className="size-3.5" />
+                  Reports to
+                </label>
+                <select
+                  value={reportsTo}
+                  onChange={(e) => setReportsTo(e.target.value)}
+                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                >
+                  <option value="">— None —</option>
+                  {regionalDirectors.map((rd) => (
+                    <option key={rd.id} value={rd.name}>{rd.name}</option>
+                  ))}
+                </select>
               </div>
             </div>
 
