@@ -10,9 +10,13 @@ export const dynamic = "force-dynamic"
 export const maxDuration = 60
 
 /**
- * Sends a once-daily push to every active PrepMaster who has one or more
- * bookings still sitting "Pending" their approval. Meant to be hit by a
- * scheduled Vercel Cron Job (see vercel.json) — protected by CRON_SECRET,
+ * Sends a push to every active PrepMaster who has one or more bookings
+ * still sitting "Pending" their approval. Hit twice a day (morning and
+ * evening, see vercel.json) by scheduled Vercel Cron Jobs, each passing a
+ * distinct `?slot=` so the two runs dedupe independently instead of the
+ * evening run being silently skipped as "already sent today" — a bare
+ * calendar date isn't enough since the evening run's UTC time (00:00 UTC)
+ * actually falls on the *next* UTC calendar date. Protected by CRON_SECRET,
  * which Vercel sends automatically as "Authorization: Bearer <CRON_SECRET>"
  * for its own cron requests.
  */
@@ -24,7 +28,8 @@ export async function GET(req: Request) {
     }
   }
 
-  const today = new Date().toISOString().slice(0, 10)
+  const slot = new URL(req.url).searchParams.get("slot") ?? "default"
+  const today = `${new Date().toISOString().slice(0, 10)}-${slot}`
 
   const pending = await appBase.list<BookingFields>(TABLES.bookings, {
     filterByFormula: `{Status} = 'Pending'`,

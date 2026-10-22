@@ -5,8 +5,12 @@
       "schedule": "0 * * * *"
     },
     {
-      "path": "/api/cron/pending-approvals-digest",
+      "path": "/api/cron/pending-approvals-digest?slot=morning",
       "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/cron/pending-approvals-digest?slot=evening",
+      "schedule": "0 0 * * *"
     }
   ]
 }
