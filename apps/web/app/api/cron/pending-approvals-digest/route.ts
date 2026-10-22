@@ -4,6 +4,7 @@ import { db } from "@/lib/db"
 import { pendingDigestSent, user as userTable } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 import { createNotification } from "@/app/actions/notifications"
+import { sendEmail, pendingApprovalsDigestEmail } from "@/lib/email"
 
 export const dynamic = "force-dynamic"
 export const maxDuration = 60
@@ -64,6 +65,9 @@ export async function GET(req: Request) {
         : `${count} dancers are waiting on you to confirm their sessions.`,
       pushData: { route: "/portal" },
     }).catch(() => {})
+
+    const { subject, html } = pendingApprovalsDigestEmail({ prepMasterName: pm.name, count })
+    sendEmail({ to: pm.email, subject, html }).catch(() => {})
 
     sent++
   }

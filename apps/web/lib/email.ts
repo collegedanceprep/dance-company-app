@@ -213,6 +213,34 @@ export function prepMasterBookingRequestEmail({
   }
 }
 
+export function pendingApprovalsDigestEmail({
+  prepMasterName,
+  count,
+}: {
+  prepMasterName: string
+  count: number
+}) {
+  const plural = count === 1 ? "booking" : "bookings"
+  const body = `
+    <p style="font-size:15px;color:#374151;line-height:1.6;margin:0 0 16px">Hi ${firstName(prepMasterName)},</p>
+    <p style="font-size:15px;color:#374151;line-height:1.6;margin:0 0 16px">
+      You have <strong>${count} ${plural}</strong> still waiting on your approval. Dancers can't confirm their sessions until you respond.
+    </p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0">
+      <tr>
+        <td>
+          <a href="${APP_URL}/portal" style="display:block;text-align:center;background:#e91e8c;color:#ffffff;font-size:14px;font-weight:600;padding:12px 0;border-radius:8px;text-decoration:none">
+            Review pending requests
+          </a>
+        </td>
+      </tr>
+    </table>`
+  return {
+    subject: count === 1 ? "1 booking waiting on your approval" : `${count} bookings waiting on your approval`,
+    html: emailBase("Pending booking requests", body),
+  }
+}
+
 export function bookingCancelledEmail({
   dancerName,
   prepMasterName,
