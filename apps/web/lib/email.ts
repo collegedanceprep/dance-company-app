@@ -228,9 +228,14 @@ export function pendingApprovalsDigestEmail({
     </p>
     <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0">
       <tr>
-        <td>
-          <a href="${APP_URL}/portal" style="display:block;text-align:center;background:#e91e8c;color:#ffffff;font-size:14px;font-weight:600;padding:12px 0;border-radius:8px;text-decoration:none">
-            Review pending requests
+        <td style="padding-right:8px">
+          <a href="cdp://portal" style="display:block;text-align:center;background:#e91e8c;color:#ffffff;font-size:14px;font-weight:600;padding:12px 0;border-radius:8px;text-decoration:none">
+            Open in app
+          </a>
+        </td>
+        <td style="padding-left:8px">
+          <a href="${APP_URL}/portal" style="display:block;text-align:center;background:#f3f4f6;color:#374151;font-size:14px;font-weight:600;padding:12px 0;border-radius:8px;text-decoration:none">
+            Open on web
           </a>
         </td>
       </tr>
