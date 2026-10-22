@@ -148,6 +148,16 @@ export async function POST(req: Request) {
     creditFieldUsed = singleField
     const newVal = Math.round((availableCredits - 1) * 100) / 100
     await appBase.update<ClientFields>(TABLES.clients, clientRecord.id, { [singleField]: newVal } as Partial<ClientFields>)
+    // Mark one matching Active single-session plan "Used" — same fix as the
+    // member-initiated booking routes (see app/api/booking/create/route.ts).
+    const minLabel = (sessionType ?? "").replace("private-", "")
+    const safeIdPlan = dancer.id.replace(/'/g, "\\'")
+    const activePlanRecs = await appBase.list(TABLES.plans, {
+      filterByFormula: `AND({User ID} = '${safeIdPlan}', {Status} = 'Active', {Sessions} = 1)`,
+      revalidate: 0,
+    })
+    const matchingPlan = activePlanRecs.find((p) => ((p as { fields?: { "Plan Name"?: string } }).fields?.["Plan Name"] ?? "").toLowerCase().includes(minLabel)) ?? activePlanRecs[0]
+    if (matchingPlan) await setPlanStatus(matchingPlan.id, "Used").catch(() => {})
   } else {
     const newCredits = Math.round((availableCredits - creditCost) * 100) / 100
     await appBase.update(TABLES.clients, clientRecord.id, {

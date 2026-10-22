@@ -196,8 +196,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "Failed to create booking. Your credit has been refunded." })
   }
 
-  // Mark plan used if needed
-  if (useSingleCredit && newCredits === 0) {
+  // Mark plan used if needed — every single-credit booking consumes one
+  // specific Plan record, not just the one that happens to drain the pool
+  // to exactly zero. Gating this on `newCredits === 0` left every plan
+  // except the very last one stuck showing "Active" forever, even though
+  // its credit was genuinely spent (the pool field itself was always
+  // correct — only this per-plan status label was wrong).
+  if (useSingleCredit) {
     const minLabel = sessionType?.replace("private-", "") ?? ""
     const { getPlansForUser } = await import("@/lib/airtable")
     const userPlans = await getPlansForUser(effectiveUserId)

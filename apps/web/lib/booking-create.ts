@@ -148,7 +148,10 @@ export async function createConfirmedBooking(input: CreateConfirmedBookingInput)
     return { ok: false, error: "Failed to create booking. Your credit has been refunded." }
   }
 
-  if (useSingleCredit && newCredits === 0) {
+  // See app/api/booking/create/route.ts for why this isn't gated on
+  // `newCredits === 0` — every single-credit booking consumes one specific
+  // Plan record, not just the one that drains the pool to exactly zero.
+  if (useSingleCredit) {
     const minLabel = sessionType?.replace("private-", "") ?? ""
     const userPlans = await getPlansForUser(memberUserId)
     const matchingPlan = userPlans.find((p) => p.status === "Active" && p.sessions === 1 && p.planName.toLowerCase().includes(minLabel))
