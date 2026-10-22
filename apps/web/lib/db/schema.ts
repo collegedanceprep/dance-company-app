@@ -184,6 +184,21 @@ export const bookingReminderSent = pgTable("booking_reminder_sent", {
   sentAt: timestamp("sentAt").notNull().defaultNow(),
 })
 
+// One row per (PrepMaster, calendar day) — guards against Vercel Cron firing
+// the daily pending-approvals digest more than once on the same day.
+export const pendingDigestSent = pgTable(
+  "pending_digest_sent",
+  {
+    id: text("id").primaryKey(),
+    workerUserId: text("workerUserId").notNull(),
+    forDate: text("forDate").notNull(),
+    sentAt: timestamp("sentAt").notNull().defaultNow(),
+  },
+  (t) => ({
+    workerDateUnique: unique("pending_digest_sent_worker_date").on(t.workerUserId, t.forDate),
+  }),
+)
+
 // Booking attempt lock — prevents double-deduction when two requests race for the same slot.
 // A row is inserted before credits are deducted; duplicate (userId, date, time) is rejected.
 // Row is deleted after the booking is fully committed (or on rollback).
