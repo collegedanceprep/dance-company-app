@@ -235,6 +235,13 @@ export function BookingDetailModal({
   }
 
   function enterReschedule() {
+    if (isWithin24Hours()) {
+      Alert.alert(
+        "Can't reschedule",
+        "This session is less than 24 hours away, so it can no longer be rescheduled. You can still cancel it (no credit refund within 24 hours) or reach out to your PrepMaster directly.",
+      )
+      return
+    }
     setMode("reschedule")
     setAvailLoadError(null)
     loadAvailability()
@@ -307,7 +314,7 @@ export function BookingDetailModal({
         body: { reason: cancelReason.trim() },
       })
       if ((data as any)?.ok) { onCancelled(booking.id); onClose(); onRefresh?.() }
-      else Alert.alert("Error", (data as any)?.error ?? (error as any)?.message ?? "Failed to cancel booking.")
+      else Alert.alert("Can't cancel", (data as any)?.error ?? (error as any)?.error ?? (error as any)?.message ?? "Failed to cancel booking.")
     } catch { Alert.alert("Error", "Failed to cancel booking.") }
     finally { setLoading(false) }
   }
@@ -321,7 +328,7 @@ export function BookingDetailModal({
         body: { date: editDate, time: editTime, notes: editNotes },
       })
       if ((data as any)?.ok) { Alert.alert("Request sent", "Your reschedule request is awaiting approval from your PrepMaster."); onRescheduled(booking.id, editDate, editTime, null); onClose(); onRefresh?.() }
-      else Alert.alert("Error", (data as any)?.error ?? (error as any)?.message ?? "Failed to reschedule.")
+      else Alert.alert("Can't reschedule", (data as any)?.error ?? (error as any)?.error ?? (error as any)?.message ?? "Failed to reschedule.")
     } catch { Alert.alert("Error", "Failed to reschedule.") }
     finally { setLoading(false) }
   }

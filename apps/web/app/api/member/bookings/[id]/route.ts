@@ -211,7 +211,7 @@ export async function PATCH(
   const pmTz = pmUserRow?.timezone ?? COMPANY_TZ
 
   if (isWithin24Hours(booking.fields.Date ?? "", booking.fields.Time ?? "", pmTz)) {
-    return NextResponse.json({ ok: false, error: "Bookings within 24 hours cannot be rescheduled." }, { status: 422 })
+    return NextResponse.json({ ok: false, error: "This session is less than 24 hours away, so it can no longer be rescheduled. You can still cancel it (no credit refund within 24 hours) or reach out to your PrepMaster directly." }, { status: 422 })
   }
 
   const body = await req.json() as { date?: string; time?: string; notes?: string }

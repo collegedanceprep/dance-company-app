@@ -256,7 +256,7 @@ export async function rescheduleBooking(
     const pmReschTzEarly = pmReschTzRowEarly?.timezone ?? COMPANY_TZ
 
     if (isWithin24Hours(existing.fields.Date ?? "", existing.fields.Time ?? "", pmReschTzEarly)) {
-      return { ok: false, error: "Bookings within 24 hours cannot be rescheduled." }
+      return { ok: false, error: "This session is less than 24 hours away, so it can no longer be rescheduled. You can still cancel it (no credit refund within 24 hours) or reach out to your PrepMaster directly." }
     }
 
     const booked = await getBookedSlots(prepMasterName, newDate)
