@@ -3,8 +3,8 @@ import { expo } from "@better-auth/expo"
 import { pool, db } from "@/lib/db"
 import { user as userTable } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
-import { sendEmail, sendPasswordResetEmail, newMemberPendingEmail, signupReceivedEmail, duplicateAccountWarningEmail } from "@/lib/email"
-import { sendPushToUser } from "@/lib/push"
+import { sendEmail, sendPasswordResetEmail, duplicateAccountWarningEmail } from "@/lib/email"
+import { notifyAdminsOfSignup } from "@/lib/signup-notify"
 
 export const auth = betterAuth({
   plugins: [expo()],
@@ -327,60 +327,18 @@ export const auth = betterAuth({
             } catch { /* non-fatal */ }
           }
 
-          // Notify all admins via email + push
-          const { inArray } = await import("drizzle-orm")
-          const admins = adminEmails.length > 0
-            ? await db
-                .select({ id: userTable.id, email: userTable.email })
-                .from(userTable)
-                .where(inArray(userTable.email, adminEmails))
-            : []
-
-          // Apple only sends the user's name on this first sign-in, as a
-          // one-time field the provider writes to the user row in a step
-          // that isn't guaranteed to finish before this hook's body runs.
-          // Measured in production: that write lands ~3-3.5s after this
-          // row is created, well past the original 1.5s retry budget here
-          // (5 attempts x 300ms) — which is why this email kept going out
-          // blank even after adding the retry. Poll for up to ~6s instead.
-          let memberName = newUser.name
-          for (let attempt = 0; attempt < 15; attempt++) {
-            const [freshUser] = await db
-              .select({ name: userTable.name })
-              .from(userTable)
-              .where(eq(userTable.id, newUser.id))
-              .limit(1)
-            if (freshUser?.name && freshUser.name.trim()) {
-              memberName = freshUser.name
-              break
-            }
-            await new Promise((resolve) => setTimeout(resolve, 400))
+          // Admin alert + "we got your sign-up" email. Sends now if the name is
+          // already known; otherwise the update hook below sends it the moment
+          // Apple's separately-delivered name lands, and a sweep cron covers
+          // anyone whose name never arrives.
+          await notifyAdminsOfSignup(newUser.id).catch(() => {})
+        },
+      },
+      update: {
+        after: async (updated) => {
+          if (updated?.name && String(updated.name).trim()) {
+            await notifyAdminsOfSignup(updated.id as string).catch(() => {})
           }
-
-          const appUrl = process.env.BETTER_AUTH_URL
-            ?? (process.env.VERCEL_PROJECT_PRODUCTION_URL
-              ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
-              : "https://app.collegedanceprep.com")
-          const reviewUrl = `${appUrl}/admin`
-
-          const { subject, html } = newMemberPendingEmail({
-            memberName,
-            memberEmail: newUser.email,
-            reviewUrl,
-          })
-
-          const signupEmail = signupReceivedEmail({ memberName })
-          await Promise.allSettled([
-            sendEmail({ to: newUser.email, subject: signupEmail.subject, html: signupEmail.html }),
-            ...admins.map((admin) => sendEmail({ to: admin.email, subject, html })),
-            ...admins.map((admin) =>
-              sendPushToUser(admin.id, {
-                title: "New member request",
-                body: `${memberName} signed up and is awaiting approval.`,
-                data: { route: "/admin" },
-              })
-            ),
-          ])
         },
       },
     },

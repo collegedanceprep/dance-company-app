@@ -184,6 +184,14 @@ export const bookingReminderSent = pgTable("booking_reminder_sent", {
   sentAt: timestamp("sentAt").notNull().defaultNow(),
 })
 
+// One row per new pending signup whose admin "awaiting approval" alert has
+// been sent — the claim that stops the create hook, the name-update hook and
+// the sweep cron from each alerting for the same person.
+export const signupNotified = pgTable("signup_notified", {
+  userId: text("userId").primaryKey(),
+  sentAt: timestamp("sentAt").notNull().defaultNow(),
+})
+
 // One row per (PrepMaster, calendar day) — guards against Vercel Cron firing
 // the daily pending-approvals digest more than once on the same day.
 export const pendingDigestSent = pgTable(
