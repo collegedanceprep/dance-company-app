@@ -6,7 +6,7 @@
     },
     {
       "path": "/api/cron/signup-alert-sweep",
-      "schedule": "*/10 * * * *"
+      "schedule": "0 * * * *"
     },
     {
       "path": "/api/cron/pending-approvals-digest?slot=morning",
