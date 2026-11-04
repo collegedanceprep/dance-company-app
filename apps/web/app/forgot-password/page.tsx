@@ -20,11 +20,15 @@ export default function ForgotPasswordPage() {
     setError(null)
     setLoading(true)
     try {
-      await authClient.forgetPassword({
-        email,
+      const { error: apiError } = await authClient.requestPasswordReset({
+        email: email.trim().toLowerCase(),
         redirectTo: `${window.location.origin}/reset-password`,
       })
-      setSent(true)
+      if (apiError) {
+        setError("We couldn't send the reset email. Please try again, or contact us if it keeps happening.")
+      } else {
+        setSent(true)
+      }
     } catch {
       setError("Something went wrong. Please try again.")
     } finally {
