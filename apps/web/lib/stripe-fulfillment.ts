@@ -7,7 +7,7 @@ import {
   createMemberPlan,
   type ClientFields,
 } from "@/lib/airtable"
-import { PACKAGES } from "@cdp/core"
+import { PACKAGES, PACK_PROMO, promoBonusCredits } from "@cdp/core"
 import { createNotification } from "@/app/actions/notifications"
 import { sendEmail, purchaseReceiptEmail } from "@/lib/email"
 import { db } from "@/lib/db"
@@ -69,9 +69,17 @@ export async function fulfillCheckoutSession(
     "private-90": "Single Credits 90",
   }
   const rawCount = parseInt(sessions, 10)
-  // For packs: creditAmount is the number of pack credits.
+
+  const matchedPackage = itemType === "pack"
+    ? PACKAGES.find((p) => p.id === itemId) ?? PACKAGES.find((p) => p.sessions === rawCount)
+    : undefined
+  // Promo bonus is judged by when checkout started (what the buyer was shown),
+  // not when this webhook runs, so a slow webhook can't cost them the offer.
+  const bonusCredits = matchedPackage ? promoBonusCredits(matchedPackage.id, session.created * 1000) : 0
+
+  // For packs: creditAmount is the paid pack credits plus any promo bonus.
   // For single sessions: creditAmount is always 1 (one session of that type).
-  const creditAmount = itemType === "pack" ? rawCount : 1
+  const creditAmount = itemType === "pack" ? rawCount + bonusCredits : 1
   const pricePaid = (session.amount_total ?? 0) / 100
 
   // Find the member's Airtable record by User ID.
@@ -180,12 +188,8 @@ export async function fulfillCheckoutSession(
   // Create a Plan record in Airtable with the correct expiry
   const planName =
     itemType === "pack"
-      ? `${rawCount}-Pack`
+      ? `${rawCount}-Pack${bonusCredits > 0 ? ` + ${bonusCredits} free (${PACK_PROMO.label})` : ""}`
       : `Single ${sessionType?.replace("private-", "")}min`
-
-  const matchedPackage = itemType === "pack"
-    ? PACKAGES.find((p) => p.id === itemId) ?? PACKAGES.find((p) => p.sessions === rawCount)
-    : undefined
 
   await createMemberPlan({
     userId: effectiveUserId,
@@ -223,7 +227,7 @@ export async function fulfillCheckoutSession(
       memberName = userRow?.name?.trim() || userEmail
     }
     const parentCC = (client?.fields?.["Parent Email"] as string | undefined) ?? undefined
-    const { subject, html } = purchaseReceiptEmail({ memberName, planName, creditAmount, pricePaid, newBalance })
+    const { subject, html } = purchaseReceiptEmail({ memberName, planName, creditAmount, bonusCredits, pricePaid, newBalance })
     sendEmail({ to: userEmail, cc: parentCC, subject, html }).catch(() => {})
   }
 

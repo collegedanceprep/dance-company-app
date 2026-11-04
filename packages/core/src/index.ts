@@ -115,6 +115,27 @@ export const PACKAGES: DancePackage[] = [
   },
 ]
 
+/**
+ * Black Friday: free bonus credits on select packs, granted automatically when
+ * the purchase is paid for inside the window. The window is judged by when the
+ * Stripe Checkout session was created (when the buyer saw the offer), not when
+ * the webhook happened to run. Nov 3 and Nov 30 are both after DST ends, so
+ * Eastern is a fixed UTC-5 across the whole window.
+ */
+export const PACK_PROMO = {
+  label: "Black Friday",
+  startsAt: "2026-11-03T00:00:00-05:00",
+  endsAt: "2026-12-01T00:00:00-05:00", // exclusive: last moment is 11:59:59 PM ET Nov 30
+  endLabel: "Nov 30",
+  bonusByPackId: { "pack-8": 1, "pack-12": 2, "pack-16": 3 } as Record<string, number>,
+}
+
+export function promoBonusCredits(packId: string | undefined | null, atMs: number = Date.now()): number {
+  if (!packId) return 0
+  if (atMs < Date.parse(PACK_PROMO.startsAt) || atMs >= Date.parse(PACK_PROMO.endsAt)) return 0
+  return PACK_PROMO.bonusByPackId[packId] ?? 0
+}
+
 export const PER_PRIVATE: PerPrivate[] = [
   { id: "private-30", name: "30 Minute", minutes: 30, price: 65 },
   { id: "private-45", name: "45 Minute", minutes: 45, price: 89 },

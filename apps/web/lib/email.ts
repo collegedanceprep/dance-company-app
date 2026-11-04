@@ -507,12 +507,14 @@ export function purchaseReceiptEmail({
   memberName,
   planName,
   creditAmount,
+  bonusCredits = 0,
   pricePaid,
   newBalance,
 }: {
   memberName: string
   planName: string
   creditAmount: number
+  bonusCredits?: number
   pricePaid: number
   newBalance: number
 }) {
@@ -521,7 +523,7 @@ export function purchaseReceiptEmail({
     <p style="font-size:15px;color:#374151;line-height:1.6;margin:0 0 4px">Thank you for your purchase! Here's your receipt:</p>
     ${sessionTable([
       { label: "Plan", value: planName },
-      { label: "Credits added", value: String(creditAmount) },
+      { label: "Credits added", value: bonusCredits > 0 ? `${creditAmount} (includes ${bonusCredits} free)` : String(creditAmount) },
       { label: "Amount paid", value: `$${pricePaid.toFixed(2)}` },
       { label: "New credit balance", value: String(newBalance) },
     ])}

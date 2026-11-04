@@ -4,7 +4,7 @@ import { redirect } from "next/navigation"
 import { headers } from "next/headers"
 import { auth } from "@/lib/auth"
 import { stripe, APP_URL } from "@/lib/stripe"
-import { PACKAGES, PER_PRIVATE } from "@/lib/packages"
+import { PACKAGES, PER_PRIVATE, PACK_PROMO, promoBonusCredits } from "@/lib/packages"
 import { resolveClientProfile } from "@/lib/profile-core"
 
 export async function createCheckoutSession(itemId: string) {
@@ -38,7 +38,7 @@ export async function createCheckoutSession(itemId: string) {
               ? `${pkg.name} — ${pkg.sessions} hourly private sessions`
               : `${perPrivate!.name} private session`,
             description: pkg
-              ? `${pkg.sessions} one-on-one prep sessions with your choice of PrepMaster`
+              ? `${pkg.sessions} one-on-one prep sessions with your choice of PrepMaster${promoBonusCredits(pkg.id) > 0 ? ` + ${promoBonusCredits(pkg.id)} FREE (${PACK_PROMO.label} bonus, through ${PACK_PROMO.endLabel})` : ""}`
               : `${perPrivate!.minutes}-minute one-on-one prep session`,
           },
         },

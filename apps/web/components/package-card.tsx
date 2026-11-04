@@ -3,8 +3,8 @@
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { formatPrice, type DancePackage } from "@/lib/packages"
-import { Check } from "lucide-react"
+import { formatPrice, PACK_PROMO, promoBonusCredits, type DancePackage } from "@/lib/packages"
+import { Check, Gift } from "lucide-react"
 import { useState } from "react"
 import { createCheckoutSession } from "@/app/actions/checkout"
 
@@ -38,6 +38,12 @@ export function PackageCard({ pkg }: { pkg: DancePackage }) {
         </Badge>
       </div>
       <p className="text-sm text-muted-foreground">Hourly privates</p>
+      {promoBonusCredits(pkg.id) > 0 ? (
+        <div className="mt-2 inline-flex w-fit items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900 dark:bg-amber-400/20 dark:text-amber-200">
+          <Gift className="size-3.5" />
+          {PACK_PROMO.label}: +{promoBonusCredits(pkg.id)} free through {PACK_PROMO.endLabel}
+        </div>
+      ) : null}
 
       <div className="mt-4 flex items-end gap-1">
         <span className="font-heading text-4xl font-bold tracking-tight">

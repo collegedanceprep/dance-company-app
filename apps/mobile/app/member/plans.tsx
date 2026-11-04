@@ -2,10 +2,10 @@ import { useState } from "react"
 import { API_BASE } from "@/lib/config"
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Linking, Alert } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
-import { Check, Clock } from "lucide-react-native"
+import { Check, Clock, Gift } from "lucide-react-native"
 import { SPACING, RADIUS } from "@/constants/theme"
 import { authClient } from "@/lib/auth-client"
-import { PACKAGES, PER_PRIVATE } from "@cdp/core"
+import { PACKAGES, PER_PRIVATE, PACK_PROMO, promoBonusCredits } from "@cdp/core"
 import { useColors } from "@/lib/theme-context"
 
 
@@ -51,6 +51,12 @@ export default function MemberPlansScreen() {
                     <View style={styles.savingsBadge}><Text style={styles.savingsText}>Save ${pkg.savings}</Text></View>
                   </View>
                   <Text style={styles.packageType}>Hourly privates</Text>
+                  {promoBonusCredits(pkg.id) > 0 && (
+                    <View style={styles.promoSticker}>
+                      <Gift size={13} color="#78350F" />
+                      <Text style={styles.promoText}>{PACK_PROMO.label}: +{promoBonusCredits(pkg.id)} free through {PACK_PROMO.endLabel}</Text>
+                    </View>
+                  )}
                   <View style={styles.priceRow}>
                     <Text style={styles.price}>${pkg.price}</Text>
                     <Text style={styles.pricePer}>/ {pkg.sessions} hours</Text>
@@ -118,6 +124,8 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     popularText: { fontSize: 11, fontWeight: "700", color: "#fff" },
     packageTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
     packageName: { fontSize: 18, fontWeight: "700", color: COLORS.text, fontFamily: "Sora_600SemiBold" },
+    promoSticker: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start", backgroundColor: "#FEF3C7", paddingHorizontal: 12, paddingVertical: 5, borderRadius: RADIUS.full, marginTop: 8 },
+    promoText: { color: "#78350F", fontSize: 12, fontWeight: "700" },
     savingsBadge: { backgroundColor: COLORS.primary + "22", paddingHorizontal: 18, paddingVertical: 9, borderRadius: RADIUS.full },
     savingsText: { fontSize: 17, fontWeight: "700", color: COLORS.primary },
     packageType: { fontSize: 12, color: COLORS.textMuted },
