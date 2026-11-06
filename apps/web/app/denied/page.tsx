@@ -1,6 +1,17 @@
+"use client"
+
 import { XCircle } from "lucide-react"
+import { authClient } from "@/lib/auth-client"
+import { useRouter } from "next/navigation"
 
 export default function DeniedPage() {
+  const router = useRouter()
+
+  async function handleSignOut() {
+    await authClient.signOut()
+    router.push("/")
+  }
+
   return (
     <main className="min-h-screen flex items-center justify-center bg-background p-6">
       <div className="max-w-md w-full text-center space-y-6">
@@ -22,11 +33,9 @@ export default function DeniedPage() {
             collegedanceprep@gmail.com
           </a>
         </p>
-        <form action="/api/auth/sign-out" method="POST">
-          <button type="submit" className="text-sm text-muted-foreground underline">
-            Sign out
-          </button>
-        </form>
+        <button type="button" onClick={handleSignOut} className="text-sm text-muted-foreground underline">
+          Sign out
+        </button>
       </div>
     </main>
   )
