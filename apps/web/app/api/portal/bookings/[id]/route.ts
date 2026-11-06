@@ -301,6 +301,7 @@ export async function PATCH(
     await appBase.update<BookingFields>(TABLES.bookings, id, {
       Status: "Cancelled",
       "Cancellation Reason": body.cancellationReason,
+      "Cancelled By": "PrepMaster",
     })
 
     // PM cancellation always refunds the member's credit

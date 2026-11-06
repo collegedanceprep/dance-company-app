@@ -139,6 +139,7 @@ export async function cancelBooking(
     await appBase.update<BookingFields>(TABLES.bookings, bookingId, {
       Status: within24 ? "Cancelled (Late)" : "Cancelled",
       "Cancellation Reason": cancellationReason.trim(),
+      "Cancelled By": "Dancer",
       ...(within24 ? { "Payable to PrepMaster": true } : {}),
     })
 

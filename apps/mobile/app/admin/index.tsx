@@ -151,6 +151,8 @@ function GroupedBookings({ bookings, statusFilter, onClearFilter }: { bookings: 
       const es = effectiveStatus(b)
       const esl = es.toLowerCase()
       if (g.key === "cancelled") return esl.startsWith("cancelled")
+      // Same rule as the Completed tile: past, not a plain cancel (late cancels still bill), so the counts agree.
+      if (g.key === "completed") return (b.status?.toLowerCase() ?? "") !== "cancelled" && isPast(b)
       if (g.key === "other") return !STATUS_GROUPS.slice(0, -1).some((sg) => sg.key === "cancelled" ? esl.startsWith("cancelled") : esl === sg.key)
       return esl === g.key
     }).sort((a, b) => (a.date ?? "").localeCompare(b.date ?? "")),

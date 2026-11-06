@@ -55,6 +55,12 @@ const STATUS_LABELS: Record<string, string> = {
   canceled:  "Canceled",
 }
 
+// "Canceled · Dancer" / "Canceled · PrepMaster" when we know who cancelled; older cancellations have no record.
+function statusLabel(bk: { status: string; cancelledBy?: "Dancer" | "PrepMaster" | null }) {
+  const base = STATUS_LABELS[bk.status] ?? bk.status
+  return bk.status === "canceled" && bk.cancelledBy ? `${base} · ${bk.cancelledBy}` : base
+}
+
 function initials(name: string) {
   return name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()
 }
@@ -508,7 +514,7 @@ export function MyPrepMastersView({
                             variant={STATUS_BADGE[bk.status]?.variant}
                             className={cn("shrink-0", STATUS_BADGE[bk.status]?.className)}
                           >
-                            {STATUS_LABELS[bk.status] ?? bk.status}
+                            {statusLabel(bk)}
                           </Badge>
                         </div>
                       ))}
@@ -574,12 +580,12 @@ export function MyPrepMastersView({
                               <p className="text-[10px] text-muted-foreground">{durationLabel(bk.sessionType)}</p>
                             )}
                           </div>
-                          <div className="flex flex-col items-end gap-1 shrink-0 w-28">
+                          <div className="flex flex-col items-end gap-1 shrink-0 min-w-28">
                             <Badge
                               variant={STATUS_BADGE[bk.status]?.variant}
                               className={cn("shrink-0", STATUS_BADGE[bk.status]?.className)}
                             >
-                              {STATUS_LABELS[bk.status] ?? bk.status}
+                              {statusLabel(bk)}
                             </Badge>
                             {bk.isReschedulePending && (
                               <Badge className="shrink-0 border-blue-300 bg-blue-100 text-blue-700 dark:border-blue-700 dark:bg-blue-950 dark:text-blue-400">
@@ -725,7 +731,7 @@ export function MyPrepMastersView({
                                 variant={STATUS_BADGE[bk.status]?.variant}
                                 className={cn("shrink-0", STATUS_BADGE[bk.status]?.className)}
                               >
-                                {STATUS_LABELS[bk.status] ?? bk.status}
+                                {statusLabel(bk)}
                               </Badge>
                               {bk.isReschedulePending && (
                                 <Badge className="shrink-0 border-blue-300 bg-blue-100 text-blue-700 dark:border-blue-700 dark:bg-blue-950 dark:text-blue-400">

@@ -475,6 +475,7 @@ export async function cancelBookingAsPrepMaster(
     await appBase.update<BookingFields>(TABLES.bookings, bookingId, {
       Status: "Cancelled",
       "Cancellation Reason": reason,
+      "Cancelled By": "PrepMaster",
     })
 
     const dateLabel = fmtDate(dateStr)
