@@ -22,6 +22,23 @@ export function getAdminEmails(): string[] {
     .filter(Boolean)
 }
 
+/**
+ * Emails allowed to book sessions on behalf of any dancer with any PrepMaster
+ * (the "Book for dancers" portal tab) — and nothing else. No credits, plans,
+ * pricing, or account management. Configured via SCHEDULER_EMAILS
+ * (comma-separated). If unset, no one has scheduler access.
+ */
+export function getSchedulerEmails(): string[] {
+  return (process.env.SCHEDULER_EMAILS ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean)
+}
+
+export function isSchedulerEmail(email: string): boolean {
+  return getSchedulerEmails().includes(email.trim().toLowerCase())
+}
+
 export function isAdminEmail(email: string): boolean {
   return getAdminEmails().includes(email.trim().toLowerCase())
 }

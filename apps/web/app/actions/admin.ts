@@ -4,7 +4,7 @@ import { randomUUID } from "crypto"
 import { headers } from "next/headers"
 import { revalidatePath, revalidateTag } from "next/cache"
 import { auth } from "@/lib/auth"
-import { isAdminEmail } from "@/lib/roles"
+import { isAdminEmail, isSchedulerEmail } from "@/lib/roles"
 import { db } from "@/lib/db"
 import { prepMasterInvite, user as userTable, creditAdjustment, session as sessionTable } from "@/lib/db/schema"
 import { eq, inArray } from "drizzle-orm"
@@ -45,6 +45,15 @@ import type { SessionType } from "@/lib/session-types"
 async function assertAdmin() {
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session?.user || !isAdminEmail(session.user.email)) {
+    throw new Error("Unauthorized")
+  }
+  return session.user.email
+}
+
+/** Admins and designated schedulers — used ONLY for booking-on-behalf actions. */
+async function assertAdminOrScheduler() {
+  const session = await auth.api.getSession({ headers: await headers() })
+  if (!session?.user || !(isAdminEmail(session.user.email) || isSchedulerEmail(session.user.email))) {
     throw new Error("Unauthorized")
   }
   return session.user.email
@@ -516,7 +525,7 @@ export async function createBookingAsAdmin(input: {
   notes?: string
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
-    await assertAdmin()
+    await assertAdminOrScheduler()
     const { createConfirmedBooking } = await import("@/lib/booking-create")
     const result = await createConfirmedBooking({ ...input, bookedBy: "admin" })
     if (!result.ok) {
@@ -535,7 +544,7 @@ export async function createBookingAsAdmin(input: {
 
 /** Open slots for a given PrepMaster + date, for the admin booking picker. */
 export async function getAdminAvailableSlots(prepMasterId: string, date: string): Promise<string[]> {
-  await assertAdmin()
+  await assertAdminOrScheduler()
   const { getPrepMaster, getBookedSlots } = await import("@/lib/airtable")
   const { getAvailabilityForEmail } = await import("@/app/actions/availability")
   const { slotsForDate } = await import("@/lib/availability")
@@ -549,4 +558,41 @@ export async function getAdminAvailableSlots(prepMasterId: string, date: string)
 
   const bookedSlots = await getBookedSlots(prepMaster.name, date)
   return allSlots.filter((s) => !bookedSlots.includes(s))
+}
+
+
+/**
+ * Data for the scheduler "Book for dancers" tab: dancers/parents and active
+ * PrepMasters only, with every pay/contact/address field stripped. Admins can
+ * call it too.
+ */
+export async function getSchedulerBookingData(): Promise<{
+  members: AdminMember[]
+  workers: AdminWorker[]
+}> {
+  await assertAdminOrScheduler()
+  const [members, workers, invited] = await Promise.all([
+    adminGetAllMembers(),
+    adminGetAllWorkers(),
+    db.select({ email: prepMasterInvite.email }).from(prepMasterInvite),
+  ])
+  const staffEmails = new Set([
+    ...workers.map((w) => w.email.trim().toLowerCase()).filter(Boolean),
+    ...invited.map((i) => i.email.toLowerCase()),
+  ])
+  const pending = await db.select({ email: userTable.email }).from(userTable).where(eq(userTable.status, "pending"))
+  const pendingEmails = new Set(pending.map((u) => u.email.toLowerCase()))
+  return {
+    members: members
+      .filter((m) => !staffEmails.has(m.email.toLowerCase()))
+      .map((m) => ({
+        ...m,
+        phone: "",
+        goals: "",
+        accountStatus: (pendingEmails.has(m.email.toLowerCase()) ? "pending" : "active") as "pending" | "active",
+      })),
+    workers: workers
+      .filter((w) => w.active)
+      .map((w) => ({ ...w, hourlyRate: 0, phone: "", address: "" })),
+  }
 }

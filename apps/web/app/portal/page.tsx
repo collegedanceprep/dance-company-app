@@ -4,7 +4,7 @@ import {
   isAirtableConfigured,
   getBookingsForPrepMaster,
 } from "@/lib/airtable"
-import { getSessionUserWithRole, isOpsManagementEmail } from "@/lib/roles"
+import { getSessionUserWithRole, isOpsManagementEmail, isSchedulerEmail } from "@/lib/roles"
 import { isCalendarConnected } from "@/lib/google-calendar"
 import { AirtableSetupNotice } from "@/components/airtable-setup-notice"
 import { GoogleCalendarButton } from "@/components/google-calendar-button"
@@ -25,6 +25,10 @@ export default async function PortalPage() {
   // own — send them straight to the Ops Management tab.
   if (user && user.role !== "admin" && user.role !== "prep_master" && isOpsManagementEmail(user.email)) {
     redirect("/portal/ops-management")
+  }
+  // Scheduler-only users (not admin, PrepMaster or ops) land on the booking tab.
+  if (user && user.role !== "admin" && user.role !== "prep_master" && isSchedulerEmail(user.email)) {
+    redirect("/portal/book-for-dancers")
   }
 
   // Silently remove any stale Airtable Members record for this PrepMaster
