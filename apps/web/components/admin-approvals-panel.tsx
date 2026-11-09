@@ -12,7 +12,7 @@ type PendingUser = {
   accountType: "prepmaster" | "member"
 }
 
-export function AdminApprovalsPanel() {
+export function AdminApprovalsPanel({ canDelete = true }: { canDelete?: boolean }) {
   const [users, setUsers] = useState<PendingUser[]>([])
   const [loading, setLoading] = useState(true)
   const [acting, setActing] = useState<string | null>(null)
@@ -142,14 +142,16 @@ export function AdminApprovalsPanel() {
                   >
                     <Check className="w-3.5 h-3.5" /> Approve
                   </button>
-                  <button
-                    onClick={() => handleDelete(u)}
-                    disabled={acting === u.id}
-                    title="Permanently remove this request"
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-destructive/30 text-destructive text-sm font-medium hover:bg-destructive/5 disabled:opacity-50"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  {canDelete && (
+                    <button
+                      onClick={() => handleDelete(u)}
+                      disabled={acting === u.id}
+                      title="Permanently remove this request"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-destructive/30 text-destructive text-sm font-medium hover:bg-destructive/5 disabled:opacity-50"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

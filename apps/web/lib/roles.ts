@@ -39,6 +39,20 @@ export function isSchedulerEmail(email: string): boolean {
   return getSchedulerEmails().includes(email.trim().toLowerCase())
 }
 
+/**
+ * Emails allowed to approve/deny new MEMBER (dancer/parent) signups — the
+ * "Approvals" portal tab — and nothing else. They cannot act on PrepMaster
+ * signups, delete accounts, or touch credits. Configured via APPROVER_EMAILS
+ * (comma-separated). If unset, no one has approver access.
+ */
+export function isApproverEmail(email: string): boolean {
+  return (process.env.APPROVER_EMAILS ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean)
+    .includes(email.trim().toLowerCase())
+}
+
 export function isAdminEmail(email: string): boolean {
   return getAdminEmails().includes(email.trim().toLowerCase())
 }

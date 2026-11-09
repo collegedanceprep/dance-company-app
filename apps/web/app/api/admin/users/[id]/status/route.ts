@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server"
-import { getSessionUserWithRole } from "@/lib/roles"
+import { getSessionUserWithRole, isApproverEmail } from "@/lib/roles"
 import { db } from "@/lib/db"
 import { user as userTable, prepMasterInvite } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 import { createNotification } from "@/app/actions/notifications"
 import { sendPushToUser } from "@/lib/push"
-import { appBase, TABLES } from "@/lib/airtable"
+import { appBase, TABLES, adminGetAllWorkers } from "@/lib/airtable"
 import type { ClientFields } from "@/lib/airtable"
 import { sendEmail, accountApprovedEmail, accountDeniedEmail, prepMasterApprovedEmail, parentAccountApprovedEmail } from "@/lib/email"
 
@@ -16,7 +16,9 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const me = await getSessionUserWithRole()
-  if (me?.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  const isAdmin = me?.role === "admin"
+  const isApprover = Boolean(me && isApproverEmail(me.email))
+  if (!me || (!isAdmin && !isApprover)) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
   const { id } = await params
   const { status } = await req.json() as { status: "active" | "denied" }
@@ -26,6 +28,20 @@ export async function PATCH(
 
   const [target] = await db.select().from(userTable).where(eq(userTable.id, id)).limit(1)
   if (!target) return NextResponse.json({ error: "User not found" }, { status: 404 })
+
+  // Approvers may only act on member signups — never on staff accounts.
+  if (!isAdmin) {
+    const email = target.email.trim().toLowerCase()
+    const [invite] = await db
+      .select({ id: prepMasterInvite.id })
+      .from(prepMasterInvite)
+      .where(eq(prepMasterInvite.email, email))
+      .limit(1)
+    const workers = await adminGetAllWorkers().catch(() => null)
+    if (invite || workers === null || workers.some((w) => w.email.trim().toLowerCase() === email)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    }
+  }
 
   await db.update(userTable).set({
     status,

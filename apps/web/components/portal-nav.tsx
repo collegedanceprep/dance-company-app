@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { CalendarDays, Clock, CalendarPlus, Inbox, UserCircle, BookOpen, Users, ClipboardList, CalendarCheck } from "lucide-react"
+import { CalendarDays, Clock, CalendarPlus, Inbox, UserCircle, BookOpen, Users, ClipboardList, CalendarCheck, UserCheck } from "lucide-react"
 
 const BASE_LINKS = [
   { href: "/portal", label: "Schedule", icon: CalendarDays },
@@ -19,20 +19,23 @@ const OPS_LINK = { href: "/portal/ops-management", label: "Ops Management", icon
 
 const SCHEDULER_LINK = { href: "/portal/book-for-dancers", label: "Book for dancers", icon: CalendarCheck }
 
-type Props = { isRD?: boolean; isOps?: boolean; opsOnly?: boolean; isScheduler?: boolean }
+const APPROVALS_LINK = { href: "/portal/approvals", label: "Approvals", icon: UserCheck }
 
-export function PortalNav({ isRD, isOps, opsOnly, isScheduler }: Props) {
+type Props = { isRD?: boolean; isOps?: boolean; opsOnly?: boolean; isScheduler?: boolean; isApprover?: boolean }
+
+export function PortalNav({ isRD, isOps, opsOnly, isScheduler, isApprover }: Props) {
   const pathname = usePathname()
   // A person who has ops access but isn't an admin or PrepMaster only makes
   // sense of the Ops Management tab — the booking/schedule tabs are for
   // PrepMasters managing their own sessions.
   const links = opsOnly
-    ? [...(isOps ? [OPS_LINK] : []), ...(isScheduler ? [SCHEDULER_LINK] : [])]
+    ? [...(isOps ? [OPS_LINK] : []), ...(isScheduler ? [SCHEDULER_LINK] : []), ...(isApprover ? [APPROVALS_LINK] : [])]
     : [
         BASE_LINKS[0],
         ...(isRD ? [RD_LINK] : []),
         ...(isOps ? [OPS_LINK] : []),
         ...(isScheduler ? [SCHEDULER_LINK] : []),
+        ...(isApprover ? [APPROVALS_LINK] : []),
         ...BASE_LINKS.slice(1),
       ]
 

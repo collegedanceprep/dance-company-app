@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { getSessionUserWithRole } from "@/lib/roles"
+import { getSessionUserWithRole, isApproverEmail } from "@/lib/roles"
 import { db } from "@/lib/db"
 import { user as userTable, prepMasterInvite } from "@/lib/db/schema"
 import { inArray } from "drizzle-orm"
@@ -7,7 +7,9 @@ import { adminGetAllWorkers } from "@/lib/airtable"
 
 export async function GET() {
   const me = await getSessionUserWithRole()
-  if (me?.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  const isAdmin = me?.role === "admin"
+  const isApprover = Boolean(me && isApproverEmail(me.email))
+  if (!isAdmin && !isApprover) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
   const rows = await db
     .select({ id: userTable.id, name: userTable.name, email: userTable.email, status: userTable.status, createdAt: userTable.createdAt })
@@ -33,10 +35,10 @@ export async function GET() {
     ...workers.map((w) => w.email.trim().toLowerCase()),
   ])
 
-  return NextResponse.json(
-    rows.map((r) => ({
-      ...r,
-      accountType: prepMasterEmails.has(r.email.toLowerCase()) ? "prepmaster" : "member",
-    }))
-  )
+  const all = rows.map((r) => ({
+    ...r,
+    accountType: (prepMasterEmails.has(r.email.toLowerCase()) ? "prepmaster" : "member") as "prepmaster" | "member",
+  }))
+  // Approvers only ever see (and can act on) member signups, never staff.
+  return NextResponse.json(isAdmin ? all : all.filter((r) => r.accountType === "member"))
 }
