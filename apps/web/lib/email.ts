@@ -648,3 +648,41 @@ export function prepMasterInviteEmail({ name, email }: { name: string; email: st
     html: emailBase("PrepMaster invite", body),
   }
 }
+
+
+export type PendingEscalationItem = { prepMaster: string; dancer: string; when: string; note: string }
+
+/** Escalation alert for bookings a PrepMaster hasn't answered. */
+export function pendingEscalationEmail({
+  recipientName,
+  audience,
+  items,
+}: {
+  recipientName: string
+  audience: "prepmaster" | "rd" | "admin"
+  items: PendingEscalationItem[]
+}) {
+  const plural = items.length === 1 ? "booking" : "bookings"
+  const intro =
+    audience === "prepmaster"
+      ? `You have <strong>${items.length} ${plural}</strong> coming up soon that you haven't confirmed yet. Please approve or decline right away so the dancer knows.`
+      : `<strong>${items.length} ${plural}</strong> ${items.length === 1 ? "is" : "are"} still waiting on a PrepMaster response. A nudge from you could get ${items.length === 1 ? "it" : "them"} sorted.`
+  const rows = items
+    .map(
+      (i) => `<tr><td style="padding:8px 0;border-bottom:1px solid #e5e7eb;font-size:14px;color:#374151">
+        <strong>${i.dancer}</strong> with ${i.prepMaster}<br><span style="color:#6b7280">${i.when} · ${i.note}</span></td></tr>`,
+    )
+    .join("")
+  const link = audience === "admin" ? `${APP_URL}/admin` : `${APP_URL}/portal`
+  const body = `
+    <p style="font-size:15px;color:#374151;line-height:1.6;margin:0 0 16px">Hi ${firstName(recipientName)},</p>
+    <p style="font-size:15px;color:#374151;line-height:1.6;margin:0 0 16px">${intro}</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0">${rows}</table>
+    <div style="text-align:center;margin:24px 0">
+      <a href="${link}" style="display:inline-block;background:#e91e8c;color:#ffffff;text-decoration:none;padding:13px 32px;border-radius:6px;font-weight:600;font-size:15px">Open CDP</a>
+    </div>`
+  return {
+    subject: audience === "prepmaster" ? "Booking needs your response now" : "Bookings waiting on a PrepMaster",
+    html: emailBase("Pending bookings", body),
+  }
+}

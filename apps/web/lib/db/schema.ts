@@ -267,3 +267,18 @@ export const creditAdjustment = pgTable(
     memberIdx: index("credit_adjustment_member_idx").on(t.memberRecordId),
   }),
 )
+
+// One row per (booking, escalation stage) so the hourly pending-escalation job
+// alerts about each stage at most once per booking.
+export const pendingEscalationSent = pgTable(
+  "pending_escalation_sent",
+  {
+    id: text("id").primaryKey(),
+    bookingId: text("bookingId").notNull(),
+    stage: text("stage").notNull(),
+    sentAt: timestamp("sentAt").notNull().defaultNow(),
+  },
+  (t) => ({
+    bookingStageUnique: unique("pending_escalation_sent_booking_stage").on(t.bookingId, t.stage),
+  }),
+)

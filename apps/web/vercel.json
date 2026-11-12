@@ -15,6 +15,10 @@
     {
       "path": "/api/cron/pending-approvals-digest?slot=evening",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/pending-escalation",
+      "schedule": "15 * * * *"
     }
   ]
 }
