@@ -14,9 +14,8 @@ const HOUR = 60 * 60 * 1000
 /**
  * Hourly sweep of bookings still "Pending" a PrepMaster response. Each stage
  * fires at most once per booking (pending_escalation_sent):
- *   - pm_urgent  session starts within 12h        -> the PrepMaster
- *   - rd_12h     pending for 12h+, session ahead  -> PrepMaster's Regional Director
- *                                                    (admins if they have none)
+ *   - pm_rd_12h_away  session starts within 12h   -> the PrepMaster and her Regional
+ *                                                    Director (admins if she has none)
  *   - admin_24h  pending 24h+ or session < 24h    -> admins
  *   - lapsed     session time passed unanswered   -> admins
  * Alerts are grouped so each person gets one push/email per run.
@@ -79,13 +78,12 @@ export async function GET(req: Request) {
     // The RD this PrepMaster reports to (by name); admins are the fallback.
     const rd = pm?.reportsTo ? prepMasters.find((p) => p.name === pm.reportsTo && p.workerRole === "Regional Director") : undefined
 
-    if (untilMs > 0 && untilMs <= 12 * HOUR && (await claim(r.id, "pm_urgent"))) {
-      add(pm?.email, "prepmaster", item(`starts in under 12 hours`))
-    }
-    if (untilMs > 0 && ageMs >= 12 * HOUR && (await claim(r.id, "rd_12h"))) {
-      const note = `pending ${Math.floor(ageMs / HOUR)}h`
-      if (rd?.email) add(rd.email, "rd", item(note))
-      else adminEmails.forEach((e) => add(e, "admin", item(`${note}, no Regional Director on file`)))
+    // Session within 12h and still unanswered: ping the PrepMaster AND her
+    // Regional Director (admins stand in if she has none). The dancer is not contacted.
+    if (untilMs > 0 && untilMs <= 12 * HOUR && (await claim(r.id, "pm_rd_12h_away"))) {
+      add(pm?.email, "prepmaster", item("starts in under 12 hours"))
+      if (rd?.email) add(rd.email, "rd", item("starts in under 12 hours, PrepMaster hasn't responded"))
+      else adminEmails.forEach((e) => add(e, "admin", item("starts in under 12 hours, no Regional Director on file")))
     }
     if (untilMs > 0 && (ageMs >= 24 * HOUR || untilMs <= 24 * HOUR) && (await claim(r.id, "admin_24h"))) {
       adminEmails.forEach((e) => add(e, "admin", item(untilMs <= 24 * HOUR ? "starts in under 24 hours, still unconfirmed" : `pending ${Math.floor(ageMs / HOUR)}h`)))
