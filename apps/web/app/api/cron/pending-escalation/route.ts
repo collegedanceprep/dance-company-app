@@ -14,11 +14,8 @@ const HOUR = 60 * 60 * 1000
 /**
  * Hourly sweep of bookings still "Pending" a PrepMaster response. Each stage
  * fires at most once per booking (pending_escalation_sent):
- *   - pm_rd_12h_away  session starts within 12h   -> the PrepMaster and her Regional
- *                                                    Director (admins if she has none)
- *   - admin_24h  pending 24h+ or session < 24h    -> admins
- *   - lapsed     session time passed unanswered   -> admins
- * Alerts are grouped so each person gets one push/email per run.
+ *   - pm_rd_12h_away  session starts within 12h   -> the PrepMaster and her Regional Director
+ * No one else (dancer, admins) is alerted. Alerts are grouped so each person gets one push/email per run.
  * Protected by CRON_SECRET (sent automatically by Vercel Cron).
  */
 export async function GET(req: Request) {
@@ -37,8 +34,6 @@ export async function GET(req: Request) {
 
   const prepMasters = await getPrepMasters()
   const pmByName = new Map(prepMasters.map((p) => [p.name, p]))
-
-  const adminEmails = (process.env.ADMIN_EMAILS ?? "").split(",").map((e) => e.trim().toLowerCase()).filter(Boolean)
 
   // recipient email -> { audience, items }
   const buckets = new Map<string, { audience: "prepmaster" | "rd" | "admin"; items: PendingEscalationItem[] }>()
@@ -79,17 +74,10 @@ export async function GET(req: Request) {
     const rd = pm?.reportsTo ? prepMasters.find((p) => p.name === pm.reportsTo && p.workerRole === "Regional Director") : undefined
 
     // Session within 12h and still unanswered: ping the PrepMaster AND her
-    // Regional Director (admins stand in if she has none). The dancer is not contacted.
+    // Regional Director. The dancer and admins are not contacted.
     if (untilMs > 0 && untilMs <= 12 * HOUR && (await claim(r.id, "pm_rd_12h_away"))) {
       add(pm?.email, "prepmaster", item("starts in under 12 hours"))
-      if (rd?.email) add(rd.email, "rd", item("starts in under 12 hours, PrepMaster hasn't responded"))
-      else adminEmails.forEach((e) => add(e, "admin", item("starts in under 12 hours, no Regional Director on file")))
-    }
-    if (untilMs > 0 && (ageMs >= 24 * HOUR || untilMs <= 24 * HOUR) && (await claim(r.id, "admin_24h"))) {
-      adminEmails.forEach((e) => add(e, "admin", item(untilMs <= 24 * HOUR ? "starts in under 24 hours, still unconfirmed" : `pending ${Math.floor(ageMs / HOUR)}h`)))
-    }
-    if (untilMs <= 0 && (await claim(r.id, "lapsed"))) {
-      adminEmails.forEach((e) => add(e, "admin", item("session time passed and it was never confirmed")))
+      add(rd?.email, "rd", item("starts in under 12 hours, PrepMaster hasn't responded"))
     }
   }
 
@@ -110,7 +98,7 @@ export async function GET(req: Request) {
       ? "A session is starting soon and you haven't confirmed it. Please approve or decline."
       : `${items[0].prepMaster} hasn't responded${n > 1 ? ` (and ${n - 1} more)` : ""}. Tap to review.`
     if (u) {
-      createNotification({ userId: u.id, type: "pending_escalation", title, body, pushData: { route: audience === "admin" ? "/admin" : "/portal" } }).catch(() => {})
+      createNotification({ userId: u.id, type: "pending_escalation", title, body, pushData: { route: "/portal" } }).catch(() => {})
     }
     const mail = pendingEscalationEmail({ recipientName: u?.name ?? email, audience, items })
     sendEmail({ to: email, subject: mail.subject, html: mail.html }).catch(() => {})
