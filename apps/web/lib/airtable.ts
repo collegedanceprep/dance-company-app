@@ -612,6 +612,7 @@ export type AdminWorker = {
   active: boolean
   workerRole: string
   reportsTo: string
+  photoUrl?: string | null
   inviteStatus?: "pending" | "accepted" | "revoked" | null
 }
 
@@ -771,6 +772,7 @@ export async function adminGetAllWorkers(): Promise<AdminWorker[]> {
     active: r.fields.Active !== false,
     workerRole: r.fields["Role"] ?? "PrepMaster",
     reportsTo: r.fields["Reports to"] ?? "",
+    photoUrl: teamPhotoUrl(r.fields["Full Name"]),
   }))
 }
 

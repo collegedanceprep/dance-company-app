@@ -638,8 +638,13 @@ export function MyPrepMastersView({
                   onClick={() => togglePM(pm.name)}
                   className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-muted/40 transition-colors"
                 >
-                  <div className="size-9 shrink-0 rounded-full bg-primary/15 text-primary font-bold text-xs flex items-center justify-center">
-                    {initials(pm.name)}
+                  <div className="size-9 shrink-0 overflow-hidden rounded-full bg-primary/15 text-primary font-bold text-xs flex items-center justify-center">
+                    {pm.photoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={pm.photoUrl} alt={pm.name} loading="lazy" className="size-full object-cover" />
+                    ) : (
+                      initials(pm.name)
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold truncate">{pm.name}</p>

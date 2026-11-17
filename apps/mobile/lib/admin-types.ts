@@ -21,6 +21,7 @@ export type AdminWorker = {
   address: string
   hourlyRate: number
   active: boolean
+  photoUrl?: string | null
   inviteStatus?: "pending" | "accepted" | "revoked" | null
 }
 

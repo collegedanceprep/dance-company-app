@@ -3,7 +3,7 @@ import { useLocalSearchParams, useRouter } from "expo-router"
 import { API_BASE } from "@/lib/config"
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity,
-  Modal, ScrollView, RefreshControl, ActivityIndicator, Alert, Switch, FlatList,
+  Modal, ScrollView, RefreshControl, ActivityIndicator, Alert, Switch, FlatList, Image,
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import {
@@ -176,7 +176,11 @@ export default function AdminPrepMastersScreen() {
                     const sessionCount = bookings.filter((b) => b.prepMasterName === w.name && b.status.toLowerCase() !== "cancelled").length
                     return (
                       <TouchableOpacity key={w.id} style={styles.card} onPress={() => setSelected(w)} activeOpacity={0.7}>
-                        <View style={styles.avatar}><Text style={styles.avatarText}>{initials(w.name || "?")}</Text></View>
+                        {w.photoUrl ? (
+                          <Image source={{ uri: `${API}${w.photoUrl}` }} style={styles.avatar} />
+                        ) : (
+                          <View style={styles.avatar}><Text style={styles.avatarText}>{initials(w.name || "?")}</Text></View>
+                        )}
                         <View style={{ flex: 1, gap: 4, minWidth: 0, overflow: "hidden" }}>
                           <Text style={styles.name} numberOfLines={1} ellipsizeMode="tail">{w.name}</Text>
                           {w.university ? (
@@ -591,7 +595,7 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     list: { paddingHorizontal: SPACING.md, paddingBottom: 100, paddingTop: SPACING.xs },
     empty: { fontSize: 14, color: COLORS.textMuted, textAlign: "center", marginTop: SPACING.xl },
     card: { flexDirection: "row", alignItems: "center", gap: SPACING.sm, backgroundColor: COLORS.surface, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.border, padding: SPACING.md },
-    avatar: { width: 40, height: 40, borderRadius: RADIUS.full, backgroundColor: COLORS.primaryLight, alignItems: "center", justifyContent: "center" },
+    avatar: { width: 40, height: 40, borderRadius: RADIUS.full, backgroundColor: COLORS.primaryLight, alignItems: "center", justifyContent: "center", overflow: "hidden" },
     avatarText: { fontSize: 14, fontWeight: "700", color: COLORS.primary },
     name: { fontSize: 15, fontWeight: "600", color: COLORS.text },
     sub: { fontSize: 12, color: COLORS.textMuted, marginTop: 1 },
