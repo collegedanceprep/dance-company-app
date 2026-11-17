@@ -65,6 +65,7 @@ export type { SessionType } from "@/lib/session-types"
 export { SESSION_TYPE_LABELS } from "@/lib/session-types"
 import type { SessionType } from "@/lib/session-types"
 import { etToUtcIso } from "@/lib/utils"
+import { teamPhotoUrl } from "@/lib/team-photos"
 
 export type BookingFields = {
   Name?: string
@@ -257,6 +258,8 @@ export type PrepMaster = {
   workerRole: string
   reportsTo: string
   active: boolean
+  /** Site-relative headshot path (e.g. /team/aaliyah-plotts.jpg) or null. */
+  photoUrl?: string | null
 }
 
 function toPrepMaster(r: AirtableRecord<WorkerFields>): PrepMaster {
@@ -271,6 +274,7 @@ function toPrepMaster(r: AirtableRecord<WorkerFields>): PrepMaster {
     workerRole: r.fields["Role"] ?? "PrepMaster",
     reportsTo: r.fields["Reports to"] ?? "",
     active: r.fields.Active !== false,
+    photoUrl: teamPhotoUrl(r.fields["Full Name"]),
     // Hourly Rate is intentionally NOT included here.
   }
 }

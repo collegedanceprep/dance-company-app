@@ -91,7 +91,12 @@ export default async function BookPage({
       <main className="mx-auto max-w-3xl px-5 py-8">
         <div className="mb-8 flex items-center gap-4">
           <div className="grid size-20 shrink-0 place-items-center overflow-hidden rounded-2xl bg-accent font-heading text-2xl font-semibold text-primary">
-            {initials}
+            {coach.photoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={coach.photoUrl} alt={coach.name} className="size-full object-cover" />
+            ) : (
+              initials
+            )}
           </div>
           <div>
             <p className="text-sm font-medium text-primary">Booking a session with</p>

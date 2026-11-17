@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useMemo } from "react"
 import { API_BASE } from "@/lib/config"
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, TextInput, Alert, KeyboardAvoidingView, Platform,
+  ActivityIndicator, TextInput, Alert, KeyboardAvoidingView, Platform, Image,
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { useRouter, useFocusEffect } from "expo-router"
@@ -14,7 +14,7 @@ import { getUniversityColor } from "@/lib/university-colors"
 import { TimeWheelPicker, generate15MinSlots } from "@/components/TimeWheelPicker"
 
 
-type Coach = { id: string; name: string; email: string; university: string; region: string; hasAvailability: boolean }
+type Coach = { id: string; name: string; email: string; university: string; region: string; hasAvailability: boolean; photoUrl?: string | null }
 type DayAvailability = { dayOfWeek: number; enabled: boolean; startTime: string; endTime: string }
 type MemberPlan = { id: string; planName: string; sessions: number; status: string; expiresAt: string }
 type CoachDetail = { coach: Coach; week: DayAvailability[]; bookedSlots: Record<string, string[]>; pmTimezone: string }
@@ -120,9 +120,13 @@ function CoachStep({ coaches, onSelect }: { coaches: Coach[]; onSelect: (c: Coac
             const uniColors = coach.university ? getUniversityColor(coach.university) : null
             return (
               <TouchableOpacity key={coach.id} style={styles.coachCard} onPress={() => onSelect(coach)} activeOpacity={0.7}>
-                <View style={styles.coachAvatar}>
-                  <Text style={styles.coachAvatarText}>{coach.name.trim().split(/\s+/).filter(Boolean).map((w: string) => w[0]).slice(0, 2).join("").toUpperCase()}</Text>
-                </View>
+                {coach.photoUrl ? (
+                  <Image source={{ uri: `${API_BASE}${coach.photoUrl}` }} style={styles.coachAvatar} />
+                ) : (
+                  <View style={styles.coachAvatar}>
+                    <Text style={styles.coachAvatarText}>{coach.name.trim().split(/\s+/).filter(Boolean).map((w: string) => w[0]).slice(0, 2).join("").toUpperCase()}</Text>
+                  </View>
+                )}
                 <View style={{ flex: 1, gap: 4 }}>
                   <Text style={styles.coachName}>{coach.name}</Text>
                   {coach.university ? (
@@ -533,7 +537,7 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     searchRow: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, borderBottomWidth: 1, borderBottomColor: COLORS.border },
     searchInput: { backgroundColor: COLORS.surface, borderRadius: RADIUS.full, borderWidth: 1, borderColor: COLORS.border, paddingHorizontal: SPACING.md, paddingVertical: 9, fontSize: 14, color: COLORS.text },
     coachCard: { flexDirection: "row", alignItems: "center", gap: SPACING.sm, backgroundColor: COLORS.surface, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.border, padding: SPACING.md },
-    coachAvatar: { width: 44, height: 44, borderRadius: RADIUS.full, backgroundColor: COLORS.primaryLight, alignItems: "center", justifyContent: "center" },
+    coachAvatar: { width: 44, height: 44, borderRadius: RADIUS.full, backgroundColor: COLORS.primaryLight, alignItems: "center", justifyContent: "center", overflow: "hidden" },
     coachAvatarText: { fontSize: 16, fontWeight: "700", color: COLORS.primary },
     coachName: { fontSize: 15, fontWeight: "600", color: COLORS.text },
     uniChip: { alignSelf: "flex-start", paddingHorizontal: 8, paddingVertical: 2, borderRadius: RADIUS.full, backgroundColor: COLORS.grayLight },

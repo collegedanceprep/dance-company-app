@@ -17,9 +17,19 @@ export function CoachCard({ coach }: { coach: PrepMaster }) {
 
   return (
     <Card className="flex flex-row items-center gap-3 p-3">
-      <span className="grid size-11 shrink-0 place-items-center rounded-full bg-accent font-heading text-sm font-semibold text-primary">
-        {initials}
-      </span>
+      {coach.photoUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={coach.photoUrl}
+          alt={coach.name}
+          loading="lazy"
+          className="size-11 shrink-0 rounded-full bg-accent object-cover"
+        />
+      ) : (
+        <span className="grid size-11 shrink-0 place-items-center rounded-full bg-accent font-heading text-sm font-semibold text-primary">
+          {initials}
+        </span>
+      )}
 
       <div className="min-w-0 flex-1">
         <h3 className="truncate font-heading text-sm font-semibold tracking-tight">
