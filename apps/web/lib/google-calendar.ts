@@ -5,8 +5,33 @@ import { eq } from "drizzle-orm"
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 const GOOGLE_CALENDAR_API = "https://www.googleapis.com/calendar/v3"
 
+import { createHmac, timingSafeEqual } from "crypto"
+
+// The OAuth state carries the user id. It is signed (and expires) so the callback can trust it
+// even when the browser that finishes the flow has no session cookie (the mobile in-app browser).
+function signState(payload: string): string {
+  const exp = Date.now() + 15 * 60_000
+  const body = `${payload}:${exp}`
+  const sig = createHmac("sha256", process.env.BETTER_AUTH_SECRET ?? "").update(body).digest("hex").slice(0, 32)
+  return `${body}:${sig}`
+}
+
+/** Returns the unsigned payload ("userId:source:role") if the signature is valid and unexpired. */
+export function verifyState(raw: string): string | null {
+  const i = raw.lastIndexOf(":")
+  const j = raw.lastIndexOf(":", i - 1)
+  if (i < 0 || j < 0) return null
+  const payload = raw.slice(0, j)
+  const exp = Number(raw.slice(j + 1, i))
+  const sig = raw.slice(i + 1)
+  if (!Number.isFinite(exp) || exp < Date.now()) return null
+  const expect = createHmac("sha256", process.env.BETTER_AUTH_SECRET ?? "").update(`${payload}:${exp}`).digest("hex").slice(0, 32)
+  if (sig.length !== expect.length || !timingSafeEqual(Buffer.from(sig), Buffer.from(expect))) return null
+  return payload
+}
+
 export function getCalendarAuthUrl(state: string, source?: "mobile") {
-  const stateParam = source ? `${state}:${source}` : state
+  const stateParam = signState(source ? `${state}:${source}` : state)
   const params = new URLSearchParams({
     client_id: process.env.GOOGLE_CLIENT_ID!,
     redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/callback/google-calendar`,

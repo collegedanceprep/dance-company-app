@@ -1,27 +1,32 @@
 import { NextRequest, NextResponse } from "next/server"
 import { headers } from "next/headers"
 import { auth } from "@/lib/auth"
-import { saveCalendarTokens } from "@/lib/google-calendar"
+import { saveCalendarTokens, verifyState } from "@/lib/google-calendar"
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl
   const code = searchParams.get("code")
   const rawState = searchParams.get("state") ?? ""
-  const [userId, source, role] = rawState.split(":")
+  const signedPayload = verifyState(rawState)
+  const [userId, source, role] = (signedPayload ?? rawState).split(":")
   const isMobile = source === "mobile"
   const mobileRole = role ?? "portal"
   const webReturn = role === "member" ? "/dashboard" : "/portal"
 
-  if (!code || !userId) {
+  if (searchParams.get("error")) console.error("Calendar consent returned error:", searchParams.get("error"))
+  if (!code || !userId || !signedPayload) {
     if (isMobile) return NextResponse.redirect(`cdp://${mobileRole}/profile?calendar=error`)
     return NextResponse.redirect(new URL(`${webReturn}?calendar=error`, req.url))
   }
 
-  // Verify the authenticated session owns the userId in state — prevents IDOR token hijacking
-  const session = await auth.api.getSession({ headers: await headers() })
-  if (!session?.user || session.user.id !== userId) {
-    if (isMobile) return NextResponse.redirect(`cdp://${mobileRole}/profile?calendar=error`)
-    return NextResponse.redirect(new URL(`${webReturn}?calendar=error`, req.url))
+  // The state is signed by us, so it can't be forged for another user. The web flow additionally
+  // requires the browser session to match (blocks login-CSRF). Mobile can't: its in-app browser
+  // often has no session cookie, which made connecting fail for app-only users.
+  if (!isMobile) {
+    const session = await auth.api.getSession({ headers: await headers() })
+    if (!session?.user || session.user.id !== userId) {
+      return NextResponse.redirect(new URL(`${webReturn}?calendar=error`, req.url))
+    }
   }
 
   const res = await fetch("https://oauth2.googleapis.com/token", {
@@ -38,7 +43,7 @@ export async function GET(req: NextRequest) {
 
   if (!res.ok) {
     console.error("Token exchange failed:", await res.text())
-    if (isMobile) return NextResponse.redirect("cdp://portal/profile?calendar=error")
+    if (isMobile) return NextResponse.redirect(`cdp://${mobileRole}/profile?calendar=error`)
     return NextResponse.redirect(new URL(`${webReturn}?calendar=error`, req.url))
   }
 
