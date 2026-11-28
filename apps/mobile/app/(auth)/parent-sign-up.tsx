@@ -201,9 +201,9 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     flex: { flex: 1 },
     container: { padding: SPACING.lg, flexGrow: 1, paddingBottom: SPACING.xl },
     topSection: { alignItems: "center", marginBottom: SPACING.xl, paddingTop: SPACING.lg },
-    logo: { fontSize: 40, fontWeight: "800", color: COLORS.primary, letterSpacing: 2 },
+    logo: { fontSize: 40, fontWeight: "800", color: COLORS.plum, letterSpacing: 2 },
     logoSub: { fontSize: 13, color: COLORS.textMuted, fontWeight: "500", marginTop: 4, marginBottom: SPACING.lg },
-    heading: { fontSize: 26, fontWeight: "700", color: COLORS.text, marginBottom: 6, textAlign: "center", fontFamily: "Sora_700Bold" },
+    heading: { fontSize: 26, fontWeight: "700", color: COLORS.text, marginBottom: 6, textAlign: "center", fontFamily: "Anton_400Regular", textTransform: "uppercase", letterSpacing: 0.5 },
     sub: { fontSize: 14, color: COLORS.textMuted, textAlign: "center", lineHeight: 20 },
     appleBtn: { backgroundColor: COLORS.text, borderRadius: RADIUS.sm, padding: SPACING.md, alignItems: "center", marginBottom: SPACING.sm },
     appleBtnText: { color: COLORS.background, fontSize: 15, fontWeight: "600" },
@@ -222,6 +222,6 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     btnText: { color: "#fff", fontSize: 15, fontWeight: "700" },
     linkBtn: { alignItems: "center", padding: SPACING.md, marginTop: 4 },
     linkText: { fontSize: 14, color: COLORS.textMuted },
-    linkAccent: { color: COLORS.primary, fontWeight: "600" },
+    linkAccent: { color: COLORS.plum, fontWeight: "600" },
   })
 }

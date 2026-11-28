@@ -232,7 +232,7 @@ export default function PortalProfileScreen() {
           <Text style={styles.avatarName}>{name}</Text>
           <Text style={styles.avatarEmail}>{email}</Text>
           <View style={styles.roleBadge}>
-            <ShieldCheck size={12} color={COLORS.primary} />
+            <ShieldCheck size={12} color={COLORS.accent} />
             <Text style={styles.roleBadgeText}>{workerRole}</Text>
           </View>
         </View>
@@ -253,7 +253,7 @@ export default function PortalProfileScreen() {
             </View>
             <TouchableOpacity style={styles.nudgeBtn} onPress={handleConnectGoogle} disabled={googleLinking} activeOpacity={0.8}>
               {googleLinking
-                ? <ActivityIndicator size="small" color={COLORS.primary} />
+                ? <ActivityIndicator size="small" color={COLORS.accent} />
                 : <Text style={styles.nudgeBtnText}>Link</Text>}
             </TouchableOpacity>
             <TouchableOpacity style={styles.nudgeDismiss} onPress={dismissNudge} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -317,7 +317,7 @@ export default function PortalProfileScreen() {
           {actualRole === "admin" && (
             <>
               <TouchableOpacity style={styles.switchRow} onPress={() => router.replace("/admin" as any)} activeOpacity={0.7}>
-                <LayoutDashboard size={18} color={COLORS.primary} />
+                <LayoutDashboard size={18} color={COLORS.accent} />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.switchLabel}>Admin view</Text>
                   <Text style={styles.switchSub}>Manage members and bookings</Text>
@@ -327,7 +327,7 @@ export default function PortalProfileScreen() {
             </>
           )}
           <TouchableOpacity style={styles.switchRow} onPress={() => router.replace("/member" as any)} activeOpacity={0.7}>
-            <Users size={18} color={COLORS.primary} />
+            <Users size={18} color={COLORS.accent} />
             <View style={{ flex: 1 }}>
               <Text style={styles.switchLabel}>Member view</Text>
               <Text style={styles.switchSub}>View your own bookings and credits</Text>
@@ -370,7 +370,7 @@ export default function PortalProfileScreen() {
             return (
               <TouchableOpacity key={value} style={[styles.themeBtn, active && styles.themeBtnActive]} onPress={() => setTheme(value)} activeOpacity={0.7}>
                 <Icon size={16} color={active ? COLORS.primary : COLORS.textMuted} />
-                <Text style={[styles.themeBtnText, active && { color: COLORS.primary }]}>{label}</Text>
+                <Text style={[styles.themeBtnText, active && { color: COLORS.plum }]}>{label}</Text>
               </TouchableOpacity>
             )
           })}
@@ -423,11 +423,11 @@ function makeStyles(COLORS: ReturnType<typeof useTheme>["colors"]) {
     scroll: { padding: SPACING.md, gap: SPACING.md, paddingBottom: SPACING.xl },
     avatarWrap: { alignItems: "center", gap: 6, paddingVertical: SPACING.sm },
     avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: COLORS.primaryLight, justifyContent: "center", alignItems: "center" },
-    avatarText: { fontSize: 32, fontWeight: "700", color: COLORS.primary },
+    avatarText: { fontSize: 32, fontWeight: "700", color: COLORS.plum },
     avatarName: { fontSize: 20, fontWeight: "700", color: COLORS.text },
     avatarEmail: { fontSize: 13, color: COLORS.textMuted },
     roleBadge: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: COLORS.primaryLight, paddingHorizontal: 10, paddingVertical: 4, borderRadius: RADIUS.full },
-    roleBadgeText: { fontSize: 12, fontWeight: "700", color: COLORS.primary },
+    roleBadgeText: { fontSize: 12, fontWeight: "700", color: COLORS.plum },
     sectionHeader: { marginTop: SPACING.sm },
     sectionTitle: { fontSize: 13, fontWeight: "700", color: COLORS.textMuted, textTransform: "uppercase", letterSpacing: 0.6 },
     card: { backgroundColor: COLORS.surface, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.border, overflow: "hidden" },
@@ -436,7 +436,7 @@ function makeStyles(COLORS: ReturnType<typeof useTheme>["colors"]) {
     switchSub: { fontSize: 12, color: COLORS.textMuted, marginTop: 1 },
     themeRow: { flexDirection: "row", gap: SPACING.sm },
     themeBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 10, borderRadius: RADIUS.sm, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.surface },
-    themeBtnActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryLight },
+    themeBtnActive: { borderColor: COLORS.plum, backgroundColor: COLORS.primaryLight },
     themeBtnText: { fontSize: 13, fontWeight: "600", color: COLORS.textMuted },
     accountRowLinked: { backgroundColor: COLORS.greenLight },
     connectedRow: { flexDirection: "row", gap: SPACING.lg },
@@ -461,11 +461,11 @@ function makeStyles(COLORS: ReturnType<typeof useTheme>["colors"]) {
     modalSafe: { flex: 1, backgroundColor: COLORS.background },
     modalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, borderBottomWidth: 1, borderBottomColor: COLORS.border },
     modalTitle: { fontSize: 17, fontWeight: "700", color: COLORS.text },
-    modalCancel: { fontSize: 15, color: COLORS.primary },
+    modalCancel: { fontSize: 15, color: COLORS.plum },
     modalList: { padding: SPACING.md, gap: SPACING.sm },
     uniOption: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 8, paddingHorizontal: SPACING.sm, borderRadius: RADIUS.sm },
     uniOptionSelected: { backgroundColor: COLORS.primaryLight },
-    uniCheckmark: { fontSize: 16, color: COLORS.primary, fontWeight: "700" },
+    uniCheckmark: { fontSize: 16, color: COLORS.plum, fontWeight: "700" },
     nudgeBanner: { flexDirection: "row", alignItems: "center", gap: 10, borderRadius: RADIUS.md, borderWidth: 1, borderColor: "rgba(245,158,11,0.25)", backgroundColor: "rgba(245,158,11,0.07)", padding: SPACING.sm, paddingRight: 36 },
     nudgeGIcon: { width: 36, height: 36, borderRadius: RADIUS.sm, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.surface, alignItems: "center", justifyContent: "center", flexShrink: 0 },
     nudgeText: { flex: 1 },

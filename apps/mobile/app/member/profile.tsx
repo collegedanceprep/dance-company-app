@@ -183,7 +183,7 @@ export default function MemberProfileScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.safe} edges={["top"]}>
-        <View style={styles.center}><ActivityIndicator size="large" color={COLORS.primary} /></View>
+        <View style={styles.center}><ActivityIndicator size="large" color={COLORS.accent} /></View>
       </SafeAreaView>
     )
   }
@@ -207,7 +207,7 @@ export default function MemberProfileScreen() {
             <Text style={styles.avatarEmail}>{profile?.email ?? session?.user?.email ?? ""}</Text>
             {profile?.isParentView && (
               <View style={styles.parentBadge}>
-                <Users size={12} color={COLORS.primary} />
+                <Users size={12} color={COLORS.accent} />
                 <Text style={styles.parentBadgeText}>Parent / Guardian View</Text>
               </View>
             )}
@@ -229,7 +229,7 @@ export default function MemberProfileScreen() {
               </View>
               <TouchableOpacity style={styles.nudgeBtn} onPress={handleConnectGoogle} disabled={googleLinking} activeOpacity={0.8}>
                 {googleLinking
-                  ? <ActivityIndicator size="small" color={COLORS.primary} />
+                  ? <ActivityIndicator size="small" color={COLORS.accent} />
                   : <Text style={styles.nudgeBtnText}>Link</Text>}
               </TouchableOpacity>
               <TouchableOpacity style={styles.nudgeDismiss} onPress={dismissNudge} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -245,7 +245,7 @@ export default function MemberProfileScreen() {
                 {actualRole === "admin" && (
                   <>
                     <TouchableOpacity style={styles.switchRow} onPress={() => router.replace("/admin" as any)} activeOpacity={0.7}>
-                      <LayoutDashboard size={18} color={COLORS.primary} />
+                      <LayoutDashboard size={18} color={COLORS.accent} />
                       <View style={{ flex: 1 }}>
                         <Text style={styles.switchLabel}>Admin view</Text>
                         <Text style={styles.switchSub}>Manage members and bookings</Text>
@@ -255,7 +255,7 @@ export default function MemberProfileScreen() {
                   </>
                 )}
                 <TouchableOpacity style={styles.switchRow} onPress={() => router.replace("/portal" as any)} activeOpacity={0.7}>
-                  <ShieldCheck size={18} color={COLORS.primary} />
+                  <ShieldCheck size={18} color={COLORS.accent} />
                   <View style={{ flex: 1 }}>
                     <Text style={styles.switchLabel}>PrepMaster View</Text>
                     <Text style={styles.switchSub}>See the app as a Prep Master</Text>
@@ -290,7 +290,7 @@ export default function MemberProfileScreen() {
               return (
                 <TouchableOpacity key={value} style={[styles.themeBtn, active && styles.themeBtnActive]} onPress={() => setTheme(value)} activeOpacity={0.7}>
                   <Icon size={16} color={active ? COLORS.primary : COLORS.textMuted} />
-                  <Text style={[styles.themeBtnText, active && { color: COLORS.primary }]}>{label}</Text>
+                  <Text style={[styles.themeBtnText, active && { color: COLORS.plum }]}>{label}</Text>
                 </TouchableOpacity>
               )
             })}
@@ -327,11 +327,11 @@ export default function MemberProfileScreen() {
 
           {profile?.isParentView && (
             <TouchableOpacity
-              style={[styles.signOutBtn, { marginBottom: 0, borderColor: COLORS.primary }]}
+              style={[styles.signOutBtn, { marginBottom: 0, borderColor: COLORS.plum }]}
               onPress={() => router.replace("/(auth)/child-picker")}
               activeOpacity={0.8}
             >
-              <Text style={[styles.signOutText, { color: COLORS.primary }]}>Switch child</Text>
+              <Text style={[styles.signOutText, { color: COLORS.plum }]}>Switch child</Text>
             </TouchableOpacity>
           )}
 
@@ -367,15 +367,15 @@ function makeStyles(COLORS: ReturnType<typeof useTheme>["colors"]) {
     safe: { flex: 1, backgroundColor: COLORS.background },
     center: { flex: 1, justifyContent: "center", alignItems: "center" },
     scroll: { padding: SPACING.md, gap: SPACING.md, paddingBottom: SPACING.xl },
-    title: { fontSize: 26, fontWeight: "700", color: COLORS.text, fontFamily: "Sora_700Bold" },
+    title: { fontSize: 26, fontWeight: "700", color: COLORS.text, fontFamily: "Anton_400Regular", textTransform: "uppercase", letterSpacing: 0.5 },
     errorBox: { backgroundColor: COLORS.redLight, borderRadius: RADIUS.sm, padding: SPACING.sm },
     errorText: { fontSize: 13, color: COLORS.red },
     avatarWrap: { alignItems: "center", gap: SPACING.sm, paddingVertical: SPACING.sm },
     avatar: { width: 72, height: 72, borderRadius: 36, backgroundColor: COLORS.primaryLight, justifyContent: "center", alignItems: "center" },
-    avatarText: { fontSize: 30, fontWeight: "700", color: COLORS.primary },
+    avatarText: { fontSize: 30, fontWeight: "700", color: COLORS.plum },
     avatarEmail: { fontSize: 13, color: COLORS.textMuted },
     parentBadge: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: COLORS.primaryLight, paddingHorizontal: 10, paddingVertical: 4, borderRadius: RADIUS.full },
-    parentBadgeText: { fontSize: 12, fontWeight: "700", color: COLORS.primary },
+    parentBadgeText: { fontSize: 12, fontWeight: "700", color: COLORS.plum },
     card: { backgroundColor: COLORS.surface, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.border, overflow: "hidden" },
     field: { padding: SPACING.md },
     fieldLabel: { fontSize: 12, fontWeight: "600", color: COLORS.textMuted, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 },
@@ -389,7 +389,7 @@ function makeStyles(COLORS: ReturnType<typeof useTheme>["colors"]) {
     sectionTitle: { fontSize: 13, fontWeight: "700", color: COLORS.textMuted, textTransform: "uppercase", letterSpacing: 0.6 },
     themeRow: { flexDirection: "row", gap: SPACING.sm },
     themeBtn: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 10, borderRadius: RADIUS.sm, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.surface },
-    themeBtnActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryLight },
+    themeBtnActive: { borderColor: COLORS.plum, backgroundColor: COLORS.primaryLight },
     themeBtnText: { fontSize: 13, fontWeight: "600", color: COLORS.textMuted },
     connectedRow: { flexDirection: "row", gap: SPACING.lg },
     connectedItem: { flexDirection: "row", alignItems: "center", gap: 6 },

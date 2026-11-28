@@ -242,9 +242,9 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     flex: { flex: 1 },
     container: { padding: SPACING.lg, justifyContent: "center", flexGrow: 1 },
     logoWrap: { alignItems: "center", marginBottom: SPACING.xl },
-    logo: { fontSize: 40, fontWeight: "800", color: COLORS.primary, letterSpacing: 2 },
+    logo: { fontSize: 40, fontWeight: "800", color: COLORS.plum, letterSpacing: 2 },
     logoSub: { fontSize: 13, color: COLORS.textMuted, fontWeight: "500", marginTop: 4 },
-    heading: { fontSize: 26, fontWeight: "700", color: COLORS.text, marginBottom: 4, fontFamily: "Sora_700Bold" },
+    heading: { fontSize: 26, fontWeight: "700", color: COLORS.text, marginBottom: 4, fontFamily: "Anton_400Regular", textTransform: "uppercase", letterSpacing: 0.5 },
     sub: { fontSize: 14, color: COLORS.textMuted, marginBottom: SPACING.lg },
     errorBox: { backgroundColor: COLORS.redLight, borderRadius: RADIUS.sm, padding: SPACING.sm, marginBottom: SPACING.md },
     errorText: { fontSize: 13, color: COLORS.red, fontWeight: "500" },
@@ -255,7 +255,7 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     passwordWrap: { flexDirection: "row", alignItems: "center", backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.sm },
     passwordInput: { flex: 1, padding: SPACING.md, fontSize: 15, color: COLORS.text },
     eyeBtn: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.md },
-    showHideText: { fontSize: 13, fontWeight: "600", color: COLORS.primary },
+    showHideText: { fontSize: 13, fontWeight: "600", color: COLORS.plum },
     inputMulti: { minHeight: 72, textAlignVertical: "top" },
     hint: { fontSize: 12, color: COLORS.textMuted, marginTop: 5, lineHeight: 17 },
     googleBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.sm, padding: SPACING.md, marginBottom: SPACING.sm },
@@ -271,6 +271,6 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     btnText: { color: "#fff", fontSize: 15, fontWeight: "700" },
     footer: { flexDirection: "row", justifyContent: "center", marginTop: SPACING.lg },
     footerText: { fontSize: 14, color: COLORS.textMuted },
-    footerLink: { fontSize: 14, color: COLORS.primary, fontWeight: "600" },
+    footerLink: { fontSize: 14, color: COLORS.plum, fontWeight: "600" },
   })
 }

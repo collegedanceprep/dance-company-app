@@ -71,7 +71,7 @@ export default function AdminMembersScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.safe} edges={["top"]}>
-        <View style={styles.center}><ActivityIndicator size="large" color={COLORS.primary} /></View>
+        <View style={styles.center}><ActivityIndicator size="large" color={COLORS.accent} /></View>
       </SafeAreaView>
     )
   }
@@ -289,8 +289,8 @@ function MemberCard({ member: m, credits, plans, bookings, packages, statusInfo,
         </View>
         <View style={[styles.badge, { backgroundColor: statusInfo.bg }]}><Text style={[styles.badgeText, { color: statusInfo.fg }]}>{statusInfo.label}</Text></View>
         <View style={[styles.badge, { backgroundColor: COLORS.primaryLight, flexDirection: "row", gap: 3 }]}>
-          <Ticket size={10} color={COLORS.primary} />
-          <Text style={[styles.badgeText, { color: COLORS.primary }]}>{credits}</Text>
+          <Ticket size={10} color={COLORS.accent} />
+          <Text style={[styles.badgeText, { color: COLORS.plum }]}>{credits}</Text>
         </View>
         {(["90", "60", "45", "30"] as const).map((min) => {
           const count = (m.singleCredits as Record<string, number>)?.[min] ?? 0
@@ -337,7 +337,7 @@ function MemberCard({ member: m, credits, plans, bookings, packages, statusInfo,
             <View style={styles.btnRow}>
               {(["90 min", "60 min", "45 min", "30 min"] as const).map((label) => (
                 <TouchableOpacity key={label} style={styles.btnOutline} onPress={() => addSingleSession(label)} disabled={saving} activeOpacity={0.7}>
-                  <Plus size={12} color={COLORS.primary} />
+                  <Plus size={12} color={COLORS.accent} />
                   <Text style={styles.btnOutlineText}>{label}</Text>
                 </TouchableOpacity>
               ))}
@@ -393,7 +393,7 @@ function MemberCard({ member: m, credits, plans, bookings, packages, statusInfo,
             <Text style={styles.sheetTitle}>Select Package</Text>
             {packages.map((pkg) => (
               <TouchableOpacity key={pkg.id} style={[styles.sheetOption, selectedPkg === pkg.id && { backgroundColor: COLORS.primaryLight }]} onPress={() => { setSelectedPkg(pkg.id); setPkgPickerOpen(false) }} activeOpacity={0.7}>
-                <Text style={[styles.sheetOptionText, selectedPkg === pkg.id && { color: COLORS.primary }]}>{pkg.name} — {pkg.sessions} sessions (${pkg.price})</Text>
+                <Text style={[styles.sheetOptionText, selectedPkg === pkg.id && { color: COLORS.plum }]}>{pkg.name} — {pkg.sessions} sessions (${pkg.price})</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -441,7 +441,7 @@ function GroupedPlanHistory({ plans, credits, saving, onRemove, COLORS, styles }
               return (
                 <View key={plan.id} style={[styles.planItem, { marginBottom: 6 }]}>
                   <View style={styles.planRow}>
-                    <Package size={12} color={COLORS.primary} />
+                    <Package size={12} color={COLORS.accent} />
                     <View style={{ flex: 1 }}>
                       <Text style={styles.planName}>{plan.planName}</Text>
                       <Text style={styles.planMeta}>{displayCount} {displayCount === 1 ? "credit" : "credits"} · ${plan.pricePaid}{purchaseDate ? ` · ${purchaseDate}` : ""}</Text>
@@ -449,7 +449,7 @@ function GroupedPlanHistory({ plans, credits, saving, onRemove, COLORS, styles }
                     </View>
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                       {plan.source === "stripe" && (
-                        <View style={[styles.badge, { backgroundColor: COLORS.primaryLight }]}><Text style={[styles.badgeText, { color: COLORS.primary }]}>Stripe</Text></View>
+                        <View style={[styles.badge, { backgroundColor: COLORS.primaryLight }]}><Text style={[styles.badgeText, { color: COLORS.plum }]}>Stripe</Text></View>
                       )}
                       {plan.source === "admin" && (
                         <View style={[styles.badge, { backgroundColor: COLORS.amberLight }]}><Text style={[styles.badgeText, { color: COLORS.amber }]}>Admin</Text></View>
@@ -557,7 +557,7 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     pendingCardInner: { flexDirection: "row", alignItems: "center", gap: SPACING.sm, padding: SPACING.md },
     cardHeader: { flexDirection: "row", alignItems: "center", gap: SPACING.sm, padding: SPACING.md },
     avatar: { width: 36, height: 36, borderRadius: RADIUS.full, backgroundColor: COLORS.primaryLight, alignItems: "center", justifyContent: "center" },
-    avatarText: { fontSize: 13, fontWeight: "700", color: COLORS.primary },
+    avatarText: { fontSize: 13, fontWeight: "700", color: COLORS.plum },
     name: { fontSize: 14, fontWeight: "600", color: COLORS.text },
     email: { fontSize: 12, color: COLORS.textMuted, marginTop: 1 },
     badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: RADIUS.full, alignItems: "center" },
@@ -585,7 +585,7 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     planMeta: { fontSize: 11, color: COLORS.textMuted, marginTop: 1 },
     btnRow: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
     btnOutline: { flexDirection: "row", alignItems: "center", gap: 4, borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.sm, paddingVertical: 7, paddingHorizontal: 12 },
-    btnOutlineText: { fontSize: 13, color: COLORS.primary, fontWeight: "500" },
+    btnOutlineText: { fontSize: 13, color: COLORS.plum, fontWeight: "500" },
     inputRow: { flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
     numberInput: { borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.sm, padding: SPACING.sm, width: 80, fontSize: 14, color: COLORS.text, backgroundColor: COLORS.background },
     collapseRow: { flexDirection: "row", alignItems: "center", gap: 5 },

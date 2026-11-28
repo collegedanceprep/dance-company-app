@@ -189,7 +189,7 @@ export default function PortalScheduleScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.safe} edges={["top"]}>
-        <View style={styles.center}><ActivityIndicator size="large" color={COLORS.primary} /></View>
+        <View style={styles.center}><ActivityIndicator size="large" color={COLORS.accent} /></View>
       </SafeAreaView>
     )
   }
@@ -204,7 +204,7 @@ export default function PortalScheduleScreen() {
 
         {/* Book a session */}
         <TouchableOpacity style={styles.bookCard} onPress={openBooking} activeOpacity={0.7}>
-          <CalendarPlus size={18} color={COLORS.primary} />
+          <CalendarPlus size={18} color={COLORS.accent} />
           <View style={{ flex: 1 }}>
             <Text style={styles.bookCardTitle}>Schedule for a past client</Text>
             <Text style={styles.bookCardSub}>Create a confirmed session with a member you've previously worked with.</Text>
@@ -217,13 +217,13 @@ export default function PortalScheduleScreen() {
           <View style={styles.bookForm}>
             <Text style={styles.bookFormTitle}>New session</Text>
             <Text style={styles.fieldLabel}>Client</Text>
-            {clientsLoading ? <ActivityIndicator size="small" color={COLORS.primary} /> : clients.length === 0 ? (
+            {clientsLoading ? <ActivityIndicator size="small" color={COLORS.accent} /> : clients.length === 0 ? (
               <Text style={styles.emptyText}>No past clients found.</Text>
             ) : (
               <View style={styles.chipWrap}>
                 {clients.map((c) => (
                   <TouchableOpacity key={c.userId} style={[styles.chip, selectedClient?.userId === c.userId && styles.chipSelected]} onPress={() => setSelectedClient(c)} activeOpacity={0.7}>
-                    <Text style={[styles.chipText, selectedClient?.userId === c.userId && { color: COLORS.primary }]}>{c.name}</Text>
+                    <Text style={[styles.chipText, selectedClient?.userId === c.userId && { color: COLORS.plum }]}>{c.name}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -245,8 +245,8 @@ export default function PortalScheduleScreen() {
                 const isPast = d < new Date(new Date().toDateString())
                 return (
                   <TouchableOpacity key={iso} style={[styles.dateChip, isSelected && styles.dateChipSelected, isPast && { opacity: 0.35 }]} onPress={() => { if (!isPast) { setSelectedDate(iso); setSelectedTime("") } }} disabled={isPast} activeOpacity={0.7}>
-                    <Text style={[styles.dateChipDay, isSelected && { color: COLORS.primary }]}>{d.toLocaleDateString("en-US", { weekday: "short" })}</Text>
-                    <Text style={[styles.dateChipNum, isSelected && { color: COLORS.primary }]}>{d.getDate()}</Text>
+                    <Text style={[styles.dateChipDay, isSelected && { color: COLORS.plum }]}>{d.toLocaleDateString("en-US", { weekday: "short" })}</Text>
+                    <Text style={[styles.dateChipNum, isSelected && { color: COLORS.plum }]}>{d.getDate()}</Text>
                   </TouchableOpacity>
                 )
               })}
@@ -273,7 +273,7 @@ export default function PortalScheduleScreen() {
             <View style={styles.chipWrap}>
               {DURATION_OPTIONS.map((d) => (
                 <TouchableOpacity key={d.value} style={[styles.chip, selectedDuration === d.value && styles.chipSelected]} onPress={() => setSelectedDuration(d.value)} activeOpacity={0.7}>
-                  <Text style={[styles.chipText, selectedDuration === d.value && { color: COLORS.primary }]}>{d.label}</Text>
+                  <Text style={[styles.chipText, selectedDuration === d.value && { color: COLORS.plum }]}>{d.label}</Text>
                   <Text style={{ fontSize: 10, color: selectedDuration === d.value ? COLORS.primary : COLORS.textMuted, marginTop: 1 }}>{d.credits}</Text>
                 </TouchableOpacity>
               ))}
@@ -339,7 +339,7 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     center: { flex: 1, justifyContent: "center", alignItems: "center" },
     scroll: { padding: SPACING.md, gap: SPACING.md, paddingBottom: SPACING.xl },
     pageHeader: { gap: 4 },
-    pageTitle: { fontSize: 26, fontWeight: "700", color: COLORS.text, fontFamily: "Sora_700Bold" },
+    pageTitle: { fontSize: 26, fontWeight: "700", color: COLORS.text, fontFamily: "Anton_400Regular", textTransform: "uppercase", letterSpacing: 0.5 },
     pageSub: { fontSize: 13, color: COLORS.textMuted },
     card: { backgroundColor: COLORS.surface, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.border, overflow: "hidden" },
     collapseHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: SPACING.md },
@@ -360,14 +360,14 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     emptyText: { fontSize: 13, color: COLORS.textMuted },
     chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.sm },
     chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: RADIUS.full, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.background },
-    chipSelected: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryLight },
+    chipSelected: { borderColor: COLORS.plum, backgroundColor: COLORS.primaryLight },
     chipText: { fontSize: 13, fontWeight: "600", color: COLORS.text },
     weekNav: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 },
     weekNavBtn: { padding: 6 },
     weekLabel: { fontSize: 13, fontWeight: "600", color: COLORS.text },
     dateRow: { flexDirection: "row", gap: 6 },
     dateChip: { flex: 1, alignItems: "center", paddingVertical: 8, borderRadius: RADIUS.sm, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.background },
-    dateChipSelected: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryLight },
+    dateChipSelected: { borderColor: COLORS.plum, backgroundColor: COLORS.primaryLight },
     dateChipDay: { fontSize: 9, fontWeight: "700", color: COLORS.textMuted, textTransform: "uppercase" },
     dateChipNum: { fontSize: 16, fontWeight: "700", color: COLORS.text },
     bookActions: { flexDirection: "row", gap: SPACING.sm, marginTop: SPACING.sm },

@@ -14,6 +14,7 @@ import {
   Sora_600SemiBold,
   Sora_700Bold,
 } from "@expo-google-fonts/sora"
+import { Anton_400Regular } from "@expo-google-fonts/anton"
 import {
   Geist_400Regular,
   Geist_500Medium,
@@ -137,6 +138,7 @@ export default function RootLayout() {
     Sora_500Medium,
     Sora_600SemiBold,
     Sora_700Bold,
+    Anton_400Regular,
     Geist_400Regular,
     Geist_500Medium,
     Geist_600SemiBold,

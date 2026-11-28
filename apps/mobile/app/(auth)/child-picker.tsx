@@ -55,7 +55,7 @@ export default function ChildPickerScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.safe}>
-        <View style={styles.center}><ActivityIndicator color={COLORS.primary} size="large" /></View>
+        <View style={styles.center}><ActivityIndicator color={COLORS.accent} size="large" /></View>
       </SafeAreaView>
     )
   }
@@ -66,7 +66,7 @@ export default function ChildPickerScreen() {
       <SafeAreaView style={styles.safe}>
         <View style={styles.container}>
           <View style={styles.iconWrap}>
-            <AlertTriangle size={32} color={COLORS.primary} />
+            <AlertTriangle size={32} color={COLORS.accent} />
           </View>
           <Text style={styles.title}>No dancer linked to your account yet</Text>
           <Text style={styles.subtitle}>
@@ -89,7 +89,7 @@ export default function ChildPickerScreen() {
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
         <View style={styles.iconWrap}>
-          <Users size={32} color={COLORS.primary} />
+          <Users size={32} color={COLORS.accent} />
         </View>
         <Text style={styles.title}>Who are you viewing?</Text>
         <Text style={styles.subtitle}>Select a dancer to view their bookings and account.</Text>
@@ -112,11 +112,11 @@ export default function ChildPickerScreen() {
                   <Text style={styles.avatarText}>{item.name.charAt(0).toUpperCase()}</Text>
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.name, isActive && { color: COLORS.primary }]}>{item.name}</Text>
+                  <Text style={[styles.name, isActive && { color: COLORS.plum }]}>{item.name}</Text>
                   <Text style={styles.meta}>{item.creditsRemaining} credit{item.creditsRemaining !== 1 ? "s" : ""} remaining</Text>
                 </View>
                 {selecting === item.userId
-                  ? <ActivityIndicator size="small" color={COLORS.primary} />
+                  ? <ActivityIndicator size="small" color={COLORS.accent} />
                   : <ChevronRight size={18} color={isActive ? COLORS.primary : COLORS.textMuted} />
                 }
               </TouchableOpacity>
@@ -144,7 +144,7 @@ function makeStyles(COLORS: any) {
       alignItems: "center", justifyContent: "center",
       marginBottom: SPACING.md,
     },
-    title: { fontSize: 24, fontWeight: "700", color: COLORS.text, textAlign: "center", fontFamily: "Sora_700Bold" },
+    title: { fontSize: 24, fontWeight: "700", color: COLORS.text, textAlign: "center", fontFamily: "Anton_400Regular", textTransform: "uppercase", letterSpacing: 0.5 },
     subtitle: { fontSize: 14, color: COLORS.textMuted, textAlign: "center", marginTop: 6, lineHeight: 20 },
     card: {
       flexDirection: "row",
@@ -156,7 +156,7 @@ function makeStyles(COLORS: any) {
       borderWidth: 1.5,
       borderColor: COLORS.border,
     },
-    cardActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryLight },
+    cardActive: { borderColor: COLORS.plum, backgroundColor: COLORS.primaryLight },
     avatar: {
       width: 44, height: 44, borderRadius: 22,
       backgroundColor: COLORS.primary,

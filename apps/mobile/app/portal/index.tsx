@@ -105,7 +105,7 @@ function HourlyView({
       if (b.time.toUpperCase().includes("PM") && hour !== 12) hour += 12
       if (b.time.toUpperCase().includes("AM") && hour === 12) hour = 0
       const top = (hour - START_HOUR + minute / 60) * HOUR_HEIGHT
-      result.push({ key: `b-${b.id}`, top, height: HOUR_HEIGHT, title: `Session w/ ${b.dancerName || "Member"}`, subtitle: null, isCDP: true, booking: b, color: COLORS.primary })
+      result.push({ key: `b-${b.id}`, top, height: HOUR_HEIGHT, title: `Session w/ ${b.dancerName || "Member"}`, subtitle: null, isCDP: true, booking: b, color: COLORS.plum })
     }
     for (const e of calEvents) {
       if (!e.start || e.allDay) continue
@@ -300,14 +300,14 @@ function CalendarView({
             : { bg: COLORS.grayLight, text: COLORS.textMuted }
           return (
             <TouchableOpacity key={b.id} onPress={() => onBookingPress(b)} activeOpacity={0.8}>
-              <View style={{ backgroundColor: COLORS.surface, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.primary, borderLeftWidth: 4, borderLeftColor: COLORS.primary, padding: SPACING.md }}>
+              <View style={{ backgroundColor: COLORS.surface, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.plum, borderLeftWidth: 4, borderLeftColor: COLORS.primary, padding: SPACING.md }}>
                 <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
                   <Text style={{ fontSize: 14, fontWeight: "600", color: COLORS.text, flex: 1, marginRight: SPACING.sm }}>{b.dancerName || "Member"}</Text>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                     <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: RADIUS.full, backgroundColor: sc.bg }}>
                       <Text style={{ fontSize: 11, fontWeight: "600", textTransform: "capitalize", color: sc.text }}>{b.status}</Text>
                     </View>
-                    <ChevronRight size={14} color={COLORS.primary} />
+                    <ChevronRight size={14} color={COLORS.accent} />
                   </View>
                 </View>
                 <Text style={{ fontSize: 11, color: COLORS.textMuted, marginTop: 2 }}>{formatTime(b.time, b.utcDatetime)}</Text>
@@ -462,7 +462,7 @@ function PickerModal({ visible, title, options, selected, onSelect, onClose }: {
               activeOpacity={0.7}
             >
               <Text style={{ fontSize: 16, color: opt.value === selected ? COLORS.primary : COLORS.text, fontWeight: opt.value === selected ? "700" : "400" }}>{opt.label}</Text>
-              {opt.value === selected && <Check size={16} color={COLORS.primary} />}
+              {opt.value === selected && <Check size={16} color={COLORS.accent} />}
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -597,7 +597,7 @@ function BookingCard({ booking, dimmed, onUpdate }: {
       <TouchableOpacity style={styles.cardHeader} onPress={() => setExpanded((v) => !v)} activeOpacity={0.7}>
         <View style={{ flex: 1, gap: 4 }}>
           <View style={styles.cardDateRow}>
-            <CalendarDays size={14} color={COLORS.primary} />
+            <CalendarDays size={14} color={COLORS.accent} />
             <Text style={styles.cardDate}>{formatDate(localDate)}</Text>
             {localTime ? <><Clock size={13} color={COLORS.textMuted} /><Text style={styles.cardTime}>{formatTime(localTime, localUtcDatetime)}</Text></> : null}
           </View>
@@ -621,7 +621,7 @@ function BookingCard({ booking, dimmed, onUpdate }: {
             <View style={styles.infoRow}><Phone size={13} color={COLORS.textMuted} /><Text style={styles.infoText}>{formatPhone(booking.dancerPhone)}</Text></View>
           ) : null}
           {booking.notes ? <View style={styles.infoRow}><StickyNote size={13} color={COLORS.textMuted} /><Text style={[styles.infoText, { fontStyle: "italic" }]}><Text style={{ fontWeight: "600" }}>Member: </Text>{booking.notes}</Text></View> : null}
-          {localPrepMasterNotes && mode === "idle" ? <View style={styles.infoRow}><StickyNote size={13} color={COLORS.primary} /><Text style={styles.infoText}><Text style={{ fontWeight: "600", color: COLORS.primary }}>Your notes: </Text>{localPrepMasterNotes}</Text></View> : null}
+          {localPrepMasterNotes && mode === "idle" ? <View style={styles.infoRow}><StickyNote size={13} color={COLORS.accent} /><Text style={styles.infoText}><Text style={{ fontWeight: "600", color: COLORS.plum }}>Your notes: </Text>{localPrepMasterNotes}</Text></View> : null}
           {booking.declineReason && mode === "idle" ? <View style={styles.infoRow}><StickyNote size={13} color={COLORS.amber} /><Text style={styles.infoText}><Text style={{ fontWeight: "600", color: COLORS.amber }}>Decline reason: </Text>{booking.declineReason}</Text></View> : null}
           {booking.cancellationReason && mode === "idle" ? <View style={styles.infoRow}><StickyNote size={13} color={COLORS.red} /><Text style={styles.infoText}><Text style={{ fontWeight: "600", color: COLORS.red }}>Cancellation reason: </Text>{booking.cancellationReason}</Text></View> : null}
 
@@ -668,13 +668,13 @@ function BookingCard({ booking, dimmed, onUpdate }: {
                 />
                 <View style={[styles.actionRow, { flexDirection: "column", gap: 8 }]}>
                   <TouchableOpacity
-                    style={[styles.actionBtn, { borderWidth: 1, borderColor: COLORS.primary, backgroundColor: COLORS.primaryLight, opacity: saving ? 0.5 : 1, flex: undefined, width: "100%" }]}
+                    style={[styles.actionBtn, { borderWidth: 1, borderColor: COLORS.plum, backgroundColor: COLORS.primaryLight, opacity: saving ? 0.5 : 1, flex: undefined, width: "100%" }]}
                     onPress={() => {
                       if (!declineReason.trim()) { Alert.alert("Required", "Please enter a reason."); return }
                       callAction("decline", declineReason.trim(), "revert")
                     }}
                     disabled={saving} activeOpacity={0.8}>
-                    {saving ? <ActivityIndicator size="small" color={COLORS.primary} /> : <Text style={{ color: COLORS.primary, fontWeight: "700", fontSize: 14 }}>Keep original booking</Text>}
+                    {saving ? <ActivityIndicator size="small" color={COLORS.accent} /> : <Text style={{ color: COLORS.plum, fontWeight: "700", fontSize: 14 }}>Keep original booking</Text>}
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.actionBtn, styles.actionBtnDanger, { opacity: saving ? 0.5 : 1, flex: undefined, width: "100%" }]}
@@ -1058,7 +1058,7 @@ export default function PortalDashboard() {
   const styles = makeStyles(COLORS)
 
   if (loading) {
-    return <SafeAreaView style={styles.safe} edges={["top"]}><View style={styles.center}><ActivityIndicator size="large" color={COLORS.primary} /></View></SafeAreaView>
+    return <SafeAreaView style={styles.safe} edges={["top"]}><View style={styles.center}><ActivityIndicator size="large" color={COLORS.accent} /></View></SafeAreaView>
   }
 
   const pendingCount = (data?.upcoming ?? []).filter((b) => b.status.toLowerCase() === "pending").length
@@ -1150,7 +1150,7 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     safe: { flex: 1, backgroundColor: COLORS.background },
     center: { flex: 1, justifyContent: "center", alignItems: "center" },
     scroll: { padding: SPACING.md, gap: SPACING.lg, paddingBottom: SPACING.xl },
-    pageTitle: { fontSize: 26, fontWeight: "700", color: COLORS.text, fontFamily: "Sora_700Bold" },
+    pageTitle: { fontSize: 26, fontWeight: "700", color: COLORS.text, fontFamily: "Anton_400Regular", textTransform: "uppercase", letterSpacing: 0.5 },
     pageSub: { fontSize: 13, color: COLORS.textMuted, marginTop: 2 },
     pendingBadge: { backgroundColor: COLORS.red, paddingHorizontal: 10, paddingVertical: 4, borderRadius: RADIUS.full },
     pendingBadgeText: { fontSize: 12, fontWeight: "700", color: "#fff" },
@@ -1161,7 +1161,7 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     emptyCard: { backgroundColor: COLORS.surface, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.border, padding: SPACING.lg, alignItems: "center" },
     emptyText: { fontSize: 14, color: COLORS.textMuted },
     card: { backgroundColor: COLORS.surface, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.border, overflow: "hidden" },
-    cardPending: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryLight },
+    cardPending: { borderColor: COLORS.plum, backgroundColor: COLORS.primaryLight },
     cardHeader: { flexDirection: "row", alignItems: "center", padding: SPACING.md, gap: SPACING.sm },
     cardDateRow: { flexDirection: "row", alignItems: "center", gap: 5 },
     cardDate: { fontSize: 13, fontWeight: "600", color: COLORS.text },

@@ -258,9 +258,9 @@ function BookingStep({
                 const displayCount = plan.sessions === 1 ? 1 : Math.max(0, credits)
                 return (
                   <TouchableOpacity key={plan.id} style={[styles.planOption, active && styles.planOptionActive]} onPress={() => setSelectedPlanId(plan.id)} activeOpacity={0.7}>
-                    <Text style={[styles.planOptionName, active && { color: COLORS.primary }]}>{plan.planName}</Text>
+                    <Text style={[styles.planOptionName, active && { color: COLORS.plum }]}>{plan.planName}</Text>
                     <Text style={styles.planOptionSub}>{displayCount} {displayCount === 1 ? "credit" : "credits"} remaining</Text>
-                    {active && <Check size={16} color={COLORS.primary} style={{ marginLeft: "auto" }} />}
+                    {active && <Check size={16} color={COLORS.accent} style={{ marginLeft: "auto" }} />}
                   </TouchableOpacity>
                 )
               })}
@@ -361,7 +361,7 @@ function BookingStep({
                 disabled={!!lockedDuration}
                 activeOpacity={lockedDuration ? 1 : 0.7}
               >
-                <Text style={[styles.durationBtnText, activeDuration === d.value && { color: COLORS.primary }]}>{d.label}</Text>
+                <Text style={[styles.durationBtnText, activeDuration === d.value && { color: COLORS.plum }]}>{d.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -506,15 +506,15 @@ export default function BookScreen() {
       </View>
       {isParentView && childFirstName ? (
         <View style={styles.parentBanner}>
-          <Users size={14} color={COLORS.primary} />
+          <Users size={14} color={COLORS.accent} />
           <Text style={styles.parentBannerText}>Booking for {childFirstName}</Text>
         </View>
       ) : null}
       {coachesLoading ? (
-        <View style={styles.center}><ActivityIndicator size="large" color={COLORS.primary} /></View>
+        <View style={styles.center}><ActivityIndicator size="large" color={COLORS.accent} /></View>
       ) : step === "coaches" ? (
         <>
-          {detailLoading && <View style={styles.loadingOverlay}><ActivityIndicator size="large" color={COLORS.primary} /></View>}
+          {detailLoading && <View style={styles.loadingOverlay}><ActivityIndicator size="large" color={COLORS.accent} /></View>}
           <CoachStep coaches={coaches} onSelect={handleSelectCoach} />
         </>
       ) : detail ? (
@@ -533,12 +533,12 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     headerTitle: { fontSize: 17, fontWeight: "700", color: COLORS.text, flex: 1, textAlign: "center" },
     loadingOverlay: { ...StyleSheet.absoluteFill, backgroundColor: "rgba(0,0,0,0.15)", justifyContent: "center", alignItems: "center", zIndex: 10 },
     parentBanner: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: COLORS.primaryLight, paddingHorizontal: SPACING.md, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-    parentBannerText: { fontSize: 13, fontWeight: "600", color: COLORS.primary },
+    parentBannerText: { fontSize: 13, fontWeight: "600", color: COLORS.plum },
     searchRow: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm, borderBottomWidth: 1, borderBottomColor: COLORS.border },
     searchInput: { backgroundColor: COLORS.surface, borderRadius: RADIUS.full, borderWidth: 1, borderColor: COLORS.border, paddingHorizontal: SPACING.md, paddingVertical: 9, fontSize: 14, color: COLORS.text },
     coachCard: { flexDirection: "row", alignItems: "center", gap: SPACING.sm, backgroundColor: COLORS.surface, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.border, padding: SPACING.md },
     coachAvatar: { width: 44, height: 44, borderRadius: RADIUS.full, backgroundColor: COLORS.primaryLight, alignItems: "center", justifyContent: "center", overflow: "hidden" },
-    coachAvatarText: { fontSize: 16, fontWeight: "700", color: COLORS.primary },
+    coachAvatarText: { fontSize: 16, fontWeight: "700", color: COLORS.plum },
     coachName: { fontSize: 15, fontWeight: "600", color: COLORS.text },
     uniChip: { alignSelf: "flex-start", paddingHorizontal: 8, paddingVertical: 2, borderRadius: RADIUS.full, backgroundColor: COLORS.grayLight },
     uniChipText: { fontSize: 11, fontWeight: "600", color: COLORS.textMuted },
@@ -550,17 +550,17 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     section: { gap: SPACING.sm },
     sectionLabel: { fontSize: 15, fontWeight: "700", color: COLORS.text },
     planOption: { flexDirection: "row", alignItems: "center", gap: SPACING.sm, borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.sm, padding: SPACING.sm, backgroundColor: COLORS.surface },
-    planOptionActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryLight },
+    planOptionActive: { borderColor: COLORS.plum, backgroundColor: COLORS.primaryLight },
     planOptionName: { fontSize: 13, fontWeight: "600", color: COLORS.text },
     planOptionSub: { fontSize: 12, color: COLORS.textMuted },
     creditBanner: { backgroundColor: COLORS.primaryLight, borderRadius: RADIUS.sm, padding: SPACING.sm },
-    creditBannerText: { fontSize: 13, color: COLORS.primary },
+    creditBannerText: { fontSize: 13, color: COLORS.plum },
     weekNav: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
     weekNavBtn: { width: 32, height: 32, borderRadius: RADIUS.sm, borderWidth: 1, borderColor: COLORS.border, alignItems: "center", justifyContent: "center", backgroundColor: COLORS.surface },
     weekLabel: { fontSize: 13, fontWeight: "600", color: COLORS.textMuted },
     dateStrip: { flexDirection: "row", gap: 6 },
     datePill: { flex: 1, alignItems: "center", paddingVertical: 8, borderRadius: RADIUS.sm, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.surface, gap: 2 },
-    datePillSelected: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+    datePillSelected: { backgroundColor: COLORS.primary, borderColor: COLORS.plum },
     datePillDisabled: { opacity: 0.4 },
     datePillDay: { fontSize: 10, fontWeight: "700", color: COLORS.textMuted, textTransform: "uppercase" },
     datePillNum: { fontSize: 16, fontWeight: "700", color: COLORS.text },
@@ -571,7 +571,7 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     tzNote: { fontSize: 11, color: COLORS.textMuted, fontStyle: "italic", marginTop: 4, marginBottom: 2, textAlign: "center" },
     timeGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
     timeBtn: { width: "30%", alignItems: "center", paddingVertical: 11, borderRadius: RADIUS.sm, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.surface },
-    timeBtnSelected: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+    timeBtnSelected: { backgroundColor: COLORS.primary, borderColor: COLORS.plum },
     timeBtnTaken: { opacity: 0.35 },
     timeBtnText: { fontSize: 13, fontWeight: "600", color: COLORS.text },
     noDateSelected: { paddingVertical: SPACING.lg, alignItems: "center" },
@@ -583,7 +583,7 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     confirmBtn: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: COLORS.primary, paddingHorizontal: 18, paddingVertical: 10, borderRadius: RADIUS.full },
     confirmBtnText: { fontSize: 14, fontWeight: "700", color: "#fff" },
     durationBtn: { flex: 1, alignItems: "center", paddingVertical: 12, borderRadius: RADIUS.sm, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.surface },
-    durationBtnActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryLight },
+    durationBtnActive: { borderColor: COLORS.plum, backgroundColor: COLORS.primaryLight },
     durationBtnDisabled: { opacity: 0.4 },
     durationBtnText: { fontSize: 14, fontWeight: "700", color: COLORS.text },
     lockedDurationNote: { fontSize: 12, color: COLORS.textMuted, marginTop: -4, marginBottom: 2 },

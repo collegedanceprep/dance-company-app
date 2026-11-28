@@ -54,7 +54,7 @@ export default function VerifyPrepMasterScreen() {
       <SafeAreaView style={styles.safe}>
         <View style={styles.centerContainer}>
           <View style={[styles.iconWrap, { backgroundColor: COLORS.primaryLight }]}>
-            <ShieldCheck size={40} color={COLORS.primary} />
+            <ShieldCheck size={40} color={COLORS.accent} />
           </View>
           <Text style={styles.successTitle}>Verified!</Text>
           <Text style={styles.successSub}>Welcome, {verifiedName}. You've been granted PrepMaster access.</Text>
@@ -155,7 +155,7 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     backBtn: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: SPACING.md },
     backText: { fontSize: 14, color: COLORS.textMuted },
     logoWrap: { alignItems: "center", marginBottom: SPACING.md },
-    logo: { fontSize: 40, fontWeight: "800", color: COLORS.primary, letterSpacing: 2 },
+    logo: { fontSize: 40, fontWeight: "800", color: COLORS.plum, letterSpacing: 2 },
     heading: { fontSize: 24, fontWeight: "700", color: COLORS.text },
     sub: { fontSize: 14, color: COLORS.textMuted, lineHeight: 20 },
     field: { gap: 6 },

@@ -137,7 +137,7 @@ function GroupedBookings({ bookings, statusFilter, onClearFilter }: { bookings: 
   }
 
   const STATUS_GROUPS: StatusGroup[] = [
-    { key: "confirmed", label: "Confirmed", color: COLORS.primary, icon: <Clock size={13} color={COLORS.primary} /> },
+    { key: "confirmed", label: "Confirmed", color: COLORS.plum, icon: <Clock size={13} color={COLORS.accent} /> },
     { key: "pending",   label: "Pending",   color: COLORS.amber,   icon: <AlertCircle size={13} color={COLORS.amber} /> },
     { key: "completed", label: "Completed", color: COLORS.green ?? "#22c55e", icon: <CheckCircle size={13} color={COLORS.green ?? "#22c55e"} /> },
     { key: "cancelled", label: "Cancelled", color: COLORS.red,     icon: <XCircle size={13} color={COLORS.red} /> },
@@ -256,7 +256,7 @@ export default function AdminOverviewScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.safe} edges={["top"]}>
-        <View style={styles.center}><ActivityIndicator size="large" color={COLORS.primary} /></View>
+        <View style={styles.center}><ActivityIndicator size="large" color={COLORS.accent} /></View>
       </SafeAreaView>
     )
   }
@@ -312,11 +312,11 @@ export default function AdminOverviewScreen() {
           <View>
             <View style={styles.monthNav}>
               <TouchableOpacity onPress={() => setMonthOffset((o) => o - 1)} hitSlop={8} style={styles.monthNavBtn}>
-                <ChevronLeft size={20} color={COLORS.primary} />
+                <ChevronLeft size={20} color={COLORS.accent} />
               </TouchableOpacity>
               <Text style={styles.month}>{monthLabel(monthOffset)}</Text>
               <TouchableOpacity onPress={() => setMonthOffset((o) => o + 1)} hitSlop={8} style={styles.monthNavBtn}>
-                <ChevronRight size={20} color={COLORS.primary} />
+                <ChevronRight size={20} color={COLORS.accent} />
               </TouchableOpacity>
             </View>
             <Text style={[styles.subtitle, { marginLeft: 4 }]}>Company performance snapshot</Text>
@@ -325,7 +325,7 @@ export default function AdminOverviewScreen() {
         {error ? <View style={styles.errorBox}><Text style={styles.errorText}>{error}</Text></View> : null}
         <View style={styles.bookingsCard}>
           <View style={styles.bookingsCardHeader}>
-            <View style={[styles.kpiHeader, { flexShrink: 1, marginBottom: 0 }]}><CalendarDays size={17} color={COLORS.primary} /><Text style={[styles.kpiLabel, { color: COLORS.text, fontWeight: "700", fontSize: 16 }]} numberOfLines={1}>Bookings this month</Text></View>
+            <View style={[styles.kpiHeader, { flexShrink: 1, marginBottom: 0 }]}><CalendarDays size={17} color={COLORS.accent} /><Text style={[styles.kpiLabel, { color: COLORS.text, fontWeight: "700", fontSize: 16 }]} numberOfLines={1}>Bookings this month</Text></View>
             <Text style={styles.bookingsTotal} numberOfLines={1}>{thisMonth.length}</Text>
           </View>
           <View style={styles.statGrid}>
@@ -353,8 +353,8 @@ export default function AdminOverviewScreen() {
             <Text style={[styles.kpiValue, { color: COLORS.green }]}>${fmtMoney(revenue)}</Text>
             <Text style={styles.kpiSub}>{completed.length} completed sessions</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.kpiCardThird, styles.kpiCardClickable, { borderColor: COLORS.primary }]} onPress={() => setMarginModalOpen(true)} activeOpacity={0.7}>
-            <View style={styles.kpiHeader}><TrendingUp size={14} color={COLORS.primary} /><Text style={styles.kpiLabel}>Margin</Text></View>
+          <TouchableOpacity style={[styles.kpiCardThird, styles.kpiCardClickable, { borderColor: COLORS.plum }]} onPress={() => setMarginModalOpen(true)} activeOpacity={0.7}>
+            <View style={styles.kpiHeader}><TrendingUp size={14} color={COLORS.accent} /><Text style={styles.kpiLabel}>Margin</Text></View>
             <Text style={[styles.kpiValue, { color: COLORS.green }]}>${fmtMoney(margin)}</Text>
             <Text style={styles.kpiSub}>Owed ${fmtMoney(payOwedThisMonth)}</Text>
           </TouchableOpacity>
@@ -368,7 +368,7 @@ export default function AdminOverviewScreen() {
           <Text style={styles.footnote}>*As of {firstBookingLabel}, the earliest booking on record.</Text>
         )}
         <View style={styles.card}>
-          <View style={styles.cardHeader}><Award size={16} color={COLORS.primary} /><Text style={styles.cardTitle}>Top PrepMasters this month*</Text></View>
+          <View style={styles.cardHeader}><Award size={16} color={COLORS.accent} /><Text style={styles.cardTitle}>Top PrepMasters this month*</Text></View>
           {topPMs.length === 0 ? <Text style={styles.empty}>No completed sessions yet this month.</Text> : topPMs.map(([name, count], i) => {
             const worker = workers.find((w) => w.name === name)
             const Row = (
@@ -388,7 +388,7 @@ export default function AdminOverviewScreen() {
           <Text style={styles.footnote}>*All sessions shown are completed sessions.</Text>
         </View>
         <View style={styles.card}>
-          <View style={styles.cardHeader}><Users size={16} color={COLORS.primary} /><Text style={styles.cardTitle}>Roster snapshot</Text></View>
+          <View style={styles.cardHeader}><Users size={16} color={COLORS.accent} /><Text style={styles.cardTitle}>Roster snapshot</Text></View>
           <RosterRow label="Total members" value={members.length} icon={<Users size={14} color={COLORS.textSecondary} />} />
           <RosterRow label="Active PrepMasters" value={workers.filter((w) => w.active).length} icon={<CheckCircle size={14} color={COLORS.textSecondary} />} />
           <RosterRow label="Inactive PrepMasters" value={workers.filter((w) => !w.active).length} icon={<XCircle size={14} color={COLORS.textSecondary} />} />
@@ -545,10 +545,10 @@ export default function AdminOverviewScreen() {
             contentContainerStyle={{ padding: SPACING.md, gap: SPACING.xs }}
             renderItem={({ item: k }) => (
               <TouchableOpacity
-                style={[styles.compareOption, k === compareKey && { borderColor: COLORS.primary }]}
+                style={[styles.compareOption, k === compareKey && { borderColor: COLORS.plum }]}
                 onPress={() => { setCompareMonthKey(k); setComparePickerOpen(false) }}
               >
-                <Text style={[styles.compareOptionText, k === compareKey && { color: COLORS.primary, fontWeight: "700" }]}>{monthLabelFromKey(k)}</Text>
+                <Text style={[styles.compareOptionText, k === compareKey && { color: COLORS.plum, fontWeight: "700" }]}>{monthLabelFromKey(k)}</Text>
               </TouchableOpacity>
             )}
           />
@@ -566,13 +566,13 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
     monthNav: { flexDirection: "row", alignItems: "center", gap: 4 },
     monthNavBtn: { padding: 4 },
-    month: { fontSize: 22, fontWeight: "700", color: COLORS.text, fontFamily: "Sora_700Bold" },
+    month: { fontSize: 22, fontWeight: "700", color: COLORS.text, fontFamily: "Anton_400Regular", textTransform: "uppercase", letterSpacing: 0.5 },
     subtitle: { fontSize: 13, color: COLORS.textMuted, marginTop: 2 },
     errorBox: { backgroundColor: COLORS.redLight, borderRadius: RADIUS.sm, padding: SPACING.sm },
     errorText: { fontSize: 13, color: COLORS.red },
     grid: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.sm },
     kpiCardThird: { flex: 1, minWidth: 0, backgroundColor: COLORS.surface, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.border, padding: SPACING.sm },
-    kpiCardClickable: { borderColor: COLORS.primary + "40" },
+    kpiCardClickable: { borderColor: COLORS.plum + "40" },
     kpiHeader: { flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 6 },
     kpiLabel: { fontSize: 11, color: COLORS.textMuted, fontWeight: "500", flex: 1 },
     kpiValue: { fontSize: 16, fontWeight: "700", color: COLORS.text, marginBottom: 2 },
