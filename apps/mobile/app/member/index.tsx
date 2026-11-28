@@ -291,7 +291,7 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     center: { flex: 1, justifyContent: "center", alignItems: "center" },
     scroll: { padding: SPACING.md, gap: SPACING.md, paddingBottom: SPACING.xl },
     header: { gap: 4 },
-    greeting: { fontSize: 26, fontWeight: "700", color: COLORS.text, fontFamily: "Anton_400Regular", textTransform: "uppercase", letterSpacing: 0.5 },
+    greeting: { fontSize: 26, fontWeight: "700", color: COLORS.text, fontFamily: "Anton_400Regular", letterSpacing: 0.3 },
     greetingSub: { fontSize: 14, color: COLORS.textMuted },
     errorBox: { backgroundColor: COLORS.redLight, borderRadius: RADIUS.sm, padding: SPACING.sm },
     errorText: { fontSize: 13, color: COLORS.red },

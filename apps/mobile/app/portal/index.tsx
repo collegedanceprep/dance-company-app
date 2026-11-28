@@ -1150,7 +1150,7 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     safe: { flex: 1, backgroundColor: COLORS.background },
     center: { flex: 1, justifyContent: "center", alignItems: "center" },
     scroll: { padding: SPACING.md, gap: SPACING.lg, paddingBottom: SPACING.xl },
-    pageTitle: { fontSize: 26, fontWeight: "700", color: COLORS.text, fontFamily: "Anton_400Regular", textTransform: "uppercase", letterSpacing: 0.5 },
+    pageTitle: { fontSize: 26, fontWeight: "700", color: COLORS.text, fontFamily: "Anton_400Regular", letterSpacing: 0.3 },
     pageSub: { fontSize: 13, color: COLORS.textMuted, marginTop: 2 },
     pendingBadge: { backgroundColor: COLORS.red, paddingHorizontal: 10, paddingVertical: 4, borderRadius: RADIUS.full },
     pendingBadgeText: { fontSize: 12, fontWeight: "700", color: "#fff" },
