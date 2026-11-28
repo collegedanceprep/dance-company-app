@@ -9,6 +9,7 @@ export type AdminMember = {
   goals: string
   creditsRemaining: number
   singleCredits: SingleCreditsByType
+  photoUrl?: string | null
 }
 
 export type AdminWorker = {

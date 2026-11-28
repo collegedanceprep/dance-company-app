@@ -1,12 +1,15 @@
 import { useEffect, useState, useCallback } from "react"
 import { API_BASE } from "@/lib/config"
+import { AuthImage } from "@/components/AuthImage"
 import {
   View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity,
-  ActivityIndicator, KeyboardAvoidingView, Platform, Alert,
+  ActivityIndicator, KeyboardAvoidingView, Platform, Alert, Image, ActionSheetIOS,
 } from "react-native"
+import * as ImagePicker from "expo-image-picker"
+import { ImageManipulator, SaveFormat } from "expo-image-manipulator"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router"
-import { Link, Sun, Moon, Smartphone, CalendarCheck, CalendarX, LayoutDashboard, Users, ShieldCheck, X } from "lucide-react-native"
+import { Camera, Link, Sun, Moon, Smartphone, CalendarCheck, CalendarX, LayoutDashboard, Users, ShieldCheck, X } from "lucide-react-native"
 import Svg, { Path } from "react-native-svg"
 import * as SecureStore from "expo-secure-store"
 import * as WebBrowser from "expo-web-browser"
@@ -16,7 +19,7 @@ import { useTheme } from "@/lib/theme-context"
 import type { ThemePreference } from "@/lib/theme-context"
 
 
-type Profile = { recordId: string; name: string; email: string; phone: string; goals: string; creditsRemaining: number; parentEmail?: string; isParentView?: boolean }
+type Profile = { recordId: string; name: string; email: string; phone: string; goals: string; creditsRemaining: number; parentEmail?: string; isParentView?: boolean; photoUrl?: string | null }
 
 export default function MemberProfileScreen() {
   const { data: session } = useSession()
@@ -28,6 +31,8 @@ export default function MemberProfileScreen() {
   const [error, setError] = useState<string | null>(null)
   const [name, setName] = useState("")
   const [phone, setPhone] = useState("")
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null)
+  const [photoBusy, setPhotoBusy] = useState(false)
 
   function formatPhone(raw: string): string {
     const digits = raw.replace(/\D/g, "").slice(0, 10)
@@ -66,7 +71,7 @@ export default function MemberProfileScreen() {
       ])
       if (dashResult.error || !dashResult.data) throw new Error((dashResult.error as any)?.statusText ?? "Failed to load")
       const p = (dashResult.data as any).profile as Profile
-      setProfile(p); setName(p.name); setPhone(formatPhone(p.phone ?? "")); setGoals(p.goals); setParentEmail(p.parentEmail ?? ""); setError(null)
+      setProfile(p); setName(p.name); setPhotoUrl(p.photoUrl ?? null); setPhone(formatPhone(p.phone ?? "")); setGoals(p.goals); setParentEmail(p.parentEmail ?? ""); setError(null)
       const accounts = accountsResult.data ?? []
       setIsGoogleLinked(accounts.some((a: any) => a.providerId === "google"))
       if (!meResult.error && meResult.data) setActualRole((meResult.data as any).role ?? null)
@@ -107,6 +112,65 @@ export default function MemberProfileScreen() {
       Alert.alert("Saved", "Your profile has been updated.")
     } catch (e) { Alert.alert("Error", e instanceof Error ? e.message : "Failed to save profile.") }
     finally { setSaving(false) }
+  }
+
+  async function uploadPhoto(source: "library" | "camera") {
+    const perm = source === "camera"
+      ? await ImagePicker.requestCameraPermissionsAsync()
+      : await ImagePicker.requestMediaLibraryPermissionsAsync()
+    if (!perm.granted) {
+      Alert.alert("Permission needed", source === "camera" ? "Allow camera access in Settings to take a photo." : "Allow photo access in Settings to choose a photo.")
+      return
+    }
+    const opts: ImagePicker.ImagePickerOptions = { mediaTypes: ["images"], allowsEditing: true, aspect: [1, 1], quality: 1 }
+    const picked = source === "camera" ? await ImagePicker.launchCameraAsync(opts) : await ImagePicker.launchImageLibraryAsync(opts)
+    if (picked.canceled || !picked.assets?.[0]) return
+    setPhotoBusy(true)
+    try {
+      // Shrink to 512px wide JPEG before upload so photos stay small.
+      const ref = await ImageManipulator.manipulate(picked.assets[0].uri).resize({ width: 512 }).renderAsync()
+      const out = await ref.saveAsync({ compress: 0.8, format: SaveFormat.JPEG, base64: true })
+      const { data, error: err } = await authClient.$fetch(`${API_BASE}/api/member/photo`, {
+        method: "POST",
+        body: { mime: "image/jpeg", base64: out.base64 },
+      })
+      if (err) throw new Error((err as any)?.message ?? (err as any)?.statusText ?? "Upload failed")
+      setPhotoUrl((data as any)?.photoUrl ?? null)
+    } catch (e) {
+      Alert.alert("Couldn't update photo", e instanceof Error ? e.message : "Please try again.")
+    } finally {
+      setPhotoBusy(false)
+    }
+  }
+
+  async function removePhoto() {
+    setPhotoBusy(true)
+    try {
+      const { error: err } = await authClient.$fetch(`${API_BASE}/api/member/photo`, { method: "DELETE" })
+      if (err) throw new Error("Remove failed")
+      setPhotoUrl(null)
+    } catch {
+      Alert.alert("Couldn't remove photo", "Please try again.")
+    } finally {
+      setPhotoBusy(false)
+    }
+  }
+
+  function handlePhotoPress() {
+    const options = ["Take Photo", "Choose from Library", ...(photoUrl ? ["Remove Photo"] : []), "Cancel"]
+    const run = (i: number) => {
+      if (options[i] === "Take Photo") uploadPhoto("camera")
+      else if (options[i] === "Choose from Library") uploadPhoto("library")
+      else if (options[i] === "Remove Photo") removePhoto()
+    }
+    if (Platform.OS === "ios") {
+      ActionSheetIOS.showActionSheetWithOptions(
+        { options, cancelButtonIndex: options.length - 1, destructiveButtonIndex: photoUrl ? options.indexOf("Remove Photo") : undefined },
+        run,
+      )
+    } else {
+      Alert.alert("Profile photo", undefined, options.map((o, i) => ({ text: o, style: o === "Cancel" ? "cancel" : o === "Remove Photo" ? "destructive" : "default", onPress: () => run(i) })))
+    }
   }
 
   async function handleConnectCalendar() {
@@ -201,10 +265,30 @@ export default function MemberProfileScreen() {
           {error ? <View style={styles.errorBox}><Text style={styles.errorText}>{error}</Text></View> : null}
 
           <View style={styles.avatarWrap}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{initials(name || session?.user?.name || "?")}</Text>
-            </View>
-            <Text style={styles.avatarEmail}>{profile?.email ?? session?.user?.email ?? ""}</Text>
+            {(() => {
+              // Only dancers (and parents managing them) can set a photo; admins previewing don't.
+              const canEditPhoto = actualRole === null || actualRole === "dancer"
+              const Avatar = (
+                <View>
+                  {photoUrl ? (
+                    <AuthImage path={photoUrl} style={styles.avatar} />
+                  ) : (
+                    <View style={styles.avatar}>
+                      <Text style={styles.avatarText}>{initials(name || session?.user?.name || "?")}</Text>
+                    </View>
+                  )}
+                  {canEditPhoto && (
+                    <View style={styles.avatarBadge}>
+                      {photoBusy ? <ActivityIndicator size="small" color="#ffffff" /> : <Camera size={14} color="#ffffff" />}
+                    </View>
+                  )}
+                </View>
+              )
+              return canEditPhoto ? (
+                <TouchableOpacity onPress={handlePhotoPress} disabled={photoBusy} activeOpacity={0.8} accessibilityLabel="Change profile photo">{Avatar}</TouchableOpacity>
+              ) : Avatar
+            })()}
+            <Text style={styles.avatarName}>{name || session?.user?.name || ""}</Text>
             {profile?.isParentView && (
               <View style={styles.parentBadge}>
                 <Users size={12} color={COLORS.accent} />
@@ -266,7 +350,10 @@ export default function MemberProfileScreen() {
           )}
 
           <View style={styles.card}>
-            <Field label="Name" value={name} onChangeText={(v) => { setName(v); setDirty(true) }} COLORS={COLORS} styles={styles} />
+            <View style={styles.field}>
+              <Text style={styles.fieldLabel}>Email</Text>
+              <Text style={[styles.fieldInput, { color: COLORS.textSecondary }]} selectable>{profile?.email ?? session?.user?.email ?? ""}</Text>
+            </View>
             <View style={styles.divider} />
             <Field label="Phone" value={phone} onChangeText={(v) => { setPhone(formatPhone(v)); setDirty(true) }} keyboardType="phone-pad" COLORS={COLORS} styles={styles} />
             <View style={styles.divider} />
@@ -371,7 +458,9 @@ function makeStyles(COLORS: ReturnType<typeof useTheme>["colors"]) {
     errorBox: { backgroundColor: COLORS.redLight, borderRadius: RADIUS.sm, padding: SPACING.sm },
     errorText: { fontSize: 13, color: COLORS.red },
     avatarWrap: { alignItems: "center", gap: SPACING.sm, paddingVertical: SPACING.sm },
-    avatar: { width: 72, height: 72, borderRadius: 36, backgroundColor: COLORS.primaryLight, justifyContent: "center", alignItems: "center" },
+    avatarBadge: { position: "absolute", right: -2, bottom: -2, width: 28, height: 28, borderRadius: 14, backgroundColor: COLORS.primary, alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: COLORS.background },
+    avatarName: { fontSize: 20, fontWeight: "800", color: COLORS.text, textAlign: "center" },
+    avatar: { width: 88, height: 88, borderRadius: 44, backgroundColor: COLORS.primaryLight, justifyContent: "center", alignItems: "center" },
     avatarText: { fontSize: 30, fontWeight: "700", color: COLORS.plum },
     avatarEmail: { fontSize: 13, color: COLORS.textMuted },
     parentBadge: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: COLORS.primaryLight, paddingHorizontal: 10, paddingVertical: 4, borderRadius: RADIUS.full },

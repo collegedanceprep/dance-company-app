@@ -56,8 +56,11 @@ export async function GET() {
           .where(inArray(userTable.email, memberEmails))
       : []
     const pendingMap = new Map(pendingUsers.map((u) => [u.email.toLowerCase(), u.status]))
+    const { getMemberPhotoUrls } = await import("@/lib/member-photo")
+    const photoUrls = await getMemberPhotoUrls(members.map((m) => m.id))
     const membersWithStatus = members.map((m) => ({
       ...m,
+      photoUrl: photoUrls[m.id] ?? null,
       accountStatus: (pendingMap.get(m.email.trim().toLowerCase()) === "pending" ? "pending" : "active") as "pending" | "active",
     }))
 

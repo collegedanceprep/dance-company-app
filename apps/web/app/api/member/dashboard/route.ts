@@ -43,8 +43,12 @@ export async function GET() {
       .filter((b) => b.status.toLowerCase().startsWith("cancelled") || b.status.toLowerCase() === "declined")
       .sort((a, b) => bookingMs(b.date) - bookingMs(a.date))
 
+    const { getMemberPhotoUrls } = await import("@/lib/member-photo")
+    const photoUrl = profile.recordId ? (await getMemberPhotoUrls([profile.recordId]))[profile.recordId] ?? null : null
+
     return NextResponse.json({
       profile: {
+        photoUrl,
         recordId: profile.recordId,
         name: profile.name,
         email: profile.email,

@@ -1,8 +1,9 @@
 import { useState, useCallback, useEffect } from "react"
 import { API_BASE } from "@/lib/config"
+import { AuthImage } from "@/components/AuthImage"
 import {
   View, Text, StyleSheet, SectionList, TextInput, TouchableOpacity,
-  Modal, ScrollView, RefreshControl, ActivityIndicator, Alert,
+  Modal, ScrollView, RefreshControl, ActivityIndicator, Alert, Image,
 } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { Search, ChevronDown, ChevronUp, Plus, X, Ticket, Package, Trash2, CalendarDays, Check, UserX } from "lucide-react-native"
@@ -282,7 +283,7 @@ function MemberCard({ member: m, credits, plans, bookings, packages, statusInfo,
   return (
     <View style={styles.card}>
       <TouchableOpacity style={styles.cardHeader} onPress={onToggle} activeOpacity={0.7}>
-        <View style={styles.avatar}><Text style={styles.avatarText}>{initials(m.name || m.email || "?")}</Text></View>
+        {m.photoUrl ? <AuthImage path={m.photoUrl} style={styles.avatar} /> : <View style={styles.avatar}><Text style={styles.avatarText}>{initials(m.name || m.email || "?")}</Text></View>}
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text style={styles.name} numberOfLines={1}>{m.name || "(no name)"}</Text>
           <Text style={styles.email} numberOfLines={1}>{m.email}</Text>
