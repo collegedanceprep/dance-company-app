@@ -6,6 +6,7 @@ import { useRouter } from "expo-router"
 import { CalendarDays, DollarSign, TrendingUp, Activity, Award, Users, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, CheckCircle, Clock, XCircle, AlertCircle } from "lucide-react-native"
 import { SPACING, RADIUS, initials } from "@/constants/theme"
 import { API_BASE } from "@/lib/config"
+import { RankMedal } from "@/components/RankMedal"
 import { useColors } from "@/lib/theme-context"
 import { useAdmin } from "@/lib/admin-context"
 import type { AdminBooking } from "@/lib/admin-types"
@@ -378,7 +379,6 @@ export default function AdminOverviewScreen() {
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: TILE_GAP }} snapToInterval={tileWidth + TILE_GAP} decelerationRate="fast">
               {topPMs.map(([name, count], i) => {
                 const worker = workers.find((w) => w.name === name)
-                const medal = ["#d4a017", "#a8a9ad", "#c07a3e"][i]
                 return (
                   <TouchableOpacity
                     key={name}
@@ -393,7 +393,11 @@ export default function AdminOverviewScreen() {
                       ) : (
                         <View style={[styles.pmTilePhoto, styles.pmTileInitials]}><Text style={styles.pmTileInitialsText}>{initials(name)}</Text></View>
                       )}
-                      <View style={[styles.pmTileRank, { backgroundColor: medal ?? COLORS.plum }]}><Text style={styles.pmTileRankText}>{i + 1}</Text></View>
+                      {i < 3 ? (
+                        <View style={styles.pmTileMedal}><RankMedal rank={(i + 1) as 1 | 2 | 3} size={34} /></View>
+                      ) : (
+                        <View style={[styles.pmTileRank, { backgroundColor: COLORS.plum }]}><Text style={styles.pmTileRankText}>{i + 1}</Text></View>
+                      )}
                     </View>
                     <Text style={styles.pmTileName} numberOfLines={2}>{name}</Text>
                     <Text style={styles.pmTileCount}>{count} session{count !== 1 ? "s" : ""}</Text>
@@ -634,6 +638,7 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     pmTilePhoto: { width: 64, height: 64, borderRadius: 32 },
     pmTileInitials: { backgroundColor: COLORS.primaryLight, alignItems: "center", justifyContent: "center" },
     pmTileInitialsText: { color: COLORS.plum, fontWeight: "700", fontSize: 20 },
+    pmTileMedal: { position: "absolute", right: -10, bottom: -8 },
     pmTileRank: { position: "absolute", right: -4, bottom: -4, minWidth: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center", paddingHorizontal: 4, borderWidth: 2, borderColor: COLORS.background },
     pmTileRankText: { color: "#ffffff", fontWeight: "800", fontSize: 12 },
     pmTileName: { color: COLORS.text, fontWeight: "600", fontSize: 13, textAlign: "center" },
