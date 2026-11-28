@@ -173,7 +173,7 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     flex: { flex: 1 },
     container: { padding: SPACING.lg, flexGrow: 1, paddingBottom: SPACING.xl },
     topSection: { alignItems: "center", marginBottom: SPACING.xl, paddingTop: SPACING.lg },
-    logo: { fontSize: 40, fontWeight: "800", color: COLORS.plum, letterSpacing: 2 },
+    logo: { fontSize: 40, fontWeight: "800", color: COLORS.primary, letterSpacing: 2 },
     logoSub: { fontSize: 13, color: COLORS.textMuted, fontWeight: "500", marginTop: 4, marginBottom: SPACING.lg },
     heading: { fontSize: 26, fontWeight: "700", color: COLORS.text, marginBottom: 6, textAlign: "center", fontFamily: "Anton_400Regular", textTransform: "uppercase", letterSpacing: 0.5 },
     sub: { fontSize: 14, color: COLORS.textMuted, textAlign: "center", lineHeight: 20 },
