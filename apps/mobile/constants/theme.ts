@@ -1,6 +1,7 @@
 export const LIGHT_COLORS = {
   primary: "#f21890",
   primaryLight: "#f2ecfa",
+  pinkLight: "#fde4f1",
   accent: "#0a9cb8",
   accentLight: "#e3f7fa",
   plum: "#6b2a7a",
@@ -23,6 +24,7 @@ export const LIGHT_COLORS = {
 export const DARK_COLORS = {
   primary: "#f53fa3",
   primaryLight: "#241a33",
+  pinkLight: "#3a1033",
   accent: "#0dc4e0",
   accentLight: "#0d2a30",
   plum: "#d4a5f0",
