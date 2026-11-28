@@ -372,7 +372,7 @@ export function BookingDetailModal({
             <>
               <View style={styles.detailCard}>
                 <View style={styles.detailRow}>
-                  <CalendarClock size={15} color={COLORS.primary} />
+                  <CalendarClock size={15} color={COLORS.accent} />
                   <Text style={styles.detailLabel}>PrepMaster</Text>
                   <Text style={styles.detailValue}>{booking.prepMasterName || "—"}</Text>
                 </View>
@@ -411,7 +411,7 @@ export function BookingDetailModal({
                 ) : null}
                 {booking.prepMasterNotes ? (
                   <View style={[styles.detailRow, { alignItems: "flex-start" }]}>
-                    <StickyNote size={15} color={COLORS.primary} style={{ marginTop: 2 }} />
+                    <StickyNote size={15} color={COLORS.accent} style={{ marginTop: 2 }} />
                     <Text style={styles.detailLabel}>PM notes</Text>
                     <Text style={[styles.detailValue, { flex: 1 }]}>{booking.prepMasterNotes}</Text>
                   </View>
@@ -436,7 +436,7 @@ export function BookingDetailModal({
 
               <View style={styles.formGroup}>
                 <View style={styles.pickerLabelRow}>
-                  <Calendar size={14} color={COLORS.primary} />
+                  <Calendar size={14} color={COLORS.accent} />
                   <Text style={styles.formLabel}>Date</Text>
                   {editDate ? <Text style={styles.pickerSelected}>{formatDate(editDate)}</Text> : null}
                 </View>
@@ -454,7 +454,7 @@ export function BookingDetailModal({
 
               <View style={styles.formGroup}>
                 <View style={styles.pickerLabelRow}>
-                  <Clock size={14} color={COLORS.primary} />
+                  <Clock size={14} color={COLORS.accent} />
                   <Text style={styles.formLabel}>Time</Text>
                 </View>
                 {availLoading ? (
@@ -549,7 +549,7 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     formInput: { backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.sm, padding: SPACING.sm, fontSize: 14, color: COLORS.text },
     formTextarea: { minHeight: 80, textAlignVertical: "top" },
     pickerLabelRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-    pickerSelected: { fontSize: 13, color: COLORS.primary, fontWeight: "600", marginLeft: 4 },
+    pickerSelected: { fontSize: 13, color: COLORS.plum, fontWeight: "600", marginLeft: 4 },
     // Calendar
     calendarWrap: { backgroundColor: COLORS.surface, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.border, padding: SPACING.sm },
     calNavRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 },
@@ -561,7 +561,7 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     calDayHeaderText: { fontSize: 11, fontWeight: "600", color: COLORS.textMuted },
     calCell: { flex: 1, alignItems: "center", paddingVertical: 6 },
     calCellSelected: { backgroundColor: COLORS.primary, borderRadius: RADIUS.full },
-    calCellToday: { borderRadius: RADIUS.full, borderWidth: 1, borderColor: COLORS.primary },
+    calCellToday: { borderRadius: RADIUS.full, borderWidth: 1, borderColor: COLORS.plum },
     calCellText: { fontSize: 13, color: COLORS.text, fontWeight: "500" },
     calCellPast: { color: COLORS.textMuted, opacity: 0.4 },
     calCellTextSelected: { color: "#fff", fontWeight: "700" },

@@ -146,7 +146,7 @@ function HourlyView({
         if (b.time.toUpperCase().includes("AM") && hour === 12) hour = 0
       }
       const top = (hour - START_HOUR + minute / 60) * HOUR_HEIGHT
-      result.push({ key: `b-${b.id}`, top, height: HOUR_HEIGHT, title: `Session w/ ${b.prepMasterName || "PrepMaster"}`, subtitle: b.sessionType ? fmtSessionType(b.sessionType) : null, isCDP: true, booking: b, color: COLORS.primary })
+      result.push({ key: `b-${b.id}`, top, height: HOUR_HEIGHT, title: `Session w/ ${b.prepMasterName || "PrepMaster"}`, subtitle: b.sessionType ? fmtSessionType(b.sessionType) : null, isCDP: true, booking: b, color: COLORS.plum })
     }
     for (const e of calEvents) {
       if (!e.start || e.allDay) continue
@@ -352,14 +352,14 @@ function CalendarView({
             : { bg: COLORS.grayLight, text: COLORS.textMuted }
           return (
             <TouchableOpacity key={b.id} onPress={() => onBookingPress(b)} activeOpacity={0.8}>
-              <View style={{ backgroundColor: COLORS.surface, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.primary, borderLeftWidth: 4, borderLeftColor: COLORS.primary, padding: SPACING.md }}>
+              <View style={{ backgroundColor: COLORS.surface, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.plum, borderLeftWidth: 4, borderLeftColor: COLORS.primary, padding: SPACING.md }}>
                 <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
                   <Text style={{ fontSize: 14, fontWeight: "600", color: COLORS.text, flex: 1, marginRight: SPACING.sm }}>Session w/ {b.prepMasterName || "PrepMaster"}</Text>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                     <View style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: RADIUS.full, backgroundColor: sc.bg }}>
                       <Text style={{ fontSize: 11, fontWeight: "600", textTransform: "capitalize", color: sc.text }}>{b.status}</Text>
                     </View>
-                    <ChevronRight size={16} color={COLORS.primary} />
+                    <ChevronRight size={16} color={COLORS.accent} />
                   </View>
                 </View>
                 <Text style={{ fontSize: 11, color: COLORS.textMuted, marginTop: 2 }}>{formatTime(b.time, b.utcDatetime)}{b.sessionType ? ` · ${fmtSessionType(b.sessionType)}` : ""}</Text>
@@ -584,7 +584,7 @@ export default function MemberBookingsScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: COLORS.background }} edges={["top"]}>
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: SPACING.md, paddingTop: SPACING.md, paddingBottom: SPACING.sm }}>
-        <Text style={{ fontSize: 26, fontWeight: "700", color: COLORS.text, fontFamily: "Sora_700Bold" }}>My Bookings</Text>
+        <Text style={{ fontSize: 26, fontWeight: "700", color: COLORS.text, fontFamily: "Anton_400Regular", textTransform: "uppercase", letterSpacing: 0.5 }}>My Bookings</Text>
         <TouchableOpacity style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: COLORS.primary, paddingHorizontal: 14, paddingVertical: 8, borderRadius: RADIUS.full }} onPress={() => router.push("/member/book" as any)} activeOpacity={0.7}>
           <Plus size={16} color="#fff" />
           <Text style={{ fontSize: 13, fontWeight: "700", color: "#fff" }}>New Booking</Text>

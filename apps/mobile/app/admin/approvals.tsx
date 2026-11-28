@@ -324,7 +324,7 @@ function makeStyles(COLORS: any) {
       paddingTop: SPACING.sm,
       paddingBottom: SPACING.sm,
     },
-    title: { fontSize: 26, fontWeight: "700", color: COLORS.text, fontFamily: "Sora_700Bold" },
+    title: { fontSize: 26, fontWeight: "700", color: COLORS.text, fontFamily: "Anton_400Regular", textTransform: "uppercase", letterSpacing: 0.5 },
     content: { padding: SPACING.md, paddingBottom: SPACING.xl },
     sectionHeader: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: SPACING.sm },
     sectionTitle: { fontSize: 14, fontWeight: "600", color: COLORS.text },

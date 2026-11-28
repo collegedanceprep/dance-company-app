@@ -46,7 +46,7 @@ function CreditsCard({ plans, credits }: { plans: MemberPlan[]; credits: number 
     <View style={[styles.card, { gap: SPACING.sm }]}>
       <View style={styles.cardHeaderRow}>
         <View style={styles.cardHeaderLeft}>
-          <Ticket size={16} color={COLORS.primary} />
+          <Ticket size={16} color={COLORS.accent} />
           <Text style={styles.cardHeaderTitle}>Session credits</Text>
         </View>
         {hasHistory && (
@@ -65,7 +65,7 @@ function CreditsCard({ plans, credits }: { plans: MemberPlan[]; credits: number 
       ) : shownPlans.length === 0 && view === "active" && credits > 0 ? (
         <View style={styles.planItem}>
           <View style={styles.planRow}>
-            <Package size={13} color={COLORS.primary} style={{ marginTop: 1 }} />
+            <Package size={13} color={COLORS.accent} style={{ marginTop: 1 }} />
             <View style={{ flex: 1 }}>
               <Text style={styles.planName}>Session credits<Text style={styles.planCredits}>{"  "}{credits} {credits === 1 ? "credit" : "credits"} remaining</Text></Text>
             </View>
@@ -87,7 +87,7 @@ function CreditsCard({ plans, credits }: { plans: MemberPlan[]; credits: number 
           return (
             <View key={plan.id} style={styles.planItem}>
               <View style={styles.planRow}>
-                <Package size={13} color={COLORS.primary} style={{ marginTop: 1 }} />
+                <Package size={13} color={COLORS.accent} style={{ marginTop: 1 }} />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.planName}>
                     {plan.planName}
@@ -232,7 +232,7 @@ export default function MemberHomeScreen() {
         <CreditsCard plans={plans} credits={credits} />
         <TouchableOpacity style={styles.bookCta} onPress={() => router.push("/member/book" as any)} activeOpacity={0.7}>
           <View style={styles.bookCtaLeft}>
-            <CalendarPlus size={18} color={COLORS.primary} />
+            <CalendarPlus size={18} color={COLORS.accent} />
             <View>
               <Text style={styles.bookCtaTitle}>Ready to train?</Text>
               <Text style={styles.bookCtaSub}>Browse PrepMasters and book your next session.</Text>
@@ -258,7 +258,7 @@ export default function MemberHomeScreen() {
               <Text style={[styles.sectionTitle, { color: COLORS.textMuted }]}>Past sessions</Text>
               <TouchableOpacity onPress={() => router.push("/member/bookings" as any)} style={styles.seeAll}>
                 <Text style={styles.seeAllText}>See all</Text>
-                <ChevronRight size={14} color={COLORS.primary} />
+                <ChevronRight size={14} color={COLORS.accent} />
               </TouchableOpacity>
             </View>
             {past.slice(0, 3).map((b) => <BookingCard key={b.id} booking={b} dimmed />)}
@@ -291,7 +291,7 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     center: { flex: 1, justifyContent: "center", alignItems: "center" },
     scroll: { padding: SPACING.md, gap: SPACING.md, paddingBottom: SPACING.xl },
     header: { gap: 4 },
-    greeting: { fontSize: 26, fontWeight: "700", color: COLORS.text, fontFamily: "Sora_700Bold" },
+    greeting: { fontSize: 26, fontWeight: "700", color: COLORS.text, fontFamily: "Anton_400Regular", letterSpacing: 0.3 },
     greetingSub: { fontSize: 14, color: COLORS.textMuted },
     errorBox: { backgroundColor: COLORS.redLight, borderRadius: RADIUS.sm, padding: SPACING.sm },
     errorText: { fontSize: 13, color: COLORS.red },
@@ -322,7 +322,7 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     sectionRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
     sectionTitle: { fontSize: 17, fontWeight: "700", color: COLORS.text, fontFamily: "Sora_600SemiBold" },
     seeAll: { flexDirection: "row", alignItems: "center", gap: 2 },
-    seeAllText: { fontSize: 13, color: COLORS.primary, fontWeight: "600" },
+    seeAllText: { fontSize: 13, color: COLORS.plum, fontWeight: "600" },
     emptyCard: { backgroundColor: COLORS.surface, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.border, padding: SPACING.xl, alignItems: "center", gap: SPACING.sm },
     emptyTitle: { fontSize: 15, fontWeight: "600", color: COLORS.text },
     emptySub: { fontSize: 13, color: COLORS.textMuted, textAlign: "center" },

@@ -4,6 +4,8 @@
   "main": "expo-router/entry",
   "dependencies": {
     "@better-auth/expo": "^1.6.20",
+    "@cdp/core": "file:../../packages/core",
+    "@expo-google-fonts/anton": "^0.4.2",
     "@expo-google-fonts/geist": "^0.4.2",
     "@expo-google-fonts/sora": "^0.4.2",
     "better-auth": "^1.6.20",
@@ -15,6 +17,8 @@
     "expo-crypto": "~56.0.4",
     "expo-dev-client": "~56.0.20",
     "expo-font": "~56.0.7",
+    "expo-image-manipulator": "~56.0.26",
+    "expo-image-picker": "~56.0.25",
     "expo-linking": "~56.0.14",
     "expo-network": "~56.0.5",
     "expo-notifications": "~56.0.18",
@@ -28,8 +32,7 @@
     "react-native": "0.85.3",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "4.25.2",
-    "react-native-svg": "15.15.4",
-    "@cdp/core": "file:../../packages/core"
+    "react-native-svg": "15.15.4"
   },
   "devDependencies": {
     "@types/react": "~19.2.2",

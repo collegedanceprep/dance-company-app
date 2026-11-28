@@ -48,7 +48,7 @@ export default function NotifyPrimerScreen() {
     <SafeAreaView style={s.safe}>
       <View style={s.container}>
         <View style={s.iconWrap}>
-          <Bell size={48} color={COLORS.primary} />
+          <Bell size={48} color={COLORS.accent} />
         </View>
 
         <Text style={s.title}>Don't miss a thing</Text>

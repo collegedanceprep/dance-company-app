@@ -237,7 +237,7 @@ export default function InboxScreen() {
         <Text style={styles.title}>Inbox</Text>
         {unreadCount > 0 && (
           <TouchableOpacity onPress={markAllRead} style={styles.markAllBtn} activeOpacity={0.7}>
-            <CheckCheck size={15} color={COLORS.primary} />
+            <CheckCheck size={15} color={COLORS.accent} />
             <Text style={styles.markAllText}>Mark all read</Text>
           </TouchableOpacity>
         )}
@@ -304,9 +304,9 @@ function makeStyles(COLORS: ReturnType<typeof import("@/lib/theme-context").useT
       paddingTop: SPACING.sm,
       paddingBottom: SPACING.sm,
     },
-    title: { fontSize: 26, fontWeight: "700", color: COLORS.text, fontFamily: "Sora_700Bold" },
+    title: { fontSize: 26, fontWeight: "700", color: COLORS.text, fontFamily: "Anton_400Regular", textTransform: "uppercase", letterSpacing: 0.5 },
     markAllBtn: { flexDirection: "row", alignItems: "center", gap: 4 },
-    markAllText: { fontSize: 13, color: COLORS.primary, fontWeight: "600" },
+    markAllText: { fontSize: 13, color: COLORS.plum, fontWeight: "600" },
     filterRow: {
       flexDirection: "row",
       gap: SPACING.xs ?? 6,

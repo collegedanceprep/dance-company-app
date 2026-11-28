@@ -58,7 +58,7 @@ export function TimeWheelPicker({ slots, value, onChange, disabled }: Props) {
           {
             top: ITEM_HEIGHT * PADDING_ITEMS,
             height: ITEM_HEIGHT,
-            borderColor: COLORS.primary,
+            borderColor: COLORS.plum,
             backgroundColor: (COLORS as any).primaryLight ?? `${COLORS.primary}18`,
           },
         ]}

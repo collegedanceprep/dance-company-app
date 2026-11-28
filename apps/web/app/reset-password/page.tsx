@@ -1,4 +1,5 @@
 "use client"
+import { AmbientGlow } from "@/components/ambient-glow"
 
 import { Suspense, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -37,7 +38,8 @@ function ResetPasswordForm() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center px-5 py-12">
+    <main className="relative isolate min-h-screen flex flex-col items-center justify-center px-5 py-12">
+      <AmbientGlow />
       <div className="w-full max-w-sm flex flex-col gap-8">
         <div className="flex flex-col items-center gap-3 text-center">
           <BrandLogo />

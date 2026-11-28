@@ -144,7 +144,7 @@ export default function AdminPrepMastersScreen() {
         <View style={styles.uniFilterWrap}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.uniFilterRow}>
             <TouchableOpacity style={[styles.uniFilterChip, !uniFilter && styles.uniFilterChipActive]} onPress={() => setUniFilter("")} activeOpacity={0.7}>
-              <Text style={[styles.uniFilterChipText, !uniFilter && { color: COLORS.primary }]}>All</Text>
+              <Text style={[styles.uniFilterChipText, !uniFilter && { color: COLORS.plum }]}>All</Text>
             </TouchableOpacity>
             {universities.map((uni) => {
               const { bg, text } = getUniversityColor(uni)
@@ -313,7 +313,7 @@ function PrepMasterProfile({ worker, bookings, onBack, onSaved, onDeleted }: {
       <ScrollView contentContainerStyle={styles.profileBody}>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
           <TouchableOpacity style={styles.backBtn} onPress={onBack} activeOpacity={0.7}>
-            <ArrowLeft size={16} color={COLORS.primary} /><Text style={styles.backText}>All PrepMasters</Text>
+            <ArrowLeft size={16} color={COLORS.accent} /><Text style={styles.backText}>All PrepMasters</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={handleDelete} disabled={deleting} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Text style={styles.deleteTiny}>{deleting ? "Deleting…" : "Delete PrepMaster"}</Text>
@@ -394,11 +394,11 @@ function PrepMasterProfile({ worker, bookings, onBack, onSaved, onDeleted }: {
               {months.length > 1 && (
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
                   <TouchableOpacity style={[styles.filterChip, !filterMonth && styles.filterChipActive]} onPress={() => setFilterMonth("")} activeOpacity={0.7}>
-                    <Text style={[styles.filterChipText, !filterMonth && { color: COLORS.primary }]}>All</Text>
+                    <Text style={[styles.filterChipText, !filterMonth && { color: COLORS.plum }]}>All</Text>
                   </TouchableOpacity>
                   {months.map((m) => (
                     <TouchableOpacity key={m} style={[styles.filterChip, filterMonth === m && styles.filterChipActive]} onPress={() => setFilterMonth(m)} activeOpacity={0.7}>
-                      <Text style={[styles.filterChipText, filterMonth === m && { color: COLORS.primary }]}>{new Date(m + "-01T12:00:00").toLocaleDateString("en-US", { month: "short", year: "numeric" })}</Text>
+                      <Text style={[styles.filterChipText, filterMonth === m && { color: COLORS.plum }]}>{new Date(m + "-01T12:00:00").toLocaleDateString("en-US", { month: "short", year: "numeric" })}</Text>
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
@@ -463,7 +463,7 @@ function PrepMasterProfile({ worker, bookings, onBack, onSaved, onDeleted }: {
                   activeOpacity={0.75}
                 >
                   <View style={[styles.uniChip, { backgroundColor: uc.bg }]}><Text style={[styles.uniChipText, { color: uc.text, fontSize: 13 }]}>{item}</Text></View>
-                  {selected && <Text style={{ fontSize: 16, color: COLORS.primary, fontWeight: "700" }}>✓</Text>}
+                  {selected && <Text style={{ fontSize: 16, color: COLORS.plum, fontWeight: "700" }}>✓</Text>}
                 </TouchableOpacity>
               )
             }}
@@ -524,9 +524,9 @@ function StatTile({ label, value, sub, highlight }: { label: string; value: stri
   const COLORS = useColors()
   const styles = makeStyles(COLORS)
   return (
-    <View style={[styles.statTile, highlight && { borderColor: COLORS.primary + "40", backgroundColor: COLORS.primaryLight }]}>
+    <View style={[styles.statTile, highlight && { borderColor: COLORS.plum + "40", backgroundColor: COLORS.primaryLight }]}>
       <Text style={styles.statLabel}>{label}</Text>
-      <Text style={[styles.statValue, highlight && { color: COLORS.primary }]}>{value}</Text>
+      <Text style={[styles.statValue, highlight && { color: COLORS.plum }]}>{value}</Text>
       {sub ? <Text style={styles.statSub}>{sub}</Text> : null}
     </View>
   )
@@ -595,7 +595,7 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     list: { paddingHorizontal: SPACING.md, paddingBottom: 100, paddingTop: SPACING.xs },
     empty: { fontSize: 14, color: COLORS.textMuted, textAlign: "center", marginTop: SPACING.xl },
     card: { flexDirection: "row", alignItems: "center", gap: SPACING.sm, backgroundColor: COLORS.surface, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.border, padding: SPACING.md },
-    avatar: { width: 40, height: 40, borderRadius: RADIUS.full, backgroundColor: COLORS.primaryLight, alignItems: "center", justifyContent: "center", overflow: "hidden" },
+    avatar: { width: 40, height: 40, borderRadius: RADIUS.full, backgroundColor: COLORS.pinkLight, alignItems: "center", justifyContent: "center", overflow: "hidden" },
     avatarText: { fontSize: 14, fontWeight: "700", color: COLORS.primary },
     name: { fontSize: 15, fontWeight: "600", color: COLORS.text },
     sub: { fontSize: 12, color: COLORS.textMuted, marginTop: 1 },
@@ -603,7 +603,7 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     badgeText: { fontSize: 11, fontWeight: "600" },
     profileBody: { padding: SPACING.md, gap: SPACING.md, paddingBottom: 80 },
     backBtn: { flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 4 },
-    backText: { fontSize: 14, fontWeight: "500", color: COLORS.primary },
+    backText: { fontSize: 14, fontWeight: "500", color: COLORS.plum },
     section: { borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.md, backgroundColor: COLORS.surface, padding: SPACING.md, gap: SPACING.sm },
     profileCardHeader: { flexDirection: "row", alignItems: "flex-start", gap: SPACING.sm },
     profileName: { fontSize: 18, fontWeight: "700", color: COLORS.text, fontFamily: "Sora_600SemiBold" },
@@ -636,20 +636,20 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     pricePointSub: { fontSize: 11, fontWeight: "400", color: COLORS.textMuted },
     pricePointMargin: { fontSize: 12, fontWeight: "500", marginTop: 1 },
     filterChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: RADIUS.full, borderWidth: 1, borderColor: COLORS.border, marginRight: 6, backgroundColor: COLORS.background },
-    filterChipActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryLight },
+    filterChipActive: { borderColor: COLORS.plum, backgroundColor: COLORS.primaryLight },
     filterChipText: { fontSize: 12, fontWeight: "500", color: COLORS.textMuted },
     uniChip: { alignSelf: "flex-start", paddingHorizontal: 8, paddingVertical: 2, borderRadius: RADIUS.full },
     uniChipText: { fontSize: 10, fontWeight: "700", letterSpacing: 0.2 },
     uniFilterWrap: { height: 44, flexShrink: 0, backgroundColor: COLORS.background },
     uniFilterRow: { paddingHorizontal: SPACING.md, alignItems: "center", height: 44 },
     uniFilterChip: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: RADIUS.full, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.background, marginRight: 6 },
-    uniFilterChipActive: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryLight },
+    uniFilterChipActive: { borderColor: COLORS.plum, backgroundColor: COLORS.primaryLight },
     uniFilterChipText: { fontSize: 12, fontWeight: "600", color: COLORS.textMuted },
     bookingCard: { borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.sm, overflow: "hidden", marginBottom: 6, backgroundColor: COLORS.background },
     bookingRow: { flexDirection: "row", alignItems: "center", gap: SPACING.sm, padding: SPACING.sm },
     bookingName: { fontSize: 13, fontWeight: "600", color: COLORS.text },
     bookingMeta: { fontSize: 11, color: COLORS.textMuted, marginTop: 1 },
-    bookingSessionType: { fontSize: 11, color: COLORS.primary, marginTop: 2, fontWeight: "500" },
+    bookingSessionType: { fontSize: 11, color: COLORS.plum, marginTop: 2, fontWeight: "500" },
     bookingDetail: { borderTopWidth: 1, borderTopColor: COLORS.border, padding: SPACING.sm, gap: SPACING.sm, backgroundColor: COLORS.surface },
     detailGrid: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.sm },
     detailCell: { flex: 1, minWidth: "40%" },

@@ -1,3 +1,4 @@
+import { AmbientGlow } from "@/components/AmbientGlow"
 import { useState, useEffect, useCallback } from "react"
 import { API_BASE } from "@/lib/config"
 import {
@@ -69,6 +70,7 @@ export default function WelcomeScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
+      <AmbientGlow />
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
           <View style={styles.topSection}>
@@ -174,8 +176,8 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     container: { padding: SPACING.lg, flexGrow: 1, paddingBottom: SPACING.xl },
     topSection: { alignItems: "center", marginBottom: SPACING.xl, paddingTop: SPACING.lg },
     logo: { fontSize: 40, fontWeight: "800", color: COLORS.primary, letterSpacing: 2 },
-    logoSub: { fontSize: 13, color: COLORS.textMuted, fontWeight: "500", marginTop: 4, marginBottom: SPACING.lg },
-    heading: { fontSize: 26, fontWeight: "700", color: COLORS.text, marginBottom: 6, textAlign: "center", fontFamily: "Sora_700Bold" },
+    logoSub: { fontSize: 13, color: COLORS.text, fontWeight: "500", marginTop: 4, marginBottom: SPACING.lg },
+    heading: { fontSize: 26, fontWeight: "700", color: COLORS.text, marginBottom: 6, textAlign: "center", fontFamily: "Anton_400Regular", textTransform: "uppercase", letterSpacing: 0.5 },
     sub: { fontSize: 14, color: COLORS.textMuted, textAlign: "center", lineHeight: 20 },
     errorBox: { backgroundColor: COLORS.amberLight, borderRadius: RADIUS.sm, padding: SPACING.sm, marginBottom: SPACING.md },
     errorText: { fontSize: 13, color: COLORS.amber },

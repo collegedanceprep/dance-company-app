@@ -1,3 +1,4 @@
+import { AmbientGlow } from "@/components/AmbientGlow"
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, ActivityIndicator,
@@ -157,13 +158,14 @@ export default function SignInScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
+      <AmbientGlow />
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <View style={styles.container}>
           <View style={styles.logoWrap}>
             <Text style={styles.logo}>CDP</Text>
             <Text style={styles.logoSub}>College Dance Prep</Text>
           </View>
-          <Text style={styles.heading}>Welcome back</Text>
+          <Text style={styles.heading}>Welcome!</Text>
           <Text style={styles.sub}>Sign in to your account</Text>
           {error && <View style={styles.errorBox}><Text style={styles.errorText}>{error}</Text></View>}
           <TouchableOpacity style={[styles.googleBtn, googleLoading && styles.btnDisabled]} onPress={handleGoogleSignIn} disabled={googleLoading || loading || appleLoading} activeOpacity={0.8}>
@@ -230,8 +232,8 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     container: { flex: 1, padding: SPACING.lg, justifyContent: "center" },
     logoWrap: { alignItems: "center", marginBottom: SPACING.xl },
     logo: { fontSize: 40, fontWeight: "800", color: COLORS.primary, letterSpacing: 2 },
-    logoSub: { fontSize: 13, color: COLORS.textMuted, fontWeight: "500", marginTop: 4 },
-    heading: { fontSize: 26, fontWeight: "700", color: COLORS.text, marginBottom: 4, fontFamily: "Sora_700Bold" },
+    logoSub: { fontSize: 13, color: COLORS.text, fontWeight: "500", marginTop: 4 },
+    heading: { fontSize: 26, fontWeight: "700", color: COLORS.text, marginBottom: 4, fontFamily: "Anton_400Regular", textTransform: "uppercase", letterSpacing: 0.5 },
     sub: { fontSize: 14, color: COLORS.textMuted, marginBottom: SPACING.lg },
     errorBox: { backgroundColor: COLORS.redLight, borderRadius: RADIUS.sm, padding: SPACING.sm, marginBottom: SPACING.md },
     errorText: { fontSize: 13, color: COLORS.red, fontWeight: "500" },
@@ -249,14 +251,14 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     passwordWrap: { flexDirection: "row", alignItems: "center", backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.sm },
     passwordInput: { flex: 1, padding: SPACING.md, fontSize: 15, color: COLORS.text },
     eyeBtn: { paddingHorizontal: SPACING.md, paddingVertical: SPACING.md },
-    showHideText: { fontSize: 13, fontWeight: "600", color: COLORS.primary },
+    showHideText: { fontSize: 13, fontWeight: "600", color: COLORS.plum },
     btn: { backgroundColor: COLORS.primary, borderRadius: RADIUS.sm, padding: SPACING.md, alignItems: "center", marginTop: SPACING.sm },
     btnDisabled: { opacity: 0.6 },
     btnText: { color: "#fff", fontSize: 15, fontWeight: "700" },
     passwordLabelRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 },
-    forgotLink: { fontSize: 13, color: COLORS.primary, fontWeight: "600" },
+    forgotLink: { fontSize: 13, color: COLORS.plum, fontWeight: "600" },
     footer: { flexDirection: "row", justifyContent: "center", marginTop: SPACING.lg },
     footerText: { fontSize: 14, color: COLORS.textMuted },
-    footerLink: { fontSize: 14, color: COLORS.primary, fontWeight: "600" },
+    footerLink: { fontSize: 14, color: COLORS.plum, fontWeight: "600" },
   })
 }

@@ -1,10 +1,12 @@
 import React from "react"
-import { ScrollView, View, Text, StyleSheet, TouchableOpacity, Modal, FlatList, RefreshControl, ActivityIndicator } from "react-native"
+import { ScrollView, View, Text, StyleSheet, TouchableOpacity, Modal, FlatList, RefreshControl, ActivityIndicator, Image, useWindowDimensions } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { useState, useCallback } from "react"
 import { useRouter } from "expo-router"
 import { CalendarDays, DollarSign, TrendingUp, Activity, Award, Users, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, CheckCircle, Clock, XCircle, AlertCircle } from "lucide-react-native"
-import { SPACING, RADIUS } from "@/constants/theme"
+import { SPACING, RADIUS, initials } from "@/constants/theme"
+import { API_BASE } from "@/lib/config"
+import { RankMedal } from "@/components/RankMedal"
 import { useColors } from "@/lib/theme-context"
 import { useAdmin } from "@/lib/admin-context"
 import type { AdminBooking } from "@/lib/admin-types"
@@ -137,7 +139,7 @@ function GroupedBookings({ bookings, statusFilter, onClearFilter }: { bookings: 
   }
 
   const STATUS_GROUPS: StatusGroup[] = [
-    { key: "confirmed", label: "Confirmed", color: COLORS.primary, icon: <Clock size={13} color={COLORS.primary} /> },
+    { key: "confirmed", label: "Confirmed", color: COLORS.plum, icon: <Clock size={13} color={COLORS.accent} /> },
     { key: "pending",   label: "Pending",   color: COLORS.amber,   icon: <AlertCircle size={13} color={COLORS.amber} /> },
     { key: "completed", label: "Completed", color: COLORS.green ?? "#22c55e", icon: <CheckCircle size={13} color={COLORS.green ?? "#22c55e"} /> },
     { key: "cancelled", label: "Cancelled", color: COLORS.red,     icon: <XCircle size={13} color={COLORS.red} /> },
@@ -239,6 +241,7 @@ function RosterRow({ label, value, icon }: { label: string; value: number; icon?
 
 export default function AdminOverviewScreen() {
   const { data, loading, error, refresh } = useAdmin()
+  const { width: screenWidth } = useWindowDimensions()
   const router = useRouter()
   const COLORS = useColors()
   const styles = makeStyles(COLORS)
@@ -303,7 +306,10 @@ export default function AdminOverviewScreen() {
   if (!availableCompareMonths.includes(defaultCompareKey)) availableCompareMonths.unshift(defaultCompareKey)
   const pmCounts: Record<string, number> = {}
   completed.forEach((b) => { if (b.prepMasterName) pmCounts[b.prepMasterName] = (pmCounts[b.prepMasterName] ?? 0) + 1 })
-  const topPMs = Object.entries(pmCounts).sort((a, b) => b[1] - a[1]).slice(0, 10)
+  const topPMs = Object.entries(pmCounts).sort((a, b) => b[1] - a[1])
+  // Three tiles fill the card's width; the rest are a sideways scroll away.
+  const TILE_GAP = 10
+  const tileWidth = Math.floor((screenWidth - SPACING.md * 4 - TILE_GAP * 2) / 3)
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
@@ -312,11 +318,11 @@ export default function AdminOverviewScreen() {
           <View>
             <View style={styles.monthNav}>
               <TouchableOpacity onPress={() => setMonthOffset((o) => o - 1)} hitSlop={8} style={styles.monthNavBtn}>
-                <ChevronLeft size={20} color={COLORS.primary} />
+                <ChevronLeft size={20} color={COLORS.accent} />
               </TouchableOpacity>
               <Text style={styles.month}>{monthLabel(monthOffset)}</Text>
               <TouchableOpacity onPress={() => setMonthOffset((o) => o + 1)} hitSlop={8} style={styles.monthNavBtn}>
-                <ChevronRight size={20} color={COLORS.primary} />
+                <ChevronRight size={20} color={COLORS.accent} />
               </TouchableOpacity>
             </View>
             <Text style={[styles.subtitle, { marginLeft: 4 }]}>Company performance snapshot</Text>
@@ -325,7 +331,7 @@ export default function AdminOverviewScreen() {
         {error ? <View style={styles.errorBox}><Text style={styles.errorText}>{error}</Text></View> : null}
         <View style={styles.bookingsCard}>
           <View style={styles.bookingsCardHeader}>
-            <View style={[styles.kpiHeader, { flexShrink: 1, marginBottom: 0 }]}><CalendarDays size={17} color={COLORS.primary} /><Text style={[styles.kpiLabel, { color: COLORS.text, fontWeight: "700", fontSize: 16 }]} numberOfLines={1}>Bookings this month</Text></View>
+            <View style={[styles.kpiHeader, { flexShrink: 1, marginBottom: 0 }]}><CalendarDays size={17} color={COLORS.accent} /><Text style={[styles.kpiLabel, { color: COLORS.text, fontWeight: "700", fontSize: 16 }]} numberOfLines={1}>Bookings this month</Text></View>
             <Text style={styles.bookingsTotal} numberOfLines={1}>{thisMonth.length}</Text>
           </View>
           <View style={styles.statGrid}>
@@ -337,29 +343,29 @@ export default function AdminOverviewScreen() {
             ].map((t) => (
               <TouchableOpacity
                 key={t.key}
-                style={[styles.statTile, { backgroundColor: t.bg, borderWidth: 1, borderColor: t.fg }]}
+                style={[styles.statTile, { backgroundColor: COLORS.background, borderWidth: 1, borderColor: COLORS.border }]}
                 onPress={() => { setBookingsStatusFilter(t.key); setBookingsModalOpen(true) }}
                 activeOpacity={0.7}
               >
                 <Text style={[styles.statTileValue, { color: t.fg }]}>{t.value}</Text>
-                <Text style={[styles.statTileLabel, { color: t.fg }]}>{t.label}</Text>
+                <Text style={[styles.statTileLabel, { color: COLORS.textSecondary }]}>{t.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
         </View>
         <View style={styles.grid}>
-          <TouchableOpacity style={[styles.kpiCardThird, styles.kpiCardClickable, { borderColor: "#bbf7d0" }]} onPress={() => setRevenueModalOpen(true)} activeOpacity={0.7}>
+          <TouchableOpacity style={[styles.kpiCardThird, styles.kpiCardClickable]} onPress={() => setRevenueModalOpen(true)} activeOpacity={0.7}>
             <View style={styles.kpiHeader}><DollarSign size={14} color={COLORS.green} /><Text style={styles.kpiLabel}>Gross revenue</Text></View>
             <Text style={[styles.kpiValue, { color: COLORS.green }]}>${fmtMoney(revenue)}</Text>
             <Text style={styles.kpiSub}>{completed.length} completed sessions</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.kpiCardThird, styles.kpiCardClickable, { borderColor: COLORS.primary }]} onPress={() => setMarginModalOpen(true)} activeOpacity={0.7}>
-            <View style={styles.kpiHeader}><TrendingUp size={14} color={COLORS.primary} /><Text style={styles.kpiLabel}>Margin</Text></View>
-            <Text style={[styles.kpiValue, { color: COLORS.green }]}>${fmtMoney(margin)}</Text>
+          <TouchableOpacity style={[styles.kpiCardThird, styles.kpiCardClickable]} onPress={() => setMarginModalOpen(true)} activeOpacity={0.7}>
+            <View style={styles.kpiHeader}><TrendingUp size={14} color={COLORS.accent} /><Text style={styles.kpiLabel}>Margin</Text></View>
+            <Text style={styles.kpiValue}>${fmtMoney(margin)}</Text>
             <Text style={styles.kpiSub}>Owed ${fmtMoney(payOwedThisMonth)}</Text>
           </TouchableOpacity>
-          <View style={[styles.kpiCardThird, { borderColor: "#ffffff" }]}>
-            <View style={styles.kpiHeader}><Activity size={14} color="#ffffff" /><Text style={styles.kpiLabel}>All-time*</Text></View>
+          <View style={styles.kpiCardThird}>
+            <View style={styles.kpiHeader}><Activity size={14} color={COLORS.textSecondary} /><Text style={styles.kpiLabel}>All-time*</Text></View>
             <Text style={styles.kpiValue}>${fmtMoney(allRevenue)}</Text>
             <Text style={styles.kpiSub}>{allCompleted.length} completed</Text>
           </View>
@@ -368,67 +374,109 @@ export default function AdminOverviewScreen() {
           <Text style={styles.footnote}>*As of {firstBookingLabel}, the earliest booking on record.</Text>
         )}
         <View style={styles.card}>
-          <View style={styles.cardHeader}><Award size={16} color={COLORS.primary} /><Text style={styles.cardTitle}>Top PrepMasters this month*</Text></View>
-          {topPMs.length === 0 ? <Text style={styles.empty}>No completed sessions yet this month.</Text> : topPMs.map(([name, count], i) => {
-            const worker = workers.find((w) => w.name === name)
-            const Row = (
-              <View style={styles.rosterRow}>
-                <Text style={styles.rosterLabel}>#{i + 1} {name}</Text>
-                <Text style={styles.rosterValue}>{count} session{count !== 1 ? "s" : ""}</Text>
-              </View>
-            )
-            return worker ? (
-              <TouchableOpacity key={name} onPress={() => router.push(`/admin/prep-masters?worker=${worker.id}`)} activeOpacity={0.6}>
-                {Row}
-              </TouchableOpacity>
-            ) : (
-              <View key={name}>{Row}</View>
-            )
-          })}
+          <View style={styles.cardHeader}><Award size={16} color={COLORS.accent} /><Text style={styles.cardTitle}>Top PrepMasters this month*</Text></View>
+          {topPMs.length === 0 ? <Text style={styles.empty}>No completed sessions yet this month.</Text> : (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: TILE_GAP }} snapToInterval={tileWidth + TILE_GAP} decelerationRate="fast">
+              {topPMs.map(([name, count], i) => {
+                const worker = workers.find((w) => w.name === name)
+                return (
+                  <TouchableOpacity
+                    key={name}
+                    disabled={!worker}
+                    onPress={() => worker && router.push(`/admin/prep-masters?worker=${worker.id}`)}
+                    activeOpacity={0.7}
+                    style={[styles.pmTile, { width: tileWidth }]}
+                  >
+                    <View>
+                      {worker?.photoUrl ? (
+                        <Image source={{ uri: `${API_BASE}${worker.photoUrl}` }} style={styles.pmTilePhoto} />
+                      ) : (
+                        <View style={[styles.pmTilePhoto, styles.pmTileInitials]}><Text style={styles.pmTileInitialsText}>{initials(name)}</Text></View>
+                      )}
+                      {i < 3 ? (
+                        <View style={styles.pmTileMedal}><RankMedal rank={(i + 1) as 1 | 2 | 3} size={22} /></View>
+                      ) : (
+                        <View style={[styles.pmTileRank, { backgroundColor: COLORS.plum }]}><Text style={styles.pmTileRankText}>{i + 1}</Text></View>
+                      )}
+                    </View>
+                    <Text style={styles.pmTileName} numberOfLines={2}>{name}</Text>
+                    <Text style={styles.pmTileCount}>{count} session{count !== 1 ? "s" : ""}</Text>
+                  </TouchableOpacity>
+                )
+              })}
+            </ScrollView>
+          )}
           <Text style={styles.footnote}>*All sessions shown are completed sessions.</Text>
         </View>
         <View style={styles.card}>
-          <View style={styles.cardHeader}><Users size={16} color={COLORS.primary} /><Text style={styles.cardTitle}>Roster snapshot</Text></View>
-          <RosterRow label="Total members" value={members.length} icon={<Users size={14} color={COLORS.textSecondary} />} />
-          <RosterRow label="Active PrepMasters" value={workers.filter((w) => w.active).length} icon={<CheckCircle size={14} color={COLORS.textSecondary} />} />
-          <RosterRow label="Inactive PrepMasters" value={workers.filter((w) => !w.active).length} icon={<XCircle size={14} color={COLORS.textSecondary} />} />
-          <View style={styles.divider} />
-          <Text style={styles.sectionLabel}>ALL-TIME BOOKINGS BY STATUS</Text>
-          <RosterRow label="Completed" value={allCompleted.length} icon={<CheckCircle size={14} color={COLORS.textSecondary} />} />
-          <RosterRow label="Cancelled" value={bookings.filter((b) => b.status?.toLowerCase().startsWith("cancelled")).length} icon={<XCircle size={14} color={COLORS.textSecondary} />} />
-          <RosterRow label="Pending" value={bookings.filter((b) => b.status?.toLowerCase() === "pending").length} icon={<AlertCircle size={14} color={COLORS.textSecondary} />} />
-          <View style={styles.divider} />
-          <View style={styles.compareHeaderRow}>
-            <Text style={styles.sectionLabel}>COMPARE TO</Text>
-            <TouchableOpacity style={styles.compareButton} onPress={() => setComparePickerOpen(true)}>
-              <Text style={styles.compareButtonText}>{monthLabelFromKey(compareKey)}</Text>
-              <ChevronDown size={14} color={COLORS.textSecondary} />
-            </TouchableOpacity>
-          </View>
-          <View style={styles.rosterRow}>
-            <View style={styles.rosterLabelRow}><CalendarDays size={14} color={COLORS.textSecondary} /><Text style={styles.rosterLabel}>Bookings</Text></View>
-            <View style={styles.compareValueRow}>
-              <Text style={styles.rosterValue}>{thisMonth.length}</Text>
-              <Text style={styles.compareVs}>vs {compareMonth.length}</Text>
-              <MomChange current={thisMonth.length} previous={compareMonth.length} />
-            </View>
-          </View>
-          <View style={styles.rosterRow}>
-            <View style={styles.rosterLabelRow}><DollarSign size={14} color={COLORS.textSecondary} /><Text style={styles.rosterLabel}>Revenue</Text></View>
-            <View style={styles.compareValueRow}>
-              <Text style={styles.rosterValue}>${fmtMoney(revenue)}</Text>
-              <Text style={styles.compareVs}>vs ${fmtMoney(compareMonthRevenue)}</Text>
-              <MomChange current={revenue} previous={compareMonthRevenue} />
-            </View>
-          </View>
-          <View style={styles.rosterRow}>
-            <View style={styles.rosterLabelRow}><CheckCircle size={14} color={COLORS.textSecondary} /><Text style={styles.rosterLabel}>Completed sessions</Text></View>
-            <View style={styles.compareValueRow}>
-              <Text style={styles.rosterValue}>{completed.length}</Text>
-              <Text style={styles.compareVs}>vs {compareMonthCompleted.length}</Text>
-              <MomChange current={completed.length} previous={compareMonthCompleted.length} />
-            </View>
-          </View>
+          <View style={styles.cardHeader}><Users size={16} color={COLORS.accent} /><Text style={styles.cardTitle}>Roster snapshot</Text></View>
+          {(() => {
+            const activePM = workers.filter((w) => w.active).length
+            const nCompleted = allCompleted.length
+            const nCancelled = bookings.filter((b) => b.status?.toLowerCase().startsWith("cancelled")).length
+            const nPending = bookings.filter((b) => b.status?.toLowerCase() === "pending").length
+            const total = Math.max(1, nCompleted + nCancelled + nPending)
+            const statuses = [
+              { label: "Completed", n: nCompleted, color: COLORS.green },
+              { label: "Cancelled", n: nCancelled, color: COLORS.red },
+              { label: "Pending", n: nPending, color: COLORS.amber },
+            ]
+            const compare = [
+              { label: "Bookings", cur: thisMonth.length, prev: compareMonth.length, fmt: (n: number) => String(n) },
+              { label: "Revenue", cur: revenue, prev: compareMonthRevenue, fmt: (n: number) => `$${fmtMoney(n)}` },
+              { label: "Completed", cur: completed.length, prev: compareMonthCompleted.length, fmt: (n: number) => String(n) },
+            ]
+            return (
+              <>
+                <View style={styles.statRow}>
+                  {[
+                    { label: "Members", n: members.length, color: COLORS.plum, href: "/admin/members" },
+                    { label: "Active PMs", n: activePM, color: COLORS.accent, href: "/admin/prep-masters" },
+                    { label: "Inactive PMs", n: workers.length - activePM, color: COLORS.textMuted, href: undefined as string | undefined },
+                  ].map((t) => (
+                    <TouchableOpacity key={t.label} disabled={!t.href} activeOpacity={0.7} onPress={() => t.href && router.push(t.href as any)} style={[styles.rosterTile, { borderTopColor: t.color }]}>
+                      <Text style={styles.statNum}>{t.n}</Text>
+                      <Text style={styles.statLabel}>{t.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <Text style={[styles.sectionLabel, { marginTop: SPACING.sm }]}>All-time bookings by status</Text>
+                <View style={styles.statusBar}>
+                  {statuses.filter((x) => x.n > 0).map((x) => (
+                    <View key={x.label} style={{ flex: x.n / total, backgroundColor: x.color }} />
+                  ))}
+                </View>
+                <View style={styles.statusLegend}>
+                  {statuses.map((x) => (
+                    <View key={x.label} style={styles.statusLegendItem}>
+                      <View style={[styles.statusDot, { backgroundColor: x.color }]} />
+                      <Text style={styles.statusLegendText}>{x.label}</Text>
+                      <Text style={styles.statusLegendNum}>{x.n}</Text>
+                    </View>
+                  ))}
+                </View>
+
+                <View style={[styles.compareHeaderRow, { marginTop: SPACING.sm }]}>
+                  <Text style={styles.sectionLabel}>This month vs</Text>
+                  <TouchableOpacity style={styles.compareButton} onPress={() => setComparePickerOpen(true)}>
+                    <Text style={styles.compareButtonText}>{monthLabelFromKey(compareKey)}</Text>
+                    <ChevronDown size={14} color={COLORS.textSecondary} />
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.statRow}>
+                  {compare.map((c) => (
+                    <View key={c.label} style={styles.compareTile}>
+                      <Text style={styles.statLabel}>{c.label}</Text>
+                      <Text style={styles.compareNum} numberOfLines={1} adjustsFontSizeToFit>{c.fmt(c.cur)}</Text>
+                      <Text style={styles.compareVs}>vs {c.fmt(c.prev)}</Text>
+                      <MomChange current={c.cur} previous={c.prev} />
+                    </View>
+                  ))}
+                </View>
+              </>
+            )
+          })()}
         </View>
       </ScrollView>
       <Modal visible={revenueModalOpen} animationType="slide" presentationStyle="pageSheet">
@@ -545,10 +593,10 @@ export default function AdminOverviewScreen() {
             contentContainerStyle={{ padding: SPACING.md, gap: SPACING.xs }}
             renderItem={({ item: k }) => (
               <TouchableOpacity
-                style={[styles.compareOption, k === compareKey && { borderColor: COLORS.primary }]}
+                style={[styles.compareOption, k === compareKey && { borderColor: COLORS.plum }]}
                 onPress={() => { setCompareMonthKey(k); setComparePickerOpen(false) }}
               >
-                <Text style={[styles.compareOptionText, k === compareKey && { color: COLORS.primary, fontWeight: "700" }]}>{monthLabelFromKey(k)}</Text>
+                <Text style={[styles.compareOptionText, k === compareKey && { color: COLORS.plum, fontWeight: "700" }]}>{monthLabelFromKey(k)}</Text>
               </TouchableOpacity>
             )}
           />
@@ -566,13 +614,13 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     header: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
     monthNav: { flexDirection: "row", alignItems: "center", gap: 4 },
     monthNavBtn: { padding: 4 },
-    month: { fontSize: 22, fontWeight: "700", color: COLORS.text, fontFamily: "Sora_700Bold" },
+    month: { fontSize: 22, fontWeight: "700", color: COLORS.text, fontFamily: "Anton_400Regular", textTransform: "uppercase", letterSpacing: 0.5 },
     subtitle: { fontSize: 13, color: COLORS.textMuted, marginTop: 2 },
     errorBox: { backgroundColor: COLORS.redLight, borderRadius: RADIUS.sm, padding: SPACING.sm },
     errorText: { fontSize: 13, color: COLORS.red },
     grid: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.sm },
     kpiCardThird: { flex: 1, minWidth: 0, backgroundColor: COLORS.surface, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.border, padding: SPACING.sm },
-    kpiCardClickable: { borderColor: COLORS.primary + "40" },
+    kpiCardClickable: {},
     kpiHeader: { flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 6 },
     kpiLabel: { fontSize: 11, color: COLORS.textMuted, fontWeight: "500", flex: 1 },
     kpiValue: { fontSize: 16, fontWeight: "700", color: COLORS.text, marginBottom: 2 },
@@ -586,8 +634,29 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     statTileLabel: { fontSize: 9, fontWeight: "600", letterSpacing: 0.3, textTransform: "uppercase", marginTop: 2 },
     card: { backgroundColor: COLORS.surface, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.border, padding: SPACING.md, gap: SPACING.sm },
     cardHeader: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 4 },
+    pmTile: { alignItems: "center", gap: 4, paddingVertical: SPACING.sm + 4, paddingHorizontal: 8, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.background },
+    pmTilePhoto: { width: 64, height: 64, borderRadius: 32 },
+    pmTileInitials: { backgroundColor: COLORS.pinkLight, alignItems: "center", justifyContent: "center" },
+    pmTileInitialsText: { color: COLORS.primary, fontWeight: "700", fontSize: 20 },
+    pmTileMedal: { position: "absolute", right: -4, bottom: -4 },
+    pmTileRank: { position: "absolute", right: -4, bottom: -4, minWidth: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center", paddingHorizontal: 4, borderWidth: 2, borderColor: COLORS.background },
+    pmTileRankText: { color: "#ffffff", fontWeight: "800", fontSize: 12 },
+    pmTileName: { color: COLORS.text, fontWeight: "600", fontSize: 13, textAlign: "center" },
+    pmTileCount: { color: COLORS.textSecondary, fontSize: 12 },
     cardTitle: { fontSize: 15, fontWeight: "600", color: COLORS.text },
     empty: { fontSize: 13, color: COLORS.textMuted },
+    statRow: { flexDirection: "row", gap: SPACING.sm },
+    rosterTile: { flex: 1, backgroundColor: COLORS.background, borderRadius: RADIUS.sm, borderWidth: 1, borderColor: COLORS.border, borderTopWidth: 3, paddingVertical: SPACING.sm, paddingHorizontal: SPACING.sm, gap: 2 },
+    statNum: { fontFamily: "Anton_400Regular", fontSize: 28, lineHeight: 34, color: COLORS.text },
+    statLabel: { fontSize: 11, fontWeight: "600", color: COLORS.textSecondary },
+    statusBar: { flexDirection: "row", height: 10, borderRadius: 5, overflow: "hidden", backgroundColor: COLORS.border, gap: 2 },
+    statusLegend: { flexDirection: "row", justifyContent: "space-between" },
+    statusLegendItem: { flexDirection: "row", alignItems: "center", gap: 5 },
+    statusDot: { width: 8, height: 8, borderRadius: 4 },
+    statusLegendText: { fontSize: 12, color: COLORS.textSecondary },
+    statusLegendNum: { fontSize: 12, fontWeight: "700", color: COLORS.text },
+    compareTile: { flex: 1, backgroundColor: COLORS.background, borderRadius: RADIUS.sm, borderWidth: 1, borderColor: COLORS.border, padding: SPACING.sm, gap: 2, alignItems: "flex-start" },
+    compareNum: { fontFamily: "Anton_400Regular", fontSize: 22, lineHeight: 28, color: COLORS.text },
     divider: { height: 1, backgroundColor: COLORS.border, marginVertical: 4 },
     sectionLabel: { fontSize: 10, fontWeight: "700", color: COLORS.textMuted, letterSpacing: 0.8, textTransform: "uppercase" },
     rosterRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },

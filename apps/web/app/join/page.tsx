@@ -1,3 +1,4 @@
+import { AmbientGlow } from "@/components/ambient-glow"
 import { redirect } from "next/navigation"
 import { BrandLogo } from "@/components/brand-logo"
 import { ParentSignUpForm } from "@/components/parent-sign-up-form"
@@ -14,7 +15,8 @@ export default async function JoinPage({
   const { email = "", child = "" } = await searchParams
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center px-5 py-12">
+    <main className="relative isolate min-h-screen flex flex-col items-center justify-center px-5 py-12">
+      <AmbientGlow />
       <div className="w-full max-w-md">
         <div className="mb-8 flex justify-center">
           <BrandLogo />

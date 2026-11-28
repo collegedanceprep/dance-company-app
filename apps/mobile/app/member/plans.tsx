@@ -64,7 +64,7 @@ export default function MemberPlansScreen() {
                   <View style={styles.features}>
                     {pkg.features.map((f) => (
                       <View key={f} style={styles.featureRow}>
-                        <Check size={14} color={COLORS.primary} />
+                        <Check size={14} color={COLORS.accent} />
                         <Text style={styles.featureText}>{f}</Text>
                       </View>
                     ))}
@@ -111,15 +111,15 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     safe: { flex: 1, backgroundColor: COLORS.background },
     scroll: { padding: SPACING.md, gap: SPACING.lg, paddingBottom: SPACING.xl },
     header: { gap: SPACING.sm, alignItems: "center", paddingTop: SPACING.sm },
-    title: { fontSize: 24, fontWeight: "700", color: COLORS.text, textAlign: "center", fontFamily: "Sora_700Bold" },
+    title: { fontSize: 24, fontWeight: "700", color: COLORS.text, textAlign: "center", fontFamily: "Anton_400Regular", textTransform: "uppercase", letterSpacing: 0.5 },
     subtitle: { fontSize: 13, fontWeight: "700", color: COLORS.text, textAlign: "center", lineHeight: 20 },
-    subtitleAccent: { fontSize: 13, fontWeight: "700", color: COLORS.primary },
+    subtitleAccent: { fontSize: 13, fontWeight: "700", color: COLORS.plum },
     section: { gap: SPACING.sm },
     sectionTitle: { fontSize: 18, fontWeight: "700", color: COLORS.text, fontFamily: "Sora_600SemiBold" },
     sectionSub: { fontSize: 13, color: COLORS.textMuted },
     packageGrid: { gap: SPACING.md },
     packageCard: { backgroundColor: COLORS.surface, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.border, padding: SPACING.md, gap: SPACING.sm },
-    packageCardHighlight: { borderColor: COLORS.primary, borderWidth: 2 },
+    packageCardHighlight: { borderColor: COLORS.plum, borderWidth: 2 },
     popularBadge: { alignSelf: "center", backgroundColor: COLORS.primary, paddingHorizontal: 12, paddingVertical: 4, borderRadius: RADIUS.full, marginBottom: 2 },
     popularText: { fontSize: 11, fontWeight: "700", color: "#fff" },
     packageTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
@@ -127,7 +127,7 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     promoSticker: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start", backgroundColor: "#FEF3C7", paddingHorizontal: 12, paddingVertical: 5, borderRadius: RADIUS.full, marginTop: 8 },
     promoText: { color: "#78350F", fontSize: 12, fontWeight: "700" },
     savingsBadge: { backgroundColor: COLORS.primary + "22", paddingHorizontal: 18, paddingVertical: 9, borderRadius: RADIUS.full },
-    savingsText: { fontSize: 17, fontWeight: "700", color: COLORS.primary },
+    savingsText: { fontSize: 17, fontWeight: "700", color: COLORS.plum },
     packageType: { fontSize: 12, color: COLORS.textMuted },
     priceRow: { flexDirection: "row", alignItems: "flex-end", gap: 4, marginTop: 4 },
     price: { fontSize: 36, fontWeight: "800", color: COLORS.text },

@@ -1,3 +1,4 @@
+import { AmbientGlow } from "@/components/AmbientGlow"
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, ActivityIndicator,
@@ -43,6 +44,7 @@ export default function ForgotPasswordScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
+      <AmbientGlow />
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <View style={styles.container}>
           <TouchableOpacity style={styles.back} onPress={() => router.back()} activeOpacity={0.7}>
@@ -111,8 +113,8 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     flex: { flex: 1 },
     container: { flex: 1, padding: SPACING.lg, justifyContent: "center" },
     back: { position: "absolute", top: SPACING.lg, left: SPACING.lg },
-    backText: { fontSize: 15, color: COLORS.primary, fontWeight: "600" },
-    heading: { fontSize: 26, fontWeight: "700", color: COLORS.text, marginBottom: 8, fontFamily: "Sora_700Bold" },
+    backText: { fontSize: 15, color: COLORS.plum, fontWeight: "600" },
+    heading: { fontSize: 26, fontWeight: "700", color: COLORS.text, marginBottom: 8, fontFamily: "Anton_400Regular", textTransform: "uppercase", letterSpacing: 0.5 },
     sub: { fontSize: 14, color: COLORS.textMuted, marginBottom: SPACING.lg, lineHeight: 20 },
     errorBox: { backgroundColor: COLORS.redLight, borderRadius: RADIUS.sm, padding: SPACING.sm, marginBottom: SPACING.md },
     errorText: { fontSize: 13, color: COLORS.red, fontWeight: "500" },

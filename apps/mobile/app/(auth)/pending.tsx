@@ -20,7 +20,7 @@ export default function PendingScreen() {
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
         <View style={styles.iconWrap}>
-          <Clock size={40} color={COLORS.primary} />
+          <Clock size={40} color={COLORS.accent} />
         </View>
         <Text style={styles.title}>Pending Approval</Text>
         <Text style={styles.body}>

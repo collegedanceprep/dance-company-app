@@ -1,3 +1,4 @@
+import { AmbientGlow } from "@/components/ambient-glow"
 import Image from "next/image"
 import { redirect } from "next/navigation"
 import { BrandLogo } from "@/components/brand-logo"
@@ -16,7 +17,8 @@ export default async function HomePage({
   const { error } = await searchParams
 
   return (
-    <main className="min-h-screen">
+    <main className="relative isolate min-h-screen">
+      <AmbientGlow />
       <header className="mx-auto flex max-w-6xl items-center justify-between px-5 py-5">
         <BrandLogo />
       </header>

@@ -1,3 +1,4 @@
+import { AmbientGlow } from "@/components/AmbientGlow"
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native"
 import { useRouter } from "expo-router"
 import { SafeAreaView } from "react-native-safe-area-context"
@@ -12,6 +13,7 @@ export default function RoleSelectScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
+      <AmbientGlow />
       <View style={styles.container}>
         <View style={styles.logoWrap}>
           <Text style={styles.logo}>CDP</Text>
@@ -23,7 +25,7 @@ export default function RoleSelectScreen() {
 
         <TouchableOpacity style={styles.card} onPress={() => router.replace("/member")} activeOpacity={0.8}>
           <View style={[styles.iconWrap, { backgroundColor: COLORS.primaryLight }]}>
-            <Users size={28} color={COLORS.primary} />
+            <Users size={28} color={COLORS.accent} />
           </View>
           <View style={styles.cardText}>
             <Text style={styles.cardTitle}>I'm a Member</Text>
@@ -33,7 +35,7 @@ export default function RoleSelectScreen() {
 
         <TouchableOpacity style={styles.card} onPress={() => router.replace("/(auth)/verify-prep-master" as any)} activeOpacity={0.8}>
           <View style={[styles.iconWrap, { backgroundColor: COLORS.primaryLight }]}>
-            <ShieldCheck size={28} color={COLORS.primary} />
+            <ShieldCheck size={28} color={COLORS.accent} />
           </View>
           <View style={styles.cardText}>
             <Text style={styles.cardTitle}>I'm a PrepMaster</Text>
@@ -51,7 +53,7 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     container: { flex: 1, padding: SPACING.lg, justifyContent: "center", gap: SPACING.md },
     logoWrap: { alignItems: "center", marginBottom: SPACING.xl },
     logo: { fontSize: 40, fontWeight: "800", color: COLORS.primary, letterSpacing: 2 },
-    logoSub: { fontSize: 13, color: COLORS.textMuted, fontWeight: "500", marginTop: 4 },
+    logoSub: { fontSize: 13, color: COLORS.text, fontWeight: "500", marginTop: 4 },
     heading: { fontSize: 24, fontWeight: "700", color: COLORS.text },
     sub: { fontSize: 14, color: COLORS.textMuted, marginBottom: SPACING.sm },
     card: { flexDirection: "row", alignItems: "center", gap: SPACING.md, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.md, padding: SPACING.md },

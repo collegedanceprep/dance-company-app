@@ -1,3 +1,4 @@
+import { AmbientGlow } from "@/components/ambient-glow"
 import { redirect } from "next/navigation"
 import { BrandLogo } from "@/components/brand-logo"
 import { ParentSelfSignUpForm } from "@/components/parent-self-sign-up-form"
@@ -8,7 +9,8 @@ export default async function ParentSignUpPage() {
   if (user) redirect(homePathForRole(user.role))
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center px-5 py-12">
+    <main className="relative isolate min-h-screen flex flex-col items-center justify-center px-5 py-12">
+      <AmbientGlow />
       <div className="w-full max-w-md">
         <div className="mb-8 flex justify-center">
           <BrandLogo />

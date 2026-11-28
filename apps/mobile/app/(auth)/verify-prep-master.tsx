@@ -1,3 +1,4 @@
+import { AmbientGlow } from "@/components/AmbientGlow"
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, ActivityIndicator, ScrollView,
@@ -52,9 +53,10 @@ export default function VerifyPrepMasterScreen() {
   if (state === "success") {
     return (
       <SafeAreaView style={styles.safe}>
+      <AmbientGlow />
         <View style={styles.centerContainer}>
           <View style={[styles.iconWrap, { backgroundColor: COLORS.primaryLight }]}>
-            <ShieldCheck size={40} color={COLORS.primary} />
+            <ShieldCheck size={40} color={COLORS.accent} />
           </View>
           <Text style={styles.successTitle}>Verified!</Text>
           <Text style={styles.successSub}>Welcome, {verifiedName}. You've been granted PrepMaster access.</Text>
@@ -69,6 +71,7 @@ export default function VerifyPrepMasterScreen() {
   if (state === "failed") {
     return (
       <SafeAreaView style={styles.safe}>
+      <AmbientGlow />
         <View style={styles.centerContainer}>
           <Text style={styles.failTitle}>Verification Failed</Text>
           <Text style={styles.failSub}>
@@ -87,6 +90,7 @@ export default function VerifyPrepMasterScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
+      <AmbientGlow />
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.7}>
