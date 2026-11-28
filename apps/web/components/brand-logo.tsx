@@ -13,7 +13,7 @@ export function BrandLogo({
         CDP
       </span>
       {showText && (
-        <span className="mt-1 font-heading text-[0.6rem] font-light uppercase tracking-[0.32em] text-muted-foreground">
+        <span className="mt-1 font-heading text-[0.6rem] font-light uppercase tracking-[0.32em] text-foreground">
           College Dance Prep
         </span>
       )}

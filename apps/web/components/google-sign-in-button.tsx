@@ -1,4 +1,5 @@
 "use client"
+import { cn } from "@/lib/utils"
 
 import { useState } from "react"
 import { authClient } from "@/lib/auth-client"
@@ -36,7 +37,7 @@ export function GoogleSignInButton({
       size="lg"
       onClick={handleSignIn}
       disabled={loading}
-      className={className}
+      className={cn("border border-border bg-white text-[#14111c] hover:bg-neutral-100", className)}
     >
       {loading ? (
         <Loader2 className="size-5 animate-spin" aria-hidden="true" />
