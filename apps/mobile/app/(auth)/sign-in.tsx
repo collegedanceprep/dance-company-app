@@ -165,7 +165,7 @@ export default function SignInScreen() {
             <Text style={styles.logo}>CDP</Text>
             <Text style={styles.logoSub}>College Dance Prep</Text>
           </View>
-          <Text style={styles.heading}>Welcome back</Text>
+          <Text style={styles.heading}>Welcome!</Text>
           <Text style={styles.sub}>Sign in to your account</Text>
           {error && <View style={styles.errorBox}><Text style={styles.errorText}>{error}</Text></View>}
           <TouchableOpacity style={[styles.googleBtn, googleLoading && styles.btnDisabled]} onPress={handleGoogleSignIn} disabled={googleLoading || loading || appleLoading} activeOpacity={0.8}>
