@@ -253,7 +253,7 @@ export default function PortalProfileScreen() {
             </View>
             <TouchableOpacity style={styles.nudgeBtn} onPress={handleConnectGoogle} disabled={googleLinking} activeOpacity={0.8}>
               {googleLinking
-                ? <ActivityIndicator size="small" color={COLORS.accent} />
+                ? <ActivityIndicator size="small" color={COLORS.primary} />
                 : <Text style={styles.nudgeBtnText}>Link</Text>}
             </TouchableOpacity>
             <TouchableOpacity style={styles.nudgeDismiss} onPress={dismissNudge} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>

@@ -95,7 +95,7 @@ export default function MemberPlansScreen() {
                 </View>
                 <Text style={styles.perPrivatePrice}>${s.price}</Text>
                 <TouchableOpacity style={[styles.btn, styles.btnOutline, styles.btnSm, isLoading && styles.btnDisabled]} onPress={() => startCheckout(s.id, setLoading)} disabled={!!loading} activeOpacity={0.7}>
-                  {isLoading ? <ActivityIndicator size="small" color={COLORS.accent} /> : <Text style={styles.btnTextOutline}>Book single</Text>}
+                  {isLoading ? <ActivityIndicator size="small" color={COLORS.primary} /> : <Text style={styles.btnTextOutline}>Book single</Text>}
                 </TouchableOpacity>
               </View>
             )

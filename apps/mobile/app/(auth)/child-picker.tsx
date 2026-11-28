@@ -55,7 +55,7 @@ export default function ChildPickerScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.safe}>
-        <View style={styles.center}><ActivityIndicator color={COLORS.accent} size="large" /></View>
+        <View style={styles.center}><ActivityIndicator color={COLORS.primary} size="large" /></View>
       </SafeAreaView>
     )
   }
@@ -116,7 +116,7 @@ export default function ChildPickerScreen() {
                   <Text style={styles.meta}>{item.creditsRemaining} credit{item.creditsRemaining !== 1 ? "s" : ""} remaining</Text>
                 </View>
                 {selecting === item.userId
-                  ? <ActivityIndicator size="small" color={COLORS.accent} />
+                  ? <ActivityIndicator size="small" color={COLORS.primary} />
                   : <ChevronRight size={18} color={isActive ? COLORS.primary : COLORS.textMuted} />
                 }
               </TouchableOpacity>

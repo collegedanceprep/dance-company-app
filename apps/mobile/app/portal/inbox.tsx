@@ -209,7 +209,7 @@ export default function InboxScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.safe} edges={["top"]}>
-        <View style={styles.center}><ActivityIndicator color={COLORS.accent} /></View>
+        <View style={styles.center}><ActivityIndicator color={COLORS.primary} /></View>
       </SafeAreaView>
     )
   }

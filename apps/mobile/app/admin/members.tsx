@@ -71,7 +71,7 @@ export default function AdminMembersScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.safe} edges={["top"]}>
-        <View style={styles.center}><ActivityIndicator size="large" color={COLORS.accent} /></View>
+        <View style={styles.center}><ActivityIndicator size="large" color={COLORS.primary} /></View>
       </SafeAreaView>
     )
   }

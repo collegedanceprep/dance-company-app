@@ -511,10 +511,10 @@ export default function BookScreen() {
         </View>
       ) : null}
       {coachesLoading ? (
-        <View style={styles.center}><ActivityIndicator size="large" color={COLORS.accent} /></View>
+        <View style={styles.center}><ActivityIndicator size="large" color={COLORS.primary} /></View>
       ) : step === "coaches" ? (
         <>
-          {detailLoading && <View style={styles.loadingOverlay}><ActivityIndicator size="large" color={COLORS.accent} /></View>}
+          {detailLoading && <View style={styles.loadingOverlay}><ActivityIndicator size="large" color={COLORS.primary} /></View>}
           <CoachStep coaches={coaches} onSelect={handleSelectCoach} />
         </>
       ) : detail ? (

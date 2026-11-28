@@ -203,7 +203,7 @@ export default function ApprovalsScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.safe} edges={["top"]}>
-        <View style={styles.center}><ActivityIndicator color={COLORS.accent} /></View>
+        <View style={styles.center}><ActivityIndicator color={COLORS.primary} /></View>
       </SafeAreaView>
     )
   }

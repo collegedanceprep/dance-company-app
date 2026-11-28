@@ -189,7 +189,7 @@ export default function PortalScheduleScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.safe} edges={["top"]}>
-        <View style={styles.center}><ActivityIndicator size="large" color={COLORS.accent} /></View>
+        <View style={styles.center}><ActivityIndicator size="large" color={COLORS.primary} /></View>
       </SafeAreaView>
     )
   }
@@ -217,7 +217,7 @@ export default function PortalScheduleScreen() {
           <View style={styles.bookForm}>
             <Text style={styles.bookFormTitle}>New session</Text>
             <Text style={styles.fieldLabel}>Client</Text>
-            {clientsLoading ? <ActivityIndicator size="small" color={COLORS.accent} /> : clients.length === 0 ? (
+            {clientsLoading ? <ActivityIndicator size="small" color={COLORS.primary} /> : clients.length === 0 ? (
               <Text style={styles.emptyText}>No past clients found.</Text>
             ) : (
               <View style={styles.chipWrap}>

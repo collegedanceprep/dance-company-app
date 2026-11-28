@@ -458,7 +458,7 @@ export function BookingDetailModal({
                   <Text style={styles.formLabel}>Time</Text>
                 </View>
                 {availLoading ? (
-                  <ActivityIndicator color={COLORS.accent} style={{ marginVertical: 24 }} />
+                  <ActivityIndicator color={COLORS.primary} style={{ marginVertical: 24 }} />
                 ) : availLoadError ? (
                   <Text style={styles.noSlotsNote}>{availLoadError}</Text>
                 ) : !editDate ? (

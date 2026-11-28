@@ -674,7 +674,7 @@ function BookingCard({ booking, dimmed, onUpdate }: {
                       callAction("decline", declineReason.trim(), "revert")
                     }}
                     disabled={saving} activeOpacity={0.8}>
-                    {saving ? <ActivityIndicator size="small" color={COLORS.accent} /> : <Text style={{ color: COLORS.plum, fontWeight: "700", fontSize: 14 }}>Keep original booking</Text>}
+                    {saving ? <ActivityIndicator size="small" color={COLORS.primary} /> : <Text style={{ color: COLORS.plum, fontWeight: "700", fontSize: 14 }}>Keep original booking</Text>}
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.actionBtn, styles.actionBtnDanger, { opacity: saving ? 0.5 : 1, flex: undefined, width: "100%" }]}
@@ -1058,7 +1058,7 @@ export default function PortalDashboard() {
   const styles = makeStyles(COLORS)
 
   if (loading) {
-    return <SafeAreaView style={styles.safe} edges={["top"]}><View style={styles.center}><ActivityIndicator size="large" color={COLORS.accent} /></View></SafeAreaView>
+    return <SafeAreaView style={styles.safe} edges={["top"]}><View style={styles.center}><ActivityIndicator size="large" color={COLORS.primary} /></View></SafeAreaView>
   }
 
   const pendingCount = (data?.upcoming ?? []).filter((b) => b.status.toLowerCase() === "pending").length

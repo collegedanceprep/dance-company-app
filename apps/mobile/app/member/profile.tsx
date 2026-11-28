@@ -183,7 +183,7 @@ export default function MemberProfileScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.safe} edges={["top"]}>
-        <View style={styles.center}><ActivityIndicator size="large" color={COLORS.accent} /></View>
+        <View style={styles.center}><ActivityIndicator size="large" color={COLORS.primary} /></View>
       </SafeAreaView>
     )
   }
@@ -229,7 +229,7 @@ export default function MemberProfileScreen() {
               </View>
               <TouchableOpacity style={styles.nudgeBtn} onPress={handleConnectGoogle} disabled={googleLinking} activeOpacity={0.8}>
                 {googleLinking
-                  ? <ActivityIndicator size="small" color={COLORS.accent} />
+                  ? <ActivityIndicator size="small" color={COLORS.primary} />
                   : <Text style={styles.nudgeBtnText}>Link</Text>}
               </TouchableOpacity>
               <TouchableOpacity style={styles.nudgeDismiss} onPress={dismissNudge} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
