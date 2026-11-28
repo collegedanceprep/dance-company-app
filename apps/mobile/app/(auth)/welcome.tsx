@@ -1,3 +1,4 @@
+import { AmbientGlow } from "@/components/AmbientGlow"
 import { useState, useEffect, useCallback } from "react"
 import { API_BASE } from "@/lib/config"
 import {
@@ -69,6 +70,7 @@ export default function WelcomeScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
+      <AmbientGlow />
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
           <View style={styles.topSection}>

@@ -1,3 +1,4 @@
+import { AmbientGlow } from "@/components/AmbientGlow"
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, ActivityIndicator,
@@ -43,6 +44,7 @@ export default function ForgotPasswordScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
+      <AmbientGlow />
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <View style={styles.container}>
           <TouchableOpacity style={styles.back} onPress={() => router.back()} activeOpacity={0.7}>

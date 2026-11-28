@@ -1,3 +1,4 @@
+import { AmbientGlow } from "@/components/AmbientGlow"
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native"
 import { useRouter } from "expo-router"
 import { SafeAreaView } from "react-native-safe-area-context"
@@ -12,6 +13,7 @@ export default function RoleSelectScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
+      <AmbientGlow />
       <View style={styles.container}>
         <View style={styles.logoWrap}>
           <Text style={styles.logo}>CDP</Text>

@@ -1,3 +1,4 @@
+import { AmbientGlow } from "@/components/AmbientGlow"
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, ActivityIndicator, ScrollView,
@@ -119,6 +120,7 @@ export default function ParentSignUpScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
+      <AmbientGlow />
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
           <View style={styles.topSection}>
