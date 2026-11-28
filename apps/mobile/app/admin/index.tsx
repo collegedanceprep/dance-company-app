@@ -406,46 +406,73 @@ export default function AdminOverviewScreen() {
         </View>
         <View style={styles.card}>
           <View style={styles.cardHeader}><Users size={16} color={COLORS.accent} /><Text style={styles.cardTitle}>Roster snapshot</Text></View>
-          <RosterRow label="Total members" value={members.length} icon={<Users size={14} color={COLORS.textSecondary} />} />
-          <RosterRow label="Active PrepMasters" value={workers.filter((w) => w.active).length} icon={<CheckCircle size={14} color={COLORS.textSecondary} />} />
-          <RosterRow label="Inactive PrepMasters" value={workers.filter((w) => !w.active).length} icon={<XCircle size={14} color={COLORS.textSecondary} />} />
-          <View style={styles.divider} />
-          <Text style={styles.sectionLabel}>ALL-TIME BOOKINGS BY STATUS</Text>
-          <RosterRow label="Completed" value={allCompleted.length} icon={<CheckCircle size={14} color={COLORS.textSecondary} />} />
-          <RosterRow label="Cancelled" value={bookings.filter((b) => b.status?.toLowerCase().startsWith("cancelled")).length} icon={<XCircle size={14} color={COLORS.textSecondary} />} />
-          <RosterRow label="Pending" value={bookings.filter((b) => b.status?.toLowerCase() === "pending").length} icon={<AlertCircle size={14} color={COLORS.textSecondary} />} />
-          <View style={styles.divider} />
-          <View style={styles.compareHeaderRow}>
-            <Text style={styles.sectionLabel}>COMPARE TO</Text>
-            <TouchableOpacity style={styles.compareButton} onPress={() => setComparePickerOpen(true)}>
-              <Text style={styles.compareButtonText}>{monthLabelFromKey(compareKey)}</Text>
-              <ChevronDown size={14} color={COLORS.textSecondary} />
-            </TouchableOpacity>
-          </View>
-          <View style={styles.rosterRow}>
-            <View style={styles.rosterLabelRow}><CalendarDays size={14} color={COLORS.textSecondary} /><Text style={styles.rosterLabel}>Bookings</Text></View>
-            <View style={styles.compareValueRow}>
-              <Text style={styles.rosterValue}>{thisMonth.length}</Text>
-              <Text style={styles.compareVs}>vs {compareMonth.length}</Text>
-              <MomChange current={thisMonth.length} previous={compareMonth.length} />
-            </View>
-          </View>
-          <View style={styles.rosterRow}>
-            <View style={styles.rosterLabelRow}><DollarSign size={14} color={COLORS.textSecondary} /><Text style={styles.rosterLabel}>Revenue</Text></View>
-            <View style={styles.compareValueRow}>
-              <Text style={styles.rosterValue}>${fmtMoney(revenue)}</Text>
-              <Text style={styles.compareVs}>vs ${fmtMoney(compareMonthRevenue)}</Text>
-              <MomChange current={revenue} previous={compareMonthRevenue} />
-            </View>
-          </View>
-          <View style={styles.rosterRow}>
-            <View style={styles.rosterLabelRow}><CheckCircle size={14} color={COLORS.textSecondary} /><Text style={styles.rosterLabel}>Completed sessions</Text></View>
-            <View style={styles.compareValueRow}>
-              <Text style={styles.rosterValue}>{completed.length}</Text>
-              <Text style={styles.compareVs}>vs {compareMonthCompleted.length}</Text>
-              <MomChange current={completed.length} previous={compareMonthCompleted.length} />
-            </View>
-          </View>
+          {(() => {
+            const activePM = workers.filter((w) => w.active).length
+            const nCompleted = allCompleted.length
+            const nCancelled = bookings.filter((b) => b.status?.toLowerCase().startsWith("cancelled")).length
+            const nPending = bookings.filter((b) => b.status?.toLowerCase() === "pending").length
+            const total = Math.max(1, nCompleted + nCancelled + nPending)
+            const statuses = [
+              { label: "Completed", n: nCompleted, color: COLORS.green },
+              { label: "Cancelled", n: nCancelled, color: COLORS.red },
+              { label: "Pending", n: nPending, color: COLORS.amber },
+            ]
+            const compare = [
+              { label: "Bookings", cur: thisMonth.length, prev: compareMonth.length, fmt: (n: number) => String(n) },
+              { label: "Revenue", cur: revenue, prev: compareMonthRevenue, fmt: (n: number) => `$${fmtMoney(n)}` },
+              { label: "Completed", cur: completed.length, prev: compareMonthCompleted.length, fmt: (n: number) => String(n) },
+            ]
+            return (
+              <>
+                <View style={styles.statRow}>
+                  {[
+                    { label: "Members", n: members.length, color: COLORS.plum },
+                    { label: "Active PMs", n: activePM, color: COLORS.accent },
+                    { label: "Inactive PMs", n: workers.length - activePM, color: COLORS.textMuted },
+                  ].map((t) => (
+                    <View key={t.label} style={[styles.statTile, { borderTopColor: t.color }]}>
+                      <Text style={[styles.statNum, { color: t.color }]}>{t.n}</Text>
+                      <Text style={styles.statLabel}>{t.label}</Text>
+                    </View>
+                  ))}
+                </View>
+
+                <Text style={[styles.sectionLabel, { marginTop: SPACING.sm }]}>All-time bookings by status</Text>
+                <View style={styles.statusBar}>
+                  {statuses.filter((x) => x.n > 0).map((x) => (
+                    <View key={x.label} style={{ flex: x.n / total, backgroundColor: x.color }} />
+                  ))}
+                </View>
+                <View style={styles.statusLegend}>
+                  {statuses.map((x) => (
+                    <View key={x.label} style={styles.statusLegendItem}>
+                      <View style={[styles.statusDot, { backgroundColor: x.color }]} />
+                      <Text style={styles.statusLegendText}>{x.label}</Text>
+                      <Text style={styles.statusLegendNum}>{x.n}</Text>
+                    </View>
+                  ))}
+                </View>
+
+                <View style={[styles.compareHeaderRow, { marginTop: SPACING.sm }]}>
+                  <Text style={styles.sectionLabel}>This month vs</Text>
+                  <TouchableOpacity style={styles.compareButton} onPress={() => setComparePickerOpen(true)}>
+                    <Text style={styles.compareButtonText}>{monthLabelFromKey(compareKey)}</Text>
+                    <ChevronDown size={14} color={COLORS.textSecondary} />
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.statRow}>
+                  {compare.map((c) => (
+                    <View key={c.label} style={styles.compareTile}>
+                      <Text style={styles.statLabel}>{c.label}</Text>
+                      <Text style={styles.compareNum} numberOfLines={1} adjustsFontSizeToFit>{c.fmt(c.cur)}</Text>
+                      <Text style={styles.compareVs}>vs {c.fmt(c.prev)}</Text>
+                      <MomChange current={c.cur} previous={c.prev} />
+                    </View>
+                  ))}
+                </View>
+              </>
+            )
+          })()}
         </View>
       </ScrollView>
       <Modal visible={revenueModalOpen} animationType="slide" presentationStyle="pageSheet">
@@ -613,6 +640,18 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     pmTileCount: { color: COLORS.textSecondary, fontSize: 12 },
     cardTitle: { fontSize: 15, fontWeight: "600", color: COLORS.text },
     empty: { fontSize: 13, color: COLORS.textMuted },
+    statRow: { flexDirection: "row", gap: SPACING.sm },
+    statTile: { flex: 1, backgroundColor: COLORS.background, borderRadius: RADIUS.sm, borderWidth: 1, borderColor: COLORS.border, borderTopWidth: 3, paddingVertical: SPACING.sm, paddingHorizontal: SPACING.sm, gap: 2 },
+    statNum: { fontFamily: "Anton_400Regular", fontSize: 28, lineHeight: 34 },
+    statLabel: { fontSize: 11, fontWeight: "600", color: COLORS.textSecondary },
+    statusBar: { flexDirection: "row", height: 10, borderRadius: 5, overflow: "hidden", backgroundColor: COLORS.border, gap: 2 },
+    statusLegend: { flexDirection: "row", justifyContent: "space-between" },
+    statusLegendItem: { flexDirection: "row", alignItems: "center", gap: 5 },
+    statusDot: { width: 8, height: 8, borderRadius: 4 },
+    statusLegendText: { fontSize: 12, color: COLORS.textSecondary },
+    statusLegendNum: { fontSize: 12, fontWeight: "700", color: COLORS.text },
+    compareTile: { flex: 1, backgroundColor: COLORS.background, borderRadius: RADIUS.sm, borderWidth: 1, borderColor: COLORS.border, padding: SPACING.sm, gap: 2, alignItems: "flex-start" },
+    compareNum: { fontFamily: "Anton_400Regular", fontSize: 22, lineHeight: 28, color: COLORS.text },
     divider: { height: 1, backgroundColor: COLORS.border, marginVertical: 4 },
     sectionLabel: { fontSize: 10, fontWeight: "700", color: COLORS.textMuted, letterSpacing: 0.8, textTransform: "uppercase" },
     rosterRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
