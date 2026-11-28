@@ -426,14 +426,14 @@ export default function AdminOverviewScreen() {
               <>
                 <View style={styles.statRow}>
                   {[
-                    { label: "Members", n: members.length, color: COLORS.plum },
-                    { label: "Active PMs", n: activePM, color: COLORS.accent },
-                    { label: "Inactive PMs", n: workers.length - activePM, color: COLORS.textMuted },
+                    { label: "Members", n: members.length, color: COLORS.plum, href: "/admin/members" },
+                    { label: "Active PMs", n: activePM, color: COLORS.accent, href: "/admin/prep-masters" },
+                    { label: "Inactive PMs", n: workers.length - activePM, color: COLORS.textMuted, href: undefined as string | undefined },
                   ].map((t) => (
-                    <View key={t.label} style={[styles.statTile, { borderTopColor: t.color }]}>
+                    <TouchableOpacity key={t.label} disabled={!t.href} activeOpacity={0.7} onPress={() => t.href && router.push(t.href as any)} style={[styles.statTile, { borderTopColor: t.color }]}>
                       <Text style={[styles.statNum, { color: t.color }]}>{t.n}</Text>
                       <Text style={styles.statLabel}>{t.label}</Text>
-                    </View>
+                    </TouchableOpacity>
                   ))}
                 </View>
 
