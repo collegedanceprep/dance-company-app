@@ -132,6 +132,12 @@ export default function ParentSignUpScreen() {
             </Text>
           </View>
 
+          <TouchableOpacity style={styles.googleBtn} onPress={() => { setGoogleLoading(true); promptAsync() }} disabled={googleLoading || loading} activeOpacity={0.85}>
+            {googleLoading
+              ? <ActivityIndicator color="#14111c" />
+              : <Text style={styles.googleBtnText}>Continue with Google</Text>}
+          </TouchableOpacity>
+
           {appleAuthAvailable && (
             <TouchableOpacity style={styles.appleBtn} onPress={handleApple} disabled={appleLoading || loading} activeOpacity={0.85}>
               {appleLoading
@@ -139,12 +145,6 @@ export default function ParentSignUpScreen() {
                 : <Text style={styles.appleBtnText}>Continue with Apple</Text>}
             </TouchableOpacity>
           )}
-
-          <TouchableOpacity style={styles.googleBtn} onPress={() => { setGoogleLoading(true); promptAsync() }} disabled={googleLoading || loading} activeOpacity={0.85}>
-            {googleLoading
-              ? <ActivityIndicator color={COLORS.text} />
-              : <Text style={styles.googleBtnText}>Continue with Google</Text>}
-          </TouchableOpacity>
 
           <View style={styles.dividerRow}>
             <View style={styles.dividerLine} />
@@ -207,10 +207,10 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     logoSub: { fontSize: 13, color: COLORS.textMuted, fontWeight: "500", marginTop: 4, marginBottom: SPACING.lg },
     heading: { fontSize: 26, fontWeight: "700", color: COLORS.text, marginBottom: 6, textAlign: "center", fontFamily: "Anton_400Regular", textTransform: "uppercase", letterSpacing: 0.5 },
     sub: { fontSize: 14, color: COLORS.textMuted, textAlign: "center", lineHeight: 20 },
-    appleBtn: { backgroundColor: COLORS.text, borderRadius: RADIUS.sm, padding: SPACING.md, alignItems: "center", marginBottom: SPACING.sm },
-    appleBtnText: { color: COLORS.background, fontSize: 15, fontWeight: "600" },
-    googleBtn: { backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.sm, padding: SPACING.md, alignItems: "center", marginBottom: SPACING.md },
-    googleBtnText: { color: COLORS.text, fontSize: 15, fontWeight: "600" },
+    appleBtn: { backgroundColor: "#000000", borderWidth: 1, borderColor: "#3a3a3c", borderRadius: RADIUS.sm, padding: SPACING.md, alignItems: "center", marginBottom: SPACING.md },
+    appleBtnText: { color: "#ffffff", fontSize: 15, fontWeight: "600" },
+    googleBtn: { backgroundColor: "#ffffff", borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.sm, padding: SPACING.md, alignItems: "center", marginBottom: SPACING.sm },
+    googleBtnText: { color: "#14111c", fontSize: 15, fontWeight: "600" },
     dividerRow: { flexDirection: "row", alignItems: "center", marginBottom: SPACING.md },
     dividerLine: { flex: 1, height: 1, backgroundColor: COLORS.border },
     dividerText: { marginHorizontal: SPACING.sm, fontSize: 13, color: COLORS.textMuted },
