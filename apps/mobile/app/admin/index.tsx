@@ -342,29 +342,29 @@ export default function AdminOverviewScreen() {
             ].map((t) => (
               <TouchableOpacity
                 key={t.key}
-                style={[styles.statTile, { backgroundColor: t.bg, borderWidth: 1, borderColor: t.fg }]}
+                style={[styles.statTile, { backgroundColor: COLORS.background, borderWidth: 1, borderColor: COLORS.border }]}
                 onPress={() => { setBookingsStatusFilter(t.key); setBookingsModalOpen(true) }}
                 activeOpacity={0.7}
               >
                 <Text style={[styles.statTileValue, { color: t.fg }]}>{t.value}</Text>
-                <Text style={[styles.statTileLabel, { color: t.fg }]}>{t.label}</Text>
+                <Text style={[styles.statTileLabel, { color: COLORS.textSecondary }]}>{t.label}</Text>
               </TouchableOpacity>
             ))}
           </View>
         </View>
         <View style={styles.grid}>
-          <TouchableOpacity style={[styles.kpiCardThird, styles.kpiCardClickable, { borderColor: "#bbf7d0" }]} onPress={() => setRevenueModalOpen(true)} activeOpacity={0.7}>
+          <TouchableOpacity style={[styles.kpiCardThird, styles.kpiCardClickable]} onPress={() => setRevenueModalOpen(true)} activeOpacity={0.7}>
             <View style={styles.kpiHeader}><DollarSign size={14} color={COLORS.green} /><Text style={styles.kpiLabel}>Gross revenue</Text></View>
             <Text style={[styles.kpiValue, { color: COLORS.green }]}>${fmtMoney(revenue)}</Text>
             <Text style={styles.kpiSub}>{completed.length} completed sessions</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={[styles.kpiCardThird, styles.kpiCardClickable, { borderColor: COLORS.plum }]} onPress={() => setMarginModalOpen(true)} activeOpacity={0.7}>
+          <TouchableOpacity style={[styles.kpiCardThird, styles.kpiCardClickable]} onPress={() => setMarginModalOpen(true)} activeOpacity={0.7}>
             <View style={styles.kpiHeader}><TrendingUp size={14} color={COLORS.accent} /><Text style={styles.kpiLabel}>Margin</Text></View>
-            <Text style={[styles.kpiValue, { color: COLORS.green }]}>${fmtMoney(margin)}</Text>
+            <Text style={styles.kpiValue}>${fmtMoney(margin)}</Text>
             <Text style={styles.kpiSub}>Owed ${fmtMoney(payOwedThisMonth)}</Text>
           </TouchableOpacity>
-          <View style={[styles.kpiCardThird, { borderColor: "#ffffff" }]}>
-            <View style={styles.kpiHeader}><Activity size={14} color="#ffffff" /><Text style={styles.kpiLabel}>All-time*</Text></View>
+          <View style={styles.kpiCardThird}>
+            <View style={styles.kpiHeader}><Activity size={14} color={COLORS.textSecondary} /><Text style={styles.kpiLabel}>All-time*</Text></View>
             <Text style={styles.kpiValue}>${fmtMoney(allRevenue)}</Text>
             <Text style={styles.kpiSub}>{allCompleted.length} completed</Text>
           </View>
@@ -385,7 +385,7 @@ export default function AdminOverviewScreen() {
                     disabled={!worker}
                     onPress={() => worker && router.push(`/admin/prep-masters?worker=${worker.id}`)}
                     activeOpacity={0.7}
-                    style={[styles.pmTile, { width: tileWidth }, medal ? { borderColor: medal } : null]}
+                    style={[styles.pmTile, { width: tileWidth }]}
                   >
                     <View>
                       {worker?.photoUrl ? (
@@ -430,8 +430,8 @@ export default function AdminOverviewScreen() {
                     { label: "Active PMs", n: activePM, color: COLORS.accent, href: "/admin/prep-masters" },
                     { label: "Inactive PMs", n: workers.length - activePM, color: COLORS.textMuted, href: undefined as string | undefined },
                   ].map((t) => (
-                    <TouchableOpacity key={t.label} disabled={!t.href} activeOpacity={0.7} onPress={() => t.href && router.push(t.href as any)} style={[styles.statTile, { borderTopColor: t.color }]}>
-                      <Text style={[styles.statNum, { color: t.color }]}>{t.n}</Text>
+                    <TouchableOpacity key={t.label} disabled={!t.href} activeOpacity={0.7} onPress={() => t.href && router.push(t.href as any)} style={[styles.rosterTile, { borderTopColor: t.color }]}>
+                      <Text style={styles.statNum}>{t.n}</Text>
                       <Text style={styles.statLabel}>{t.label}</Text>
                     </TouchableOpacity>
                   ))}
@@ -616,7 +616,7 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     errorText: { fontSize: 13, color: COLORS.red },
     grid: { flexDirection: "row", flexWrap: "wrap", gap: SPACING.sm },
     kpiCardThird: { flex: 1, minWidth: 0, backgroundColor: COLORS.surface, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.border, padding: SPACING.sm },
-    kpiCardClickable: { borderColor: COLORS.plum + "40" },
+    kpiCardClickable: {},
     kpiHeader: { flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 6 },
     kpiLabel: { fontSize: 11, color: COLORS.textMuted, fontWeight: "500", flex: 1 },
     kpiValue: { fontSize: 16, fontWeight: "700", color: COLORS.text, marginBottom: 2 },
@@ -630,7 +630,7 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     statTileLabel: { fontSize: 9, fontWeight: "600", letterSpacing: 0.3, textTransform: "uppercase", marginTop: 2 },
     card: { backgroundColor: COLORS.surface, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.border, padding: SPACING.md, gap: SPACING.sm },
     cardHeader: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 4 },
-    pmTile: { alignItems: "center", gap: 6, paddingVertical: SPACING.md, paddingHorizontal: 8, borderRadius: RADIUS.md, borderWidth: 1.5, borderColor: COLORS.border, backgroundColor: COLORS.background },
+    pmTile: { alignItems: "center", gap: 4, paddingVertical: SPACING.sm + 4, paddingHorizontal: 8, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.background },
     pmTilePhoto: { width: 64, height: 64, borderRadius: 32 },
     pmTileInitials: { backgroundColor: COLORS.primaryLight, alignItems: "center", justifyContent: "center" },
     pmTileInitialsText: { color: COLORS.plum, fontWeight: "700", fontSize: 20 },
@@ -641,8 +641,8 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     cardTitle: { fontSize: 15, fontWeight: "600", color: COLORS.text },
     empty: { fontSize: 13, color: COLORS.textMuted },
     statRow: { flexDirection: "row", gap: SPACING.sm },
-    statTile: { flex: 1, backgroundColor: COLORS.background, borderRadius: RADIUS.sm, borderWidth: 1, borderColor: COLORS.border, borderTopWidth: 3, paddingVertical: SPACING.sm, paddingHorizontal: SPACING.sm, gap: 2 },
-    statNum: { fontFamily: "Anton_400Regular", fontSize: 28, lineHeight: 34 },
+    rosterTile: { flex: 1, backgroundColor: COLORS.background, borderRadius: RADIUS.sm, borderWidth: 1, borderColor: COLORS.border, borderTopWidth: 3, paddingVertical: SPACING.sm, paddingHorizontal: SPACING.sm, gap: 2 },
+    statNum: { fontFamily: "Anton_400Regular", fontSize: 28, lineHeight: 34, color: COLORS.text },
     statLabel: { fontSize: 11, fontWeight: "600", color: COLORS.textSecondary },
     statusBar: { flexDirection: "row", height: 10, borderRadius: 5, overflow: "hidden", backgroundColor: COLORS.border, gap: 2 },
     statusLegend: { flexDirection: "row", justifyContent: "space-between" },
