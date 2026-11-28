@@ -457,7 +457,7 @@ function makeStyles(COLORS: ReturnType<typeof useTheme>["colors"]) {
     errorText: { fontSize: 13, color: COLORS.red },
     avatarWrap: { alignItems: "center", gap: SPACING.sm, paddingVertical: SPACING.sm },
     avatarBadge: { position: "absolute", right: -2, bottom: -2, width: 28, height: 28, borderRadius: 14, backgroundColor: COLORS.primary, alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: COLORS.background },
-    avatarName: { fontSize: 20, fontWeight: "800", color: COLORS.text, textAlign: "center" },
+    avatarName: { fontSize: 20, fontWeight: "700", color: COLORS.text, textAlign: "center" },
     avatar: { width: 88, height: 88, borderRadius: 44, backgroundColor: COLORS.pinkLight, justifyContent: "center", alignItems: "center" },
     avatarText: { fontSize: 30, fontWeight: "700", color: COLORS.primary },
     avatarEmail: { fontSize: 13, color: COLORS.textMuted },

@@ -217,7 +217,7 @@ function makeStyles(COLORS: ReturnType<typeof useTheme>["colors"]) {
     avatarWrap: { alignItems: "center", gap: SPACING.sm, paddingTop: SPACING.lg },
     avatar: { width: 80, height: 80, borderRadius: RADIUS.full, backgroundColor: COLORS.pinkLight, alignItems: "center", justifyContent: "center" },
     avatarText: { fontSize: 28, fontWeight: "700", color: COLORS.primary },
-    name: { fontSize: 20, fontWeight: "700", color: COLORS.text, fontFamily: "Anton_400Regular", textTransform: "uppercase", letterSpacing: 0.5 },
+    name: { fontSize: 20, fontWeight: "700", color: COLORS.text, textAlign: "center" },
     email: { fontSize: 14, color: COLORS.textMuted },
     roleBadge: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: COLORS.primaryLight, paddingHorizontal: 10, paddingVertical: 4, borderRadius: RADIUS.full },
     roleText: { fontSize: 12, fontWeight: "700", color: COLORS.plum },
