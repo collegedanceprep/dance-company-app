@@ -394,7 +394,7 @@ export default function AdminOverviewScreen() {
                         <View style={[styles.pmTilePhoto, styles.pmTileInitials]}><Text style={styles.pmTileInitialsText}>{initials(name)}</Text></View>
                       )}
                       {i < 3 ? (
-                        <View style={styles.pmTileMedal}><RankMedal rank={(i + 1) as 1 | 2 | 3} size={34} /></View>
+                        <View style={styles.pmTileMedal}><RankMedal rank={(i + 1) as 1 | 2 | 3} size={22} /></View>
                       ) : (
                         <View style={[styles.pmTileRank, { backgroundColor: COLORS.plum }]}><Text style={styles.pmTileRankText}>{i + 1}</Text></View>
                       )}
@@ -638,7 +638,7 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     pmTilePhoto: { width: 64, height: 64, borderRadius: 32 },
     pmTileInitials: { backgroundColor: COLORS.primaryLight, alignItems: "center", justifyContent: "center" },
     pmTileInitialsText: { color: COLORS.plum, fontWeight: "700", fontSize: 20 },
-    pmTileMedal: { position: "absolute", right: -10, bottom: -8 },
+    pmTileMedal: { position: "absolute", right: -4, bottom: -4 },
     pmTileRank: { position: "absolute", right: -4, bottom: -4, minWidth: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center", paddingHorizontal: 4, borderWidth: 2, borderColor: COLORS.background },
     pmTileRankText: { color: "#ffffff", fontWeight: "800", fontSize: 12 },
     pmTileName: { color: COLORS.text, fontWeight: "600", fontSize: 13, textAlign: "center" },

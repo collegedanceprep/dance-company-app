@@ -1,9 +1,9 @@
 import Svg, { Circle, Path, Text as SvgText } from "react-native-svg"
 
 const MEDALS = [
-  { face: "#e6b422", rim: "#a67c00", ribbon: ["#2f6fd6", "#d63a5a"] }, // gold
-  { face: "#c9ccd1", rim: "#8a8f97", ribbon: ["#2f6fd6", "#d63a5a"] }, // silver
-  { face: "#cd7f3a", rim: "#8c4f1c", ribbon: ["#2f6fd6", "#d63a5a"] }, // bronze
+  { face: "#e6b422", rim: "#a67c00", ribbon: ["#b8860b", "#8f6a08"] }, // gold
+  { face: "#c9ccd1", rim: "#8a8f97", ribbon: ["#9aa0a8", "#767c85"] }, // silver
+  { face: "#cd7f3a", rim: "#8c4f1c", ribbon: ["#a5612a", "#7d4519"] }, // bronze
 ]
 
 /** A small ribboned medal for 1st–3rd place. */
