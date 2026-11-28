@@ -2,7 +2,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } fr
 import { API_BASE } from "@/lib/config"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { useRouter, useFocusEffect } from "expo-router"
-import { LayoutDashboard, Users, LogOut, Sun, Moon, Smartphone, Link, CalendarCheck, CalendarX } from "lucide-react-native"
+import { Crown, LayoutDashboard, Users, LogOut, Sun, Moon, Smartphone, Link, CalendarCheck, CalendarX } from "lucide-react-native"
 import * as WebBrowser from "expo-web-browser"
 import { SPACING, RADIUS, initials } from "@/constants/theme"
 
@@ -129,7 +129,7 @@ export default function AdminProfileScreen() {
           <View style={styles.avatar}><Text style={styles.avatarText}>{initials(name || email || "?")}</Text></View>
           <Text style={styles.name}>{name || "(no name)"}</Text>
           <Text style={styles.email}>{email}</Text>
-          <View style={styles.roleBadge}><Text style={styles.roleText}>Admin</Text></View>
+          <View style={styles.roleBadge}><Crown size={12} color={COLORS.accent} /><Text style={styles.roleText}>Admin</Text></View>
         </View>
 
         <View style={styles.section}>
@@ -219,8 +219,8 @@ function makeStyles(COLORS: ReturnType<typeof useTheme>["colors"]) {
     avatarText: { fontSize: 28, fontWeight: "700", color: COLORS.primary },
     name: { fontSize: 20, fontWeight: "700", color: COLORS.text, fontFamily: "Anton_400Regular", textTransform: "uppercase", letterSpacing: 0.5 },
     email: { fontSize: 14, color: COLORS.textMuted },
-    roleBadge: { backgroundColor: COLORS.primaryLight, paddingHorizontal: 12, paddingVertical: 4, borderRadius: RADIUS.full },
-    roleText: { fontSize: 12, fontWeight: "600", color: COLORS.plum },
+    roleBadge: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: COLORS.primaryLight, paddingHorizontal: 10, paddingVertical: 4, borderRadius: RADIUS.full },
+    roleText: { fontSize: 12, fontWeight: "700", color: COLORS.plum },
     section: { backgroundColor: COLORS.surface, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.border },
     sectionLabel: { fontSize: 11, fontWeight: "700", color: COLORS.textMuted, letterSpacing: 0.8, paddingHorizontal: SPACING.md, paddingTop: SPACING.sm, paddingBottom: 4 },
     row: { flexDirection: "row", alignItems: "center", gap: SPACING.sm, padding: SPACING.md },

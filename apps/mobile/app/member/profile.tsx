@@ -9,7 +9,7 @@ import * as ImagePicker from "expo-image-picker"
 import { ImageManipulator, SaveFormat } from "expo-image-manipulator"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router"
-import { Camera, Link, Sun, Moon, Smartphone, CalendarCheck, CalendarX, LayoutDashboard, Users, ShieldCheck, X } from "lucide-react-native"
+import { Camera, Sparkles, Link, Sun, Moon, Smartphone, CalendarCheck, CalendarX, LayoutDashboard, Users, ShieldCheck, X } from "lucide-react-native"
 import Svg, { Path } from "react-native-svg"
 import * as SecureStore from "expo-secure-store"
 import * as WebBrowser from "expo-web-browser"
@@ -289,12 +289,10 @@ export default function MemberProfileScreen() {
               ) : Avatar
             })()}
             <Text style={styles.avatarName}>{name || session?.user?.name || ""}</Text>
-            {profile?.isParentView && (
-              <View style={styles.parentBadge}>
-                <Users size={12} color={COLORS.accent} />
-                <Text style={styles.parentBadgeText}>Parent / Guardian View</Text>
-              </View>
-            )}
+            <View style={styles.parentBadge}>
+              {profile?.isParentView ? <Users size={12} color={COLORS.accent} /> : <Sparkles size={12} color={COLORS.accent} />}
+              <Text style={styles.parentBadgeText}>{profile?.isParentView ? "Parent" : "Dancer"}</Text>
+            </View>
           </View>
 
           {!isGoogleLinked && !nudgeDismissed && !profile?.isParentView && (
