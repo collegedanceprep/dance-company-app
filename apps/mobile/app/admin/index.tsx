@@ -1,10 +1,11 @@
 import React from "react"
-import { ScrollView, View, Text, StyleSheet, TouchableOpacity, Modal, FlatList, RefreshControl, ActivityIndicator } from "react-native"
+import { ScrollView, View, Text, StyleSheet, TouchableOpacity, Modal, FlatList, RefreshControl, ActivityIndicator, Image, useWindowDimensions } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { useState, useCallback } from "react"
 import { useRouter } from "expo-router"
 import { CalendarDays, DollarSign, TrendingUp, Activity, Award, Users, X, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, CheckCircle, Clock, XCircle, AlertCircle } from "lucide-react-native"
-import { SPACING, RADIUS } from "@/constants/theme"
+import { SPACING, RADIUS, initials } from "@/constants/theme"
+import { API_BASE } from "@/lib/config"
 import { useColors } from "@/lib/theme-context"
 import { useAdmin } from "@/lib/admin-context"
 import type { AdminBooking } from "@/lib/admin-types"
@@ -239,6 +240,7 @@ function RosterRow({ label, value, icon }: { label: string; value: number; icon?
 
 export default function AdminOverviewScreen() {
   const { data, loading, error, refresh } = useAdmin()
+  const { width: screenWidth } = useWindowDimensions()
   const router = useRouter()
   const COLORS = useColors()
   const styles = makeStyles(COLORS)
@@ -303,7 +305,10 @@ export default function AdminOverviewScreen() {
   if (!availableCompareMonths.includes(defaultCompareKey)) availableCompareMonths.unshift(defaultCompareKey)
   const pmCounts: Record<string, number> = {}
   completed.forEach((b) => { if (b.prepMasterName) pmCounts[b.prepMasterName] = (pmCounts[b.prepMasterName] ?? 0) + 1 })
-  const topPMs = Object.entries(pmCounts).sort((a, b) => b[1] - a[1]).slice(0, 10)
+  const topPMs = Object.entries(pmCounts).sort((a, b) => b[1] - a[1])
+  // Three tiles fill the card's width; the rest are a sideways scroll away.
+  const TILE_GAP = 10
+  const tileWidth = Math.floor((screenWidth - SPACING.md * 4 - TILE_GAP * 2) / 3)
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
@@ -369,22 +374,34 @@ export default function AdminOverviewScreen() {
         )}
         <View style={styles.card}>
           <View style={styles.cardHeader}><Award size={16} color={COLORS.accent} /><Text style={styles.cardTitle}>Top PrepMasters this month*</Text></View>
-          {topPMs.length === 0 ? <Text style={styles.empty}>No completed sessions yet this month.</Text> : topPMs.map(([name, count], i) => {
-            const worker = workers.find((w) => w.name === name)
-            const Row = (
-              <View style={styles.rosterRow}>
-                <Text style={styles.rosterLabel}>#{i + 1} {name}</Text>
-                <Text style={styles.rosterValue}>{count} session{count !== 1 ? "s" : ""}</Text>
-              </View>
-            )
-            return worker ? (
-              <TouchableOpacity key={name} onPress={() => router.push(`/admin/prep-masters?worker=${worker.id}`)} activeOpacity={0.6}>
-                {Row}
-              </TouchableOpacity>
-            ) : (
-              <View key={name}>{Row}</View>
-            )
-          })}
+          {topPMs.length === 0 ? <Text style={styles.empty}>No completed sessions yet this month.</Text> : (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: TILE_GAP }} snapToInterval={tileWidth + TILE_GAP} decelerationRate="fast">
+              {topPMs.map(([name, count], i) => {
+                const worker = workers.find((w) => w.name === name)
+                const medal = ["#d4a017", "#a8a9ad", "#c07a3e"][i]
+                return (
+                  <TouchableOpacity
+                    key={name}
+                    disabled={!worker}
+                    onPress={() => worker && router.push(`/admin/prep-masters?worker=${worker.id}`)}
+                    activeOpacity={0.7}
+                    style={[styles.pmTile, { width: tileWidth }, medal ? { borderColor: medal } : null]}
+                  >
+                    <View>
+                      {worker?.photoUrl ? (
+                        <Image source={{ uri: `${API_BASE}${worker.photoUrl}` }} style={styles.pmTilePhoto} />
+                      ) : (
+                        <View style={[styles.pmTilePhoto, styles.pmTileInitials]}><Text style={styles.pmTileInitialsText}>{initials(name)}</Text></View>
+                      )}
+                      <View style={[styles.pmTileRank, { backgroundColor: medal ?? COLORS.plum }]}><Text style={styles.pmTileRankText}>{i + 1}</Text></View>
+                    </View>
+                    <Text style={styles.pmTileName} numberOfLines={2}>{name}</Text>
+                    <Text style={styles.pmTileCount}>{count} session{count !== 1 ? "s" : ""}</Text>
+                  </TouchableOpacity>
+                )
+              })}
+            </ScrollView>
+          )}
           <Text style={styles.footnote}>*All sessions shown are completed sessions.</Text>
         </View>
         <View style={styles.card}>
@@ -586,6 +603,14 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     statTileLabel: { fontSize: 9, fontWeight: "600", letterSpacing: 0.3, textTransform: "uppercase", marginTop: 2 },
     card: { backgroundColor: COLORS.surface, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.border, padding: SPACING.md, gap: SPACING.sm },
     cardHeader: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 4 },
+    pmTile: { alignItems: "center", gap: 6, paddingVertical: SPACING.md, paddingHorizontal: 8, borderRadius: RADIUS.md, borderWidth: 1.5, borderColor: COLORS.border, backgroundColor: COLORS.background },
+    pmTilePhoto: { width: 64, height: 64, borderRadius: 32 },
+    pmTileInitials: { backgroundColor: COLORS.primaryLight, alignItems: "center", justifyContent: "center" },
+    pmTileInitialsText: { color: COLORS.plum, fontWeight: "700", fontSize: 20 },
+    pmTileRank: { position: "absolute", right: -4, bottom: -4, minWidth: 24, height: 24, borderRadius: 12, alignItems: "center", justifyContent: "center", paddingHorizontal: 4, borderWidth: 2, borderColor: COLORS.background },
+    pmTileRankText: { color: "#ffffff", fontWeight: "800", fontSize: 12 },
+    pmTileName: { color: COLORS.text, fontWeight: "600", fontSize: 13, textAlign: "center" },
+    pmTileCount: { color: COLORS.textSecondary, fontSize: 12 },
     cardTitle: { fontSize: 15, fontWeight: "600", color: COLORS.text },
     empty: { fontSize: 13, color: COLORS.textMuted },
     divider: { height: 1, backgroundColor: COLORS.border, marginVertical: 4 },
