@@ -282,3 +282,12 @@ export const pendingEscalationSent = pgTable(
     bookingStageUnique: unique("pending_escalation_sent_booking_stage").on(t.bookingId, t.stage),
   }),
 )
+
+// Dancer profile photos (base64), keyed by Airtable member record id. Served only
+// through /api/member-photo/[recordId], which limits viewing to admins, PMs and the owner.
+export const memberPhoto = pgTable("member_photo", {
+  recordId: text("recordId").primaryKey(),
+  mime: text("mime").notNull(),
+  data: text("data").notNull(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+})
