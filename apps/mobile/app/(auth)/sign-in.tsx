@@ -232,7 +232,7 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     container: { flex: 1, padding: SPACING.lg, justifyContent: "center" },
     logoWrap: { alignItems: "center", marginBottom: SPACING.xl },
     logo: { fontSize: 40, fontWeight: "800", color: COLORS.primary, letterSpacing: 2 },
-    logoSub: { fontSize: 13, color: COLORS.textMuted, fontWeight: "500", marginTop: 4 },
+    logoSub: { fontSize: 13, color: COLORS.text, fontWeight: "500", marginTop: 4 },
     heading: { fontSize: 26, fontWeight: "700", color: COLORS.text, marginBottom: 4, fontFamily: "Anton_400Regular", textTransform: "uppercase", letterSpacing: 0.5 },
     sub: { fontSize: 14, color: COLORS.textMuted, marginBottom: SPACING.lg },
     errorBox: { backgroundColor: COLORS.redLight, borderRadius: RADIUS.sm, padding: SPACING.sm, marginBottom: SPACING.md },

@@ -53,7 +53,7 @@ function makeStyles(COLORS: ReturnType<typeof useColors>) {
     container: { flex: 1, padding: SPACING.lg, justifyContent: "center", gap: SPACING.md },
     logoWrap: { alignItems: "center", marginBottom: SPACING.xl },
     logo: { fontSize: 40, fontWeight: "800", color: COLORS.primary, letterSpacing: 2 },
-    logoSub: { fontSize: 13, color: COLORS.textMuted, fontWeight: "500", marginTop: 4 },
+    logoSub: { fontSize: 13, color: COLORS.text, fontWeight: "500", marginTop: 4 },
     heading: { fontSize: 24, fontWeight: "700", color: COLORS.text },
     sub: { fontSize: 14, color: COLORS.textMuted, marginBottom: SPACING.sm },
     card: { flexDirection: "row", alignItems: "center", gap: SPACING.md, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.md, padding: SPACING.md },
